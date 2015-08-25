@@ -1,12 +1,12 @@
 use utf8;
-package Rebus::Schema::Result::ScanRequest;
+package Rebus1::Schema::Result::ScanRequest;
 
 # Created by DBIx::Class::Schema::Loader
 # DO NOT MODIFY THE FIRST PART OF THIS FILE
 
 =head1 NAME
 
-Rebus::Schema::Result::ScanRequest
+Rebus1::Schema::Result::ScanRequest
 
 =cut
 

@@ -1,12 +1,12 @@
 use utf8;
-package Rebus::Schema::Result::OwnersLink;
+package Rebus1::Schema::Result::OwnersLink;
 
 # Created by DBIx::Class::Schema::Loader
 # DO NOT MODIFY THE FIRST PART OF THIS FILE
 
 =head1 NAME
 
-Rebus::Schema::Result::OwnersLink
+Rebus1::Schema::Result::OwnersLink
 
 =cut
 

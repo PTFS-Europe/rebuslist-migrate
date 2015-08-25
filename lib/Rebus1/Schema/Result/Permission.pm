@@ -1,12 +1,12 @@
 use utf8;
-package Rebus::Schema::Result::Permission;
+package Rebus1::Schema::Result::Permission;
 
 # Created by DBIx::Class::Schema::Loader
 # DO NOT MODIFY THE FIRST PART OF THIS FILE
 
 =head1 NAME
 
-Rebus::Schema::Result::Permission
+Rebus1::Schema::Result::Permission
 
 =cut
 
