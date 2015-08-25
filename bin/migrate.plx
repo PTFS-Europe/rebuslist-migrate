@@ -19,40 +19,23 @@ GetOption(
 # Load config
 my $config = LoadFile($configfile) || croak "Cannot load config file: $!\n";
 
-
-
-# DB Details
-my $host     = 'localhost';
-my $port     = '3306';
-my $username = 'root';
-my $password = 'melB1n';
-my $database = 'rebuslist_eh';
-
-my $rebus =
-  Rebus::Schema->connect( "dbi:mysql:database=$database;host=$host;port=$port",
+my $rebus1 =
+  Rebus1::Schema->connect( "dbi:mysql:database=$database;host=$host;port=$port",
     "$username", "$password" );
-my $source = '../source/2014-15_Module_Lists.csv';
 
-# Progress
-my $line = 0;
+my $rebus2 =
+  Rebus2::Schema->connect( "dbi:mysql:database=$database;host=$host;port=$port",
+    "$username", "$password" );
 
-# CSV Handler
-my $csv =
-  Text::CSV->new( { binary => 1, sep_char => ",", quote_char => '"' }
-  )    # should set binary attribute.
-  or die "Cannot use CSV: " . Text::CSV->error_diag();
 
-# Open source file
-say "Opening source file...";
-open( my $fh, '<:encoding(UTF-8)', $source )
-  or die "Could not open file '$source' $!";
+say "Beggining migration...";
+say "Importing organisational units";
+my @rl1_unitResults = $rebus1->resultset(OrgUnits)->search( undef, { order_by => { -asc => [qw/parent org_unit_id/] } } )->all;
+my $unit_links;
+while my $rl1_unit ( @rl1_unitResults ) {
+    my $rl2_unit = $rebus2->resultset(List)->create
+}
 
-# Read first line for headers
-say "Reading headers...";
-$csv->column_names( $csv->getline($fh) );
-
-# Loop through source file
-say "Loading lists...";
 while ( my $row = $csv->getline_hr($fh) ) {
 
     # Count for progress
