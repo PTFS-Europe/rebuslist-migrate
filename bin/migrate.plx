@@ -192,21 +192,39 @@ my @rl1_sequenceResults = $rebus1->resultset('Sequence')
 
 for my $rl1_sequence (@rl1_sequenceResults) {
 
+    # Get material
     my $rl1_material = $rebus1->resultset('Material')
       ->find( { material_id => $rl1_sequence->material_id } );
 
+    # Map Material to CSL
+    my $csl = mapCSL($rl1_material);
+
+    my ( $owner, $owner_uuid );
+    if ( defined($rl1_material->print_sysno) || defined($rl1_material->elec_sysno) ) {
+        $owner = $config->{'connector'};
+        $owner_uuid = $rl1_material->print_sysno;
+        $owner_uuid //= $rl1_material->elec_sysno;
+
+    } else {
+        $owner = $config->{code};
+        $owner = 1;
+    }
+
+    # Add material
     my $rl2_material = addMaterial(
         {
             in_stock => $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
-            metadata =>, #MAP MATERIAL HERE
-            owner =>,    # Connector/User
-            owner_uuid =>    # ConnnectorID/UserID
+            metadata => $csl,
+            owner    => $owner,
+            owner_uuid => $owner_uuid
         }
     );
 
+    # Get rating
     my $rl1_rating = $rebus1->resultset('MaterialRating')
       ->find( { material_id => $rl1_sequence->material_id } );
 
+    # Link material to list
     my $rl2_sequence = $rebus2->resultset('ListMaterial')->create(
         {
             list        => $list_links->{ $rl1_sequence->list },
@@ -220,15 +238,25 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         }
     );
 
+    # Get material tags
     my $rl1_tagResults = $rebus1->resultset('TagLink')
       ->find( { material_id => $rl1_sequence->material_id } );
 
+    # Get tag
     my $rl1_tag =
       $rebus1->resultset('Tag')->find( { tag_id => $rl1_tagResult->tag_id } );
 
+    # Add tag
     my $rl2_tag = addTag( { text => $rl1_tag->tag } );
 
-    # Link Tag HERE
+    # Link tag to material in list
+    my $rl2_link_tag = $rebus2->resultset('MaterialTag')->create(
+        {
+            material => $rl2_material->id,
+            tag      => $rl2_tag->id,
+            list     => $rl2_list->id
+        }
+    );
 
 }
 say "Materials loaded...\n";
@@ -247,12 +275,85 @@ sub addTag {
     $text = lc($text);
     $text =~ s/\s/-/g;
 
-    my @tagResults = $rebus2->resultset('Tag')->search({ text => $text });
+    my @tagResults = $rebus2->resultset('Tag')->search( { text => $text } );
 
     unless (@tagResults) {
-        my $new_tag = $rebus2->resultset('Tag')->create({ text => $text });
+        my $new_tag = $rebus2->resultset('Tag')->create( { text => $text } );
         return $new_tag;
     }
 
     return $tagResults[0];
+}
+
+sub mapCSL {
+    my $result = shift;
+    my $csl;
+
+    $csl->{'title'} = $result->title;
+    $csl->{'author'} = [ { literal => $result->authors }, { literal => $result->secondary_authors } ];
+    $csl->{'edition'} = $result->edition;
+    $csl->{'volume'} = $result->volume;
+    $csl->{'issue'} = $result->issue;
+    $csl->{'publisher'} = $result->publisher;
+    $csl->{'issued'} = { raw => $result->publication_date };
+    $csl->{'publisher-place'} = $result->publication_place;
+    $csl->{'note'} = $result->note;
+    $csl->{'URL'} = $result->url;
+
+    # Types: 1=Book, 2=Chapter, 3=Journal, 4=Article, 5=Scan, 7=Link, 9=Other, 10=eBook, 11=AV, 12=Note, 13=Private Note
+    if ( $result->material_type_id == 1 ) {
+        $csl->{'type'} = 'book';
+        $csl->{'collection-title'} = $result->secondary_title;
+        $csl->{'number-of-pages'} = $result->spage;
+        $csl->{'ISBN'} = $result->print_control_no //= $result->elec_control_no;
+    }
+    if ( $result->material_type_id == 2 ) {
+        $csl->{'type'} = 'chapter';
+        $csl->{'container-title'} = $result->secondary_title;
+        $csl->{'page-first'} = $result->spage;
+        $csl->{'number-of-pages'} = $result->epage - $result->spage;
+        $csl->{'ISBN'} = $result->print_control_no //= $result->elec_control_no;
+    }
+    if ( $result->material_type_id == 3 ) {
+        $csl->{'type'} = 'journal'; #CUSTOM
+        $csl->{'ISSN'} = $result->print_control_no //= $result->elec_control_no;
+    }
+    if ( $result->material_type_id == 4 ) {
+        $csl->{'type'} = 'article';
+        $csl->{'container-title'} = $result->secondary_title;
+        $csl->{'page-first'} = $result->spage;
+        $csl->{'number-of-pages'} = $result->epage - $result->spage;
+        $csl->{'ISSN'} = $result->print_control_no //= $result->elec_control_no;
+    }
+    if ( $result->material_type_id == 5 ) {
+        $csl->{'type'} = 'entry';
+        $csl->{'container-title'} = $result->secondary_title;
+        $csl->{'page-first'} = $result->spage;
+        $csl->{'number-of-pages'} = $result->epage - $result->spage;
+        $csl->{'ISBN'} = $result->print_control_no //= $result->elec_control_no;
+    }
+    if ( $result->material_type_id == 7 ) {
+        $csl->{'type'} = 'webpage';
+        $csl->{'container-title'} = $result->secondary_title;
+    }
+    if ( $result->material_type_id == 9 ) {
+        $csl->{'type'} = 'entry';
+        $csl->{'container-title'} = $result->secondary_title;
+        $csl->{'page-first'} = $result->spage;
+        $csl->{'number-of-pages'} = $result->epage - $result->spage;
+        $csl->{'ISBN'} = $result->print_control_no //= $result->elec_control_no;
+    }
+    if ( $result->material_type_id == 10 ) {
+        $csl->{'type'} = 'book';
+        $csl->{'container-title'} = $result->secondary_title;
+        $csl->{'number-of-pages'} = $result->spage
+        $csl->{'ISBN'} = $result->print_control_no //= $result->elec_control_no;
+    }
+    if ( $result->material_type_id == 11 ) {
+        $csl->{'type'} = 'broadcast';
+        $csl->{'collection-title'} = $result->secondary_title;
+    }
+    # 12=Note and 13=Private Note are handled prior to this
+
+    return $csl;
 }
