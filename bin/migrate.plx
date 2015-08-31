@@ -9,6 +9,7 @@ BEGIN { unshift @INC, "$FindBin::Bin/../lib" }
 use Rebus1::Schema;
 use Rebus2::Schema;
 use DBIx::Class::Tree::NestedSet;
+use Authen::Passphrase::SaltedDigest;
 
 use Getopt::Long;
 use YAML::XS qw/LoadFile/;
@@ -151,6 +152,16 @@ for my $rl1_user (@rl1_userResults) {
             active      => 1
         }
     );
+
+    # Convert Password Hash
+    my $ppr = Authen::Passphrase::SaltedDigest->new(
+            algorithm => "MD5",
+            hash_hex => $rl1_user->password
+        );
+    my $pass_string = $ppr->as_rfc2307;
+    $rl2_user->store_column(password => $pass_string);
+    $rl2_user->make_column_dirty(password);
+    $rl2_user->update;
 
     # Add to lookup table
     $user_links{ $rl1_user->user_id } = $rl2_user->id;
