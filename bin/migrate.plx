@@ -6,38 +6,46 @@ use feature qw( say );
 use FindBin;
 BEGIN { unshift @INC, "$FindBin::Bin/../lib" }
 
+use Carp;
 use Rebus1::Schema;
 use Rebus2::Schema;
 use DBIx::Class::Tree::NestedSet;
 use Authen::Passphrase::SaltedDigest;
+use DateTime;
+use DateTime::Duration;
 
 use Getopt::Long;
 use YAML::XS qw/LoadFile/;
 
 my ($configfile) = (undef);
-GetOption( 'c|config=s' => \$configfile, );
+GetOptions( 'c|config=s' => \$configfile, );
 
 # Load config
-my $config = LoadFile($configfile) || croak "Cannot load config file: $!\n";
+my $config = LoadFile($configfile) || croak "Cannot load config file: " . $! . "\n";
 
 my $rebus1 =
-  Rebus1::Schema->connect( "dbi:mysql:database=$database;host=$host;port=$port",
-    "$username", "$password" );
+  Rebus1::Schema->connect( "dbi:mysql:database=$config->{'database'};host=$config->{'host'};port=$config->{'port'}",
+    "$config->{'username'}", "$config->{'password'}" );
 
 my $rebus2 =
-  Rebus2::Schema->connect( "dbi:mysql:database=$database;host=$host;port=$port",
-    "$username", "$password" );
+  Rebus2::Schema->connect( "dbi:Pg:database=$config->{'database2'};host=$config->{'host2'};port=$config->{'port2'}",
+    "$config->{'username2'}", "$config->{'password2'}" );
 
 say "Beggining migration...";
+my $dt = DateTime->now;
+my $today = $rebus2->storage->datetime_parser->format_datetime($dt);
+my $start = $dt->clone->subtract( years => 1 );
+my $end   = $dt->clone->add( years => 1 );
 
 # OrgUnit, List
 say "Importing lists";
 my @rl1_unitResults = $rebus1->resultset('OrgUnit')
-  ->search( undef, { order_by => { -asc => [qw/parent org_unit_id/] } } )->all;
+  ->search( { parent => 0 }, { order_by => { -asc => [qw/parent org_unit_id/] } } )->all;
 my $unit_links;
 my $list_links;
 for my $rl1_unit (@rl1_unitResults) {
 
+    my $rl2_unit;
     # Add org units
     if ( $rl1_unit->parent == 0 ) {
 
@@ -45,47 +53,68 @@ for my $rl1_unit (@rl1_unitResults) {
         my $rootResult =
           $rebus2->resultset('List')
           ->search( {}, { order_by => 'root_id', rows => '1' } )->single;
-        $rootID = $rootResult->root_id;
+        my $rootID;
+	if ( defined($rootResult) ) {
+            $rootID = $rootResult->root_id;
+        } else {
+            $rootID = 0;
+	}	
         $rootID = $rootID - 1;
 
         # Add new tree
-        my $rl2_unit = $rebus2->resultset('List')->create(
+        $rl2_unit = $rebus2->resultset('List')->create(
             {
                 name      => $rl1_unit->name,
-                source    => $config->{code},
+                source    => 1,
                 published => 1,
-                root_id   => $rootID
+		inherited_published => 1,
+                root_id   => $rootID,
+		validity_start => $start,
+		inherited_validity_start => $start,
+		validity_end => $end,
+		inherited_validity_end => $end
             }
         );
 
         $rl2_unit->update(
             {
-                'source_uuid' => $config->{code} . "-" . $rl2_unit->id
+                'source_uuid' => $config->{'code'} . "-" . $rl2_unit->id
             }
         );
 
+	print "Added top level list: " . $rl2_unit->id . "\n";
         # Add to lookup table
-        $unit_links{ $rl1_unit->org_unit_id } = $rl2_unit->id;
+        $unit_links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
         $rl2_unit->discard_changes;
     }
     else {
+	print "Attempting to add a new child to list parent: $unit_links->{ $rl1_unit->parent }\n";
+	# Get existing parent
+	my $parentResult = $rebus2->resultset('List')->find({ id => $unit_links->{ $rl1_unit->parent } });
+
         # Add rightmost child to existing node
-        my $rl2_unit = $rebus2->resultset('List')->create_rightmost_child(
+        $rl2_unit = $parentResult->create_rightmost_child(
             {
                 name      => $rl1_unit->name,
-                source    => $config->{code},
+                source    => 1,
                 published => 1,
+		inherited_published => 1,
+		validity_start => $start,
+		inherited_validity_start => $start,
+		validity_end => $end,
+		inherited_validity_end => $end
+
             }
         );
 
         $rl2_unit->update(
             {
-                'source_uuid' => $config->{code} . "-" . $rl2_unit->id
+                'source_uuid' => $config->{'code'} . "-" . $rl2_unit->id
             }
         );
 
         # Add to lookup table
-        $unit_links{ $rl1_unit->org_unit_id } = $rl2_unit->id;
+        $unit_links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
         $rl2_unit->discard_changes;
     }
 
@@ -95,31 +124,36 @@ for my $rl1_unit (@rl1_unitResults) {
         { order_by    => { -asc => [qw/list_name year/] } }
     )->all;
 
-    for my $rl1_list (@rl2_listResults) {
+    for my $rl1_list (@rl1_listResults) {
 
         # Add child list
         my $rl2_list = $rl2_unit->create_rightmost_child(
             {
                 name              => $rl1_list->list_name,
-                no_students       => $rl1->no_students,
-                ratio_books       => $rl1->ratio_books,
-                ratio_students    => $rl1->ration_students,
-                updated           => $rl1->last_updated,
-                created           => $rl1->creation_date,
-                source            => $config->{code},
-                course_identifier => $rl1->course_identifier,
-                published         => $rl1->published_yn eq 'y' ? 1 : 0
+                no_students       => $rl1_list->no_students,
+                ratio_books       => $rl1_list->ratio_books,
+                ratio_students    => $rl1_list->ratio_students,
+                updated           => $dt,
+                created           => $dt,
+                source            => 1,
+                course_identifier => $rl1_list->course_identifier,
+                published         => $rl1_list->published_yn eq 'y' ? 1 : 0,
+		inherited_published => $rl1_list->published_yn eq 'y' ? 1 : 0,
+		validity_start => $start,
+		inherited_validity_start => $start,
+		validity_end => $end,
+		inherited_validity_end => $end
             }
         );
 
         $rl2_list->update(
             {
-                'source_uuid' => $config->{code} . "-" . $rl2_list->id
+                'source_uuid' => $config->{'code'} . "-" . $rl2_list->id
             }
         );
 
         # Add to lookup table
-        $list_links{ $rl1_list->list_id } = $rl2_list->id;
+        $list_links->{ $rl1_list->list_id } = $rl2_list->id;
         $rl2_list->discard_changes;
         $rl2_unit->discard_changes;
     }
@@ -145,7 +179,7 @@ for my $rl1_user (@rl1_userResults) {
     my $rl2_user = $rebus2->resultset('User')->create(
         {
             name        => $rl1_user->name,
-            system_role => $role_map->{ $rl1->type_id },
+            system_role => $role_map->{ $rl1_user->type_id },
             login       => $rl1_user->login,
             password    => $rl1_user->password,
             email       => $rl1_user->email_address,
@@ -160,11 +194,11 @@ for my $rl1_user (@rl1_userResults) {
         );
     my $pass_string = $ppr->as_rfc2307;
     $rl2_user->store_column(password => $pass_string);
-    $rl2_user->make_column_dirty(password);
+    $rl2_user->make_column_dirty('password');
     $rl2_user->update;
 
     # Add to lookup table
-    $user_links{ $rl1_user->user_id } = $rl2_user->id;
+    $user_links->{ $rl1_user->user_id } = $rl2_user->id;
 }
 say "Users loaded...\n";
 
@@ -182,17 +216,17 @@ for my $rl1_erbo (@rl1_erboResults) {
         {
             category => $rl1_erbo->erbo,
             rank     => $rank++,
-            source   => $config->{code}
+            source   => 1
         }
     );
     $rl2_erbo->update(
         {
-            'source_uuid' => $config->{code} . "-" . $rl2_erbo->id
+            'source_uuid' => $config->{'code'} . "-" . $rl2_erbo->id
         }
     );
 
     # Add to lookup table
-    $erbo_links{ $rl1_erbo->erbo_id } = $rl2_erbo->id;
+    $erbo_links->{ $rl1_erbo->erbo_id } = $rl2_erbo->id;
 }
 say "Categories loaded...\n";
 
@@ -217,8 +251,8 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         $owner_uuid //= $rl1_material->elec_sysno;
 
     } else {
-        $owner = $config->{code};
-        $owner = 1;
+        $owner = $config->{'code'};
+        $owner = $user_links->{ $rl1_sequence->list_id };
     }
 
     # Add material
@@ -244,13 +278,13 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             dislikes    => $rl1_rating->not_likes,
             likes       => $rl1_rating->likes,
             category    => $erbo_links->{ $rl1_material->erbo_id },
-            source      => $config->{code},
-            source_uuid => $config->{code} . '-' . $rl2_material->id
+            source      => 1,
+            source_uuid => $config->{'code'} . '-' . $rl2_material->id
         }
     );
 
     # Get material tags
-    my $rl1_tagResults = $rebus1->resultset('TagLink')
+    my $rl1_tagResult = $rebus1->resultset('TagLink')
       ->find( { material_id => $rl1_sequence->material_id } );
 
     # Get tag
@@ -265,7 +299,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         {
             material => $rl2_material->id,
             tag      => $rl2_tag->id,
-            list     => $rl2_list->id
+            list     => $list_links->{ $rl1_sequence->list }
         }
     );
 
@@ -277,7 +311,29 @@ say "Importing permissions...";
 say "Permissions loaded...\n";
 
 sub addMaterial {
+    my ( $in_stock, $metadata, $owner, $owner_uuid ) = @_;
 
+    my @materialResults = $rebus2->resultset('Material')->search(
+	   { 
+	       owner => $owner,
+	       owner_uuid => $owner_uuid
+           }
+    );
+
+    unless (@materialResults) {
+	my $new_material = $rebus2->resultset('Material')->create(
+	       	{
+		       	in_stock => $in_stock,
+		       	metadata => $metadata,
+		       	owner => $owner,
+		       	owner_uuid => $owner_uuid
+	       	}
+       	);
+
+	return $new_material;
+    }
+
+    return $materialResults[0]
 }
 
 sub addTag {
@@ -357,7 +413,7 @@ sub mapCSL {
     if ( $result->material_type_id == 10 ) {
         $csl->{'type'} = 'book';
         $csl->{'container-title'} = $result->secondary_title;
-        $csl->{'number-of-pages'} = $result->spage
+        $csl->{'number-of-pages'} = $result->spage;
         $csl->{'ISBN'} = $result->print_control_no //= $result->elec_control_no;
     }
     if ( $result->material_type_id == 11 ) {
