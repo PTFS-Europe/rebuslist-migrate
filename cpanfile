@@ -2,4 +2,11 @@ requires "DBI", "";
 requires "DBD::Pg", "";
 requires "DBD::mysql", "";
 requires "DBIx::Class", "";
-
+requires "DBIx::Class::PassphraseColumn", "";
+requires "DBIx::Class::InflateColumn::Serializer::JSON", "";
+requires "JSON::MaybeXS", "";
+requires "Authen::Passphrase::SaltedDigest", "";
+requires "YAML::XS", "";
+requires "DateTime", "";
+requires "DateTime::Duration", "";
+requires "DateTime::Format::Pg", "";
