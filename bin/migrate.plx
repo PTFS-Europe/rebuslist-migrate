@@ -14,6 +14,8 @@ use Authen::Passphrase::SaltedDigest;
 use DateTime;
 use DateTime::Duration;
 
+use Data::Printer colored => 1;
+
 use Getopt::Long;
 use YAML::XS qw/LoadFile/;
 
@@ -39,123 +41,136 @@ my $end   = $dt->clone->add( years => 1 );
 
 # OrgUnit, List
 say "Importing lists";
-my @rl1_unitResults = $rebus1->resultset('OrgUnit')
-  ->search( { parent => 0 }, { order_by => { -asc => [qw/parent org_unit_id/] } } )->all;
-my $unit_links;
+
 my $list_links;
-for my $rl1_unit (@rl1_unitResults) {
+my $unit_links = recurse([0],{});
 
-    my $rl2_unit;
-    # Add org units
-    if ( $rl1_unit->parent == 0 ) {
+sub recurse {
+    my $parents = shift;
+    my $links   = shift;
 
-        # Find next root
-        my $rootResult =
-          $rebus2->resultset('List')
-          ->search( {}, { order_by => 'root_id', rows => '1' } )->single;
-        my $rootID;
-	if ( defined($rootResult) ) {
-            $rootID = $rootResult->root_id;
-        } else {
-            $rootID = 0;
-	}	
-        $rootID = $rootID - 1;
+    my @rl1_unitResults = $rebus1->resultset('OrgUnit')->search( { parent => $parents }, { order_by => { -asc => [qw/parent org_unit_id/] } } )->all;
 
-        # Add new tree
-        $rl2_unit = $rebus2->resultset('List')->create(
-            {
-                name      => $rl1_unit->name,
-                source    => 1,
-                published => 1,
-		inherited_published => 1,
-                root_id   => $rootID,
-		validity_start => $start,
-		inherited_validity_start => $start,
-		validity_end => $end,
-		inherited_validity_end => $end
-            }
-        );
+    if ( @rl1_unitResults ) {
+        my $new_parents;
 
-        $rl2_unit->update(
-            {
-                'source_uuid' => $config->{'code'} . "-" . $rl2_unit->id
-            }
-        );
+        for my $rl1_unit (@rl1_unitResults) {
 
-	print "Added top level list: " . $rl2_unit->id . "\n";
-        # Add to lookup table
-        $unit_links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
-        $rl2_unit->discard_changes;
-    }
-    else {
-	print "Attempting to add a new child to list parent: $unit_links->{ $rl1_unit->parent }\n";
-	# Get existing parent
-	my $parentResult = $rebus2->resultset('List')->find({ id => $unit_links->{ $rl1_unit->parent } });
+	    my $rl2_unit;
+	    if ( $rl1_unit->parent == 0 ) {
 
-        # Add rightmost child to existing node
-        $rl2_unit = $parentResult->create_rightmost_child(
-            {
-                name      => $rl1_unit->name,
-                source    => 1,
-                published => 1,
-		inherited_published => 1,
-		validity_start => $start,
-		inherited_validity_start => $start,
-		validity_end => $end,
-		inherited_validity_end => $end
-
-            }
-        );
-
-        $rl2_unit->update(
-            {
-                'source_uuid' => $config->{'code'} . "-" . $rl2_unit->id
-            }
-        );
-
-        # Add to lookup table
-        $unit_links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
-        $rl2_unit->discard_changes;
-    }
-
-    # Add lists
-    my @rl1_listResults = $rebus1->resultset('List')->search(
-        { org_unit_id => $rl1_unit->org_unit_id },
-        { order_by    => { -asc => [qw/list_name year/] } }
-    )->all;
-
-    for my $rl1_list (@rl1_listResults) {
-
-        # Add child list
-        my $rl2_list = $rl2_unit->create_rightmost_child(
-            {
-                name              => $rl1_list->list_name,
-                no_students       => $rl1_list->no_students,
-                ratio_books       => $rl1_list->ratio_books,
-                ratio_students    => $rl1_list->ratio_students,
-                updated           => $dt,
-                created           => $dt,
-                source            => 1,
-                course_identifier => $rl1_list->course_identifier,
-                published         => $rl1_list->published_yn eq 'y' ? 1 : 0,
-		inherited_published => $rl1_list->published_yn eq 'y' ? 1 : 0,
-		validity_start => $start,
-		inherited_validity_start => $start,
-		validity_end => $end,
-		inherited_validity_end => $end
-            }
-        );
-
-        $rl2_list->update(
-            {
-                'source_uuid' => $config->{'code'} . "-" . $rl2_list->id
-            }
-        );
-
-        # Add to lookup table
-        $list_links->{ $rl1_list->list_id } = $rl2_list->id;
-        $rl2_list->discard_changes;
-        $rl2_unit->discard_changes;
+                # Find next root
+                my $rootResult =
+                  $rebus2->resultset('List')
+                  ->search( {}, { order_by => 'root_id', rows => '1' } )->single;
+                my $rootID;
+        	if ( defined($rootResult) ) {
+                    $rootID = $rootResult->root_id;
+                } else {
+                    $rootID = 0;
+        	}	
+                $rootID = $rootID - 1;
+        
+                # Add new tree
+                $rl2_unit = $rebus2->resultset('List')->create(
+                    {
+                        name      => $rl1_unit->name,
+                        source    => 1,
+                        published => 1,
+        		inherited_published => 1,
+                        root_id   => $rootID,
+        		validity_start => $start,
+        		inherited_validity_start => $start,
+        		validity_end => $end,
+        		inherited_validity_end => $end
+                    }
+                );
+        
+                $rl2_unit->update(
+                    {
+                        'source_uuid' => $config->{'code'} . "-" . $rl2_unit->id
+                    }
+                );
+        
+		# Add to lookupt table
+	        $links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
+		push @$new_parents, $rl1_unit->org_unit_id;
+		$rl2_unit->discard_changes;
+	    }
+	    else {
+        	# Get existing parent
+        	my $parentResult = $rebus2->resultset('List')->find({ id => $links->{ $rl1_unit->parent } });
+        
+                # Add rightmost child to existing node
+                $rl2_unit = $parentResult->create_rightmost_child(
+                    {
+                        name      => $rl1_unit->name,
+                        source    => 1,
+                        published => 1,
+        		inherited_published => 1,
+        		validity_start => $start,
+        		inherited_validity_start => $start,
+        		validity_end => $end,
+        		inherited_validity_end => $end
+        
+                    }
+                );
+        
+                $rl2_unit->update(
+                    {
+                        'source_uuid' => $config->{'code'} . "-" . $rl2_unit->id
+                    }
+                );
+        
+                # Add to lookup table
+	        $links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
+		push @$new_parents, $rl1_unit->org_unit_id;
+		$rl2_unit->discard_changes;
+	    }
+    
+	# Add lists
+        my @rl1_listResults = $rebus1->resultset('List')->search(
+            { org_unit_id => $rl1_unit->org_unit_id },
+            { order_by    => { -asc => [qw/list_name year/] } }
+        )->all;
+    
+        for my $rl1_list (@rl1_listResults) {
+    
+            # Add child list
+            my $rl2_list = $rl2_unit->create_rightmost_child(
+                {
+                    name              => $rl1_list->list_name,
+                    no_students       => $rl1_list->no_students,
+                    ratio_books       => $rl1_list->ratio_books,
+                    ratio_students    => $rl1_list->ratio_students,
+                    updated           => $dt,
+                    created           => $dt,
+                    source            => 1,
+                    course_identifier => $rl1_list->course_identifier,
+                    published         => $rl1_list->published_yn eq 'y' ? 1 : 0,
+    		inherited_published => $rl1_list->published_yn eq 'y' ? 1 : 0,
+    		validity_start => $start,
+    		inherited_validity_start => $start,
+    		validity_end => $end,
+    		inherited_validity_end => $end
+                }
+            );
+    
+            $rl2_list->update(
+                {
+                    'source_uuid' => $config->{'code'} . "-" . $rl2_list->id
+                }
+            );
+    
+            # Add to lookup table
+            $list_links->{ $rl1_list->list_id } = $rl2_list->id;
+            $rl2_list->discard_changes;
+            $rl2_unit->discard_changes;
+        }
+}
+        recurse($new_parents, $links);
+    } else {
+	return $links;
     }
 }
 say "Lists loaded...\n";
@@ -175,8 +190,12 @@ my $role_map = {
 
 for my $rl1_user (@rl1_userResults) {
 
+    unless ( defined($rl1_user->password) ) {
+        $rl1_user->password('38a4eae20c7e4de6560116e722229e50');
+    }
+
     # Add user
-    my $rl2_user = $rebus2->resultset('User')->create(
+    my $rl2_user = $rebus2->resultset('User')->find_or_create(
         {
             name        => $rl1_user->name,
             system_role => $role_map->{ $rl1_user->type_id },
@@ -241,6 +260,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
     my $rl1_material = $rebus1->resultset('Material')
       ->find( { material_id => $rl1_sequence->material_id } );
 
+    if ( defined($rl1_material) ) {
     # Map Material to CSL
     my $csl = mapCSL($rl1_material);
 
@@ -257,12 +277,10 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
     # Add material
     my $rl2_material = addMaterial(
-        {
-            in_stock => $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
-            metadata => $csl,
-            owner    => $owner,
-            owner_uuid => $owner_uuid
-        }
+            $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
+            $csl,
+            $owner,
+            $owner_uuid
     );
 
     # Get rating
@@ -270,39 +288,43 @@ for my $rl1_sequence (@rl1_sequenceResults) {
       ->find( { material_id => $rl1_sequence->material_id } );
 
     # Link material to list
-    my $rl2_sequence = $rebus2->resultset('ListMaterial')->create(
+    my $rl2_sequence = $rebus2->resultset('ListMaterial')->find_or_create(
         {
-            list        => $list_links->{ $rl1_sequence->list },
+            list        => $list_links->{ $rl1_sequence->list_id },
             material    => $rl2_material->id,
             rank        => $rl1_sequence->rank,
-            dislikes    => $rl1_rating->not_likes,
-            likes       => $rl1_rating->likes,
+            dislikes    => defined($rl1_rating) ? $rl1_rating->not_likes : 0,
+            likes       => defined($rl1_rating) ? $rl1_rating->likes : 0,
             category    => $erbo_links->{ $rl1_material->erbo_id },
             source      => 1,
             source_uuid => $config->{'code'} . '-' . $rl2_material->id
-        }
+        },
+	{ key => 'primary' }
     );
 
     # Get material tags
     my $rl1_tagResult = $rebus1->resultset('TagLink')
       ->find( { material_id => $rl1_sequence->material_id } );
 
-    # Get tag
-    my $rl1_tag =
-      $rebus1->resultset('Tag')->find( { tag_id => $rl1_tagResult->tag_id } );
-
-    # Add tag
-    my $rl2_tag = addTag( { text => $rl1_tag->tag } );
-
-    # Link tag to material in list
-    my $rl2_link_tag = $rebus2->resultset('MaterialTag')->create(
-        {
-            material => $rl2_material->id,
-            tag      => $rl2_tag->id,
-            list     => $list_links->{ $rl1_sequence->list }
-        }
-    );
-
+    if ( defined($rl1_tagResult) ) {
+      # Get tag
+      my $rl1_tag =
+        $rebus1->resultset('Tag')->find( { tag_id => $rl1_tagResult->tag_id } );
+  
+      # Add tag
+      my $rl2_tag = addTag( { text => $rl1_tag->tag } );
+  
+      # Link tag to material in list
+      my $rl2_link_tag = $rebus2->resultset('MaterialTag')->find_or_create(
+          {
+              material => $rl2_material->id,
+              tag      => $rl2_tag->id,
+              list     => $list_links->{ $rl1_sequence->list_id }
+          },
+	  { key => 'composite' }
+      );
+    }
+    }
 }
 say "Materials loaded...\n";
 
@@ -367,37 +389,46 @@ sub mapCSL {
     $csl->{'note'} = $result->note;
     $csl->{'URL'} = $result->url;
 
+    my $epage = $result->epage;
+    my $spage = $result->spage;
+    if ( defined($epage) ) {
+        $epage =~ s/pp\.//g;
+    }
+    if ( defined($spage) ) {
+        $spage =~ s/pp\.//g;
+    }
+
     # Types: 1=Book, 2=Chapter, 3=Journal, 4=Article, 5=Scan, 7=Link, 9=Other, 10=eBook, 11=AV, 12=Note, 13=Private Note
     if ( $result->material_type_id == 1 ) {
         $csl->{'type'} = 'book';
         $csl->{'collection-title'} = $result->secondary_title;
         $csl->{'number-of-pages'} = $result->spage;
-        $csl->{'ISBN'} = $result->print_control_no //= $result->elec_control_no;
+        $csl->{'ISBN'} = defined($result->print_control_no) ? $result->print_control_no : $result->elec_control_no;
     }
     if ( $result->material_type_id == 2 ) {
         $csl->{'type'} = 'chapter';
         $csl->{'container-title'} = $result->secondary_title;
         $csl->{'page-first'} = $result->spage;
-        $csl->{'number-of-pages'} = $result->epage - $result->spage;
-        $csl->{'ISBN'} = $result->print_control_no //= $result->elec_control_no;
+        $csl->{'number-of-pages'} = defined($epage) && defined($spage) ? $epage - $spage : undef;
+        $csl->{'ISBN'} = defined($result->print_control_no) ? $result->print_control_no : $result->elec_control_no;
     }
     if ( $result->material_type_id == 3 ) {
         $csl->{'type'} = 'journal'; #CUSTOM
-        $csl->{'ISSN'} = $result->print_control_no //= $result->elec_control_no;
+        $csl->{'ISSN'} = defined($result->print_control_no) ? $result->print_control_no : $result->elec_control_no;
     }
     if ( $result->material_type_id == 4 ) {
         $csl->{'type'} = 'article';
         $csl->{'container-title'} = $result->secondary_title;
         $csl->{'page-first'} = $result->spage;
-        $csl->{'number-of-pages'} = $result->epage - $result->spage;
-        $csl->{'ISSN'} = $result->print_control_no //= $result->elec_control_no;
+        $csl->{'number-of-pages'} = defined($epage) && defined($spage) ? $epage - $spage : undef;
+        $csl->{'ISSN'} = defined($result->print_control_no) ? $result->print_control_no : $result->elec_control_no;
     }
     if ( $result->material_type_id == 5 ) {
         $csl->{'type'} = 'entry';
         $csl->{'container-title'} = $result->secondary_title;
         $csl->{'page-first'} = $result->spage;
-        $csl->{'number-of-pages'} = $result->epage - $result->spage;
-        $csl->{'ISBN'} = $result->print_control_no //= $result->elec_control_no;
+        $csl->{'number-of-pages'} = defined($epage) && defined($spage) ? $epage - $spage : undef;
+        $csl->{'ISBN'} = defined($result->print_control_no) ? $result->print_control_no : $result->elec_control_no;
     }
     if ( $result->material_type_id == 7 ) {
         $csl->{'type'} = 'webpage';
@@ -407,14 +438,14 @@ sub mapCSL {
         $csl->{'type'} = 'entry';
         $csl->{'container-title'} = $result->secondary_title;
         $csl->{'page-first'} = $result->spage;
-        $csl->{'number-of-pages'} = $result->epage - $result->spage;
-        $csl->{'ISBN'} = $result->print_control_no //= $result->elec_control_no;
+        $csl->{'number-of-pages'} = defined($epage) && defined($spage) ? $epage - $spage : undef;
+        $csl->{'ISBN'} = defined($result->print_control_no) ? $result->print_control_no : $result->elec_control_no;
     }
     if ( $result->material_type_id == 10 ) {
         $csl->{'type'} = 'book';
         $csl->{'container-title'} = $result->secondary_title;
         $csl->{'number-of-pages'} = $result->spage;
-        $csl->{'ISBN'} = $result->print_control_no //= $result->elec_control_no;
+        $csl->{'ISBN'} = defined($result->print_control_no) ? $result->print_control_no : $result->elec_control_no;
     }
     if ( $result->material_type_id == 11 ) {
         $csl->{'type'} = 'broadcast';
