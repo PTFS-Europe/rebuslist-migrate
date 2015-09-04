@@ -35,28 +35,24 @@ __PACKAGE__->table("scan_requests");
 =head2 id
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_auto_increment: 1
   is_nullable: 0
 
 =head2 material
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 user
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 status
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
@@ -73,28 +69,24 @@ __PACKAGE__->add_columns(
   "id",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_auto_increment => 1,
     is_nullable => 0,
   },
   "material",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "user",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "status",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },

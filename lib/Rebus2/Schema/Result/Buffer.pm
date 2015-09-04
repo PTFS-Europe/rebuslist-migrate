@@ -35,14 +35,12 @@ __PACKAGE__->table("buffers");
 =head2 list
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 user
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
@@ -57,7 +55,6 @@ __PACKAGE__->table("buffers");
 
   data_type: 'integer'
   default_value: 0
-  extra: {unsigned => 1}
   is_nullable: 0
 
 =head2 model
@@ -83,14 +80,12 @@ __PACKAGE__->add_columns(
   "list",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "user",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
@@ -105,7 +100,6 @@ __PACKAGE__->add_columns(
   {
     data_type => "integer",
     default_value => 0,
-    extra => { unsigned => 1 },
     is_nullable => 0,
   },
   "model",

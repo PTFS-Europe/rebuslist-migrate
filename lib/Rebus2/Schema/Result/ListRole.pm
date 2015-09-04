@@ -35,15 +35,13 @@ __PACKAGE__->table("list_roles");
 =head2 id
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_auto_increment: 1
   is_nullable: 0
 
 =head2 name
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 0
-  size: 255
 
 =head2 permissive
 
@@ -56,12 +54,11 @@ __PACKAGE__->add_columns(
   "id",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_auto_increment => 1,
     is_nullable => 0,
   },
   "name",
-  { data_type => "varchar", is_nullable => 0, size => 255 },
+  { data_type => "text", is_nullable => 0 },
   "permissive",
   { data_type => "tinyint", is_nullable => 0 },
 );

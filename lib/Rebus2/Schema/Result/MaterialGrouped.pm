@@ -35,21 +35,18 @@ __PACKAGE__->table("material_groups");
 =head2 group
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 material
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 list
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 1
 
@@ -65,21 +62,18 @@ __PACKAGE__->add_columns(
   "group",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "material",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "list",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 1,
   },

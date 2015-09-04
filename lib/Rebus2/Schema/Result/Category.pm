@@ -35,34 +35,29 @@ __PACKAGE__->table("categories");
 =head2 id
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_auto_increment: 1
   is_nullable: 0
 
 =head2 category
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 0
-  size: 255
 
 =head2 rank
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_nullable: 0
 
 =head2 source
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 source_uuid
 
-  data_type: 'varchar'
-  is_nullable: 0
-  size: 64
+  data_type: 'text'
+  is_nullable: 1
 
 =cut
 
@@ -70,23 +65,21 @@ __PACKAGE__->add_columns(
   "id",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_auto_increment => 1,
     is_nullable => 0,
   },
   "category",
-  { data_type => "varchar", is_nullable => 0, size => 255 },
+  { data_type => "text", is_nullable => 0 },
   "rank",
-  { data_type => "integer", extra => { unsigned => 1 }, is_nullable => 0 },
+  { data_type => "integer", is_nullable => 0 },
   "source",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "source_uuid",
-  { data_type => "varchar", is_nullable => 0, size => 64 },
+  { data_type => "text", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY

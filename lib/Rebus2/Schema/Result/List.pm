@@ -35,7 +35,6 @@ __PACKAGE__->table("lists");
 =head2 id
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_auto_increment: 1
   is_nullable: 0
 
@@ -52,43 +51,36 @@ __PACKAGE__->table("lists");
 =head2 lft
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_nullable: 0
 
 =head2 rgt
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_nullable: 0
 
 =head2 level
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_nullable: 0
 
 =head2 name
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 0
-  size: 1024
 
 =head2 no_students
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_nullable: 1
 
 =head2 ratio_books
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_nullable: 1
 
 =head2 ratio_students
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_nullable: 1
 
 =head2 updated
@@ -108,26 +100,22 @@ __PACKAGE__->table("lists");
 =head2 source
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 source_uuid
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 1
-  size: 64
 
 =head2 course_identifier
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 1
-  size: 100
 
 =head2 year
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_nullable: 1
 
 =head2 validity_start
@@ -162,15 +150,23 @@ __PACKAGE__->table("lists");
 
 =head2 summary
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 1
-  size: 2048
+
+=head2 public_note
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 private_note
+
+  data_type: 'text'
+  is_nullable: 1
 
 =head2 material_count
 
   data_type: 'integer'
   default_value: 0
-  extra: {unsigned => 1}
   is_nullable: 0
 
 =head2 inherited_validity_start
@@ -196,7 +192,6 @@ __PACKAGE__->add_columns(
   "id",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_auto_increment => 1,
     is_nullable => 0,
   },
@@ -205,19 +200,19 @@ __PACKAGE__->add_columns(
   "root_id",
   { data_type => "integer", is_nullable => 1 },
   "lft",
-  { data_type => "integer", extra => { unsigned => 1 }, is_nullable => 0 },
+  { data_type => "integer", is_nullable => 0 },
   "rgt",
-  { data_type => "integer", extra => { unsigned => 1 }, is_nullable => 0 },
+  { data_type => "integer", is_nullable => 0 },
   "level",
-  { data_type => "integer", extra => { unsigned => 1 }, is_nullable => 0 },
+  { data_type => "integer", is_nullable => 0 },
   "name",
-  { data_type => "varchar", is_nullable => 0, size => 1024 },
+  { data_type => "text", is_nullable => 0 },
   "no_students",
-  { data_type => "integer", extra => { unsigned => 1 }, is_nullable => 1 },
+  { data_type => "integer", is_nullable => 1 },
   "ratio_books",
-  { data_type => "integer", extra => { unsigned => 1 }, is_nullable => 1 },
+  { data_type => "integer", is_nullable => 1 },
   "ratio_students", 
-  { data_type => "integer", extra => { unsigned => 1 }, is_nullable => 1 },
+  { data_type => "integer", is_nullable => 1 },
   "updated",
   {
     data_type => "timestamp",
@@ -235,16 +230,15 @@ __PACKAGE__->add_columns(
   "source",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "source_uuid",
-  { data_type => "varchar", is_nullable => 1, size => 64 },
+  { data_type => "text", is_nullable => 1 },
   "course_identifier",
-  { data_type => "varchar", is_nullable => 1, size => 100 },
+  { data_type => "text", is_nullable => 1 },
   "year",
-  { data_type => "integer", extra => { unsigned => 1 }, is_nullable => 1 },
+  { data_type => "integer", is_nullable => 1 },
   "validity_start",
   {
     data_type => "timestamp",
@@ -264,12 +258,15 @@ __PACKAGE__->add_columns(
   "moderating",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "summary",
-  { data_type => "varchar", is_nullable => 1, size => 2048 },
+  { data_type => "text", is_nullable => 1 },
+  "public_note",
+  { data_type => "text", is_nullable => 1 },
+  "private_note",
+  { data_type => "text", is_nullable => 1 },
   "material_count",
   {
     data_type => "integer",
     default_value => 0,
-    extra => { unsigned => 1 },
     is_nullable => 0,
   },
   "inherited_validity_start",

@@ -35,57 +35,49 @@ __PACKAGE__->table("list_materials");
 =head2 list
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 material
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 rank
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_nullable: 0
 
 =head2 dislikes
 
   data_type: 'integer'
   default_value: 0
-  extra: {unsigned => 1}
   is_nullable: 0
 
 =head2 likes
 
   data_type: 'integer'
   default_value: 0
-  extra: {unsigned => 1}
   is_nullable: 0
 
 =head2 category
 
   data_type: 'integer'
   default_value: 0
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 source
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 source_uuid
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 0
-  size: 64
 
 =cut
 
@@ -93,50 +85,44 @@ __PACKAGE__->add_columns(
   "list",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "material",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "rank",
-  { data_type => "integer", extra => { unsigned => 1 }, is_nullable => 0 },
+  { data_type => "integer", is_nullable => 0 },
   "dislikes",
   {
     data_type => "integer",
     default_value => 0,
-    extra => { unsigned => 1 },
     is_nullable => 0,
   },
   "likes",
   {
     data_type => "integer",
     default_value => 0,
-    extra => { unsigned => 1 },
     is_nullable => 0,
   },
   "category",
   {
     data_type => "integer",
     default_value => 0,
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "source",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "source_uuid",
-  { data_type => "varchar", is_nullable => 0, size => 64 },
+  { data_type => "text", is_nullable => 0 },
 );
 
 =head1 PRIMARY KEY

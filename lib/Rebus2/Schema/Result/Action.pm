@@ -35,15 +35,13 @@ __PACKAGE__->table("actions");
 =head2 id
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_auto_increment: 1
   is_nullable: 0
 
 =head2 action
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 0
-  size: 64
 
 =cut
 
@@ -51,12 +49,11 @@ __PACKAGE__->add_columns(
   "id",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_auto_increment => 1,
     is_nullable => 0,
   },
   "action",
-  { data_type => "varchar", is_nullable => 0, size => 64 },
+  { data_type => "text", is_nullable => 0 },
 );
 
 =head1 PRIMARY KEY

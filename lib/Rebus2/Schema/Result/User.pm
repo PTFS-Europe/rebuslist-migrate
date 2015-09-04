@@ -22,7 +22,7 @@ use base 'DBIx::Class::Core';
 
 =cut
 
-__PACKAGE__->load_components( qw( FilterColumn InflateColumn::DateTime ) );
+__PACKAGE__->load_components( qw( FilterColumn InflateColumn::DateTime PassphraseColumn ) );
 
 =head1 TABLE: C<user>
 
@@ -35,20 +35,17 @@ __PACKAGE__->table("users");
 =head2 id
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_auto_increment: 1
   is_nullable: 0
 
 =head2 name
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 0
-  size: 255
 
 =head2 system_role
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 1
 
@@ -59,21 +56,18 @@ __PACKAGE__->table("users");
 
 =head2 login
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 1
-  size: 30
 
 =head2 password
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 1
-  size: 64
 
 =head2 email
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 1
-  size: 255
 
 =head2 active
 
@@ -86,27 +80,35 @@ __PACKAGE__->add_columns(
   "id",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_auto_increment => 1,
     is_nullable => 0,
   },
   "name",
-  { data_type => "varchar", is_nullable => 0, size => 255 },
+  { data_type => "text", is_nullable => 0 },
   "system_role",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 1,
   },
   "secret",
   { data_type => "integer", is_nullable => 1 },
   "login",
-  { data_type => "varchar", is_nullable => 1, size => 30 },
+  { data_type => "text", is_nullable => 1 },
   "password",
-  { data_type => "varchar", is_nullable => 1, size => 64 },
+  {
+    data_type        => "text",
+    is_nullable      => 1,
+    passphrase       => 'rfc2307',
+    passphrase_class => 'BlowfishCrypt',
+    passphrase_args  => {
+        cost   => '8',
+        salt_random => 1,
+    },
+    passphrase_check_method => 'check_passphrase',
+  },
   "email",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "text", is_nullable => 1 },
   "active",
   { data_type => "tinyint", is_nullable => 0 },
 );

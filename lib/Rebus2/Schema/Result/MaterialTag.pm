@@ -35,21 +35,18 @@ __PACKAGE__->table("material_tags");
 =head2 material
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 tag
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 0
 
 =head2 list
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_foreign_key: 1
   is_nullable: 1
 
@@ -59,27 +56,26 @@ __PACKAGE__->add_columns(
   "material",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "tag",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 0,
   },
   "list",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_foreign_key => 1,
     is_nullable => 1,
   },
 );
 
-=head1 PRIMARY KEY
+=head1 UNIQUE CONSTRAINTS
+
+=head2 composite
 
 =over 4
 
@@ -87,11 +83,15 @@ __PACKAGE__->add_columns(
 
 =item * L</tag>
 
+=item * L</list>
+
 =back
 
 =cut
 
-__PACKAGE__->set_primary_key("material", "tag");
+__PACKAGE__->add_unique_constraint(
+    composite => [ qw/material tag list/ ]
+);
 
 =head1 RELATIONS
 

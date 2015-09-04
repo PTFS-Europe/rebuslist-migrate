@@ -34,50 +34,47 @@ __PACKAGE__->table("preferences");
 
 =head2 code
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 0
-  size: 60
 
 =head2 content
 
-  data_type: 'mediumtext'
+  data_type: 'text'
   is_nullable: 1
 
 =head2 group
 
   data_type: 'integer'
   default_value: 1
-  extra: {unsigned => 1}
   is_nullable: 1
 
 =head2 json_schema
 
-  data_type: 'mediumtext'
+  data_type: 'text'
   is_nullable: 0
 
 =head2 json_form
 
-  data_type: 'mediumtext'
+  data_type: 'text'
   is_nullable: 0
 
 =cut
 
 __PACKAGE__->add_columns(
   "code",
-  { data_type => "varchar", is_nullable => 0, size => 60 },
+  { data_type => "text", is_nullable => 0 },
   "content",
-  { data_type => "mediumtext", default_value => '""', is_nullable => 0, serializer_class => "JSON", 'serializer_options' => { allow_nonref => 1 } },
+  { data_type => "text", default_value => '""', is_nullable => 0, serializer_class => "JSON", 'serializer_options' => { allow_nonref => 1 } },
   "group",
   {
     data_type => "integer",
     default_value => 1,
-    extra => { unsigned => 1 },
     is_nullable => 1,
   },
   "json_schema",
-  { data_type => "mediumtext", is_nullable => 0, serializer_class => "JSON" },
+  { data_type => "text", is_nullable => 0, serializer_class => "JSON" },
   "json_form",
-  { data_type => "mediumtext", is_nullable => 0, serializer_class => "JSON" },
+  { data_type => "text", is_nullable => 0, serializer_class => "JSON" },
 );
 
 =head1 PRIMARY KEY

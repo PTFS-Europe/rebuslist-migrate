@@ -35,7 +35,6 @@ __PACKAGE__->table("materials");
 =head2 id
 
   data_type: 'integer'
-  extra: {unsigned => 1}
   is_auto_increment: 1
   is_nullable: 0
 
@@ -46,20 +45,18 @@ __PACKAGE__->table("materials");
 
 =head2 metadata
 
-  data_type: 'mediumtext'
+  data_type: 'text'
   is_nullable: 0
 
 =head2 owner
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 1
-  size: 64
 
 =head2 owner_uuid
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 1
-  size: 64
 
 =cut
 
@@ -67,18 +64,17 @@ __PACKAGE__->add_columns(
   "id",
   {
     data_type => "integer",
-    extra => { unsigned => 1 },
     is_auto_increment => 1,
     is_nullable => 0,
   },
   "in_stock",
   { data_type => "tinyint", is_nullable => 0 },
   "metadata",
-  { data_type => "mediumtext", is_nullable => 0, serializer_class => "JSON",  },
+  { data_type => "text", is_nullable => 0, serializer_class => "JSON",  },
   "owner",
-  { data_type => "varchar", is_nullable => 1, size => 64 },
+  { data_type => "text", is_nullable => 1 },
   "owner_uuid",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "text", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
