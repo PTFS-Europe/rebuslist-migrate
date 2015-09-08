@@ -379,7 +379,13 @@ sub mapCSL {
     my $csl;
 
     $csl->{'title'} = $result->title;
-    $csl->{'author'} = [ { literal => $result->authors }, { literal => $result->secondary_authors } ];
+    $csl->{'author'} = [];
+    if ( defined($result->authors) ) {
+    	push @$csl->{'author'}, { literal => $result->authors };
+    }
+    if ( defined($result->secondary_authors) ) {
+    	push @$csl->{'author'}, { literal => $result->secondary_authors };
+    }
     $csl->{'edition'} = $result->edition;
     $csl->{'volume'} = $result->volume;
     $csl->{'issue'} = $result->issue;
