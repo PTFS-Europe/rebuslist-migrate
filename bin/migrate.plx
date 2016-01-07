@@ -404,11 +404,11 @@ sub mapCSL {
     if ( defined( $result->secondary_authors ) ) {
         push @$csl->{'author'}, { literal => $result->secondary_authors };
     }
-    $csl->{'edition'}   = $result->edition;
-    $csl->{'volume'}    = $result->volume;
-    $csl->{'issue'}     = $result->issue;
-    $csl->{'publisher'} = $result->publisher;
-    $csl->{'issued'}    = { raw => $result->publication_date };
+    $csl->{'edition'}         = $result->edition;
+    $csl->{'volume'}          = $result->volume;
+    $csl->{'issue'}           = $result->issue;
+    $csl->{'publisher'}       = $result->publisher;
+    $csl->{'issued'}          = { raw => $result->publication_date };
     $csl->{'publisher-place'} = $result->publication_place;
     $csl->{'note'}            = $result->note;
     $csl->{'URL'}             = $result->url;
