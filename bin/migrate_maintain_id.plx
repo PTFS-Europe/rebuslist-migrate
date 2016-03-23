@@ -16,6 +16,7 @@ use DateTime;
 use DateTime::Duration;
 use Term::ProgressBar 2.00;
 
+use Mojo::JSON qw(decode_json encode_json); 
 use Data::Printer colored => 1;
 
 use Getopt::Long;
@@ -233,11 +234,14 @@ sub recurse {
 
             for my $rl2_list (@rl2_listResults) {
 
-                # Attach list
-                $rl2_unit->attach_rightmost_child($rl2_list);
+                unless ( $rl2_list->name eq 'Hidden List' ) {
 
-                $rl2_list->discard_changes;
-                $rl2_unit->discard_changes;
+                    # Attach list
+                    $rl2_unit->attach_rightmost_child($rl2_list);
+
+                    $rl2_list->discard_changes;
+                    $rl2_unit->discard_changes;
+                }
             }
         }
         recurse( $new_parents, $unit_links );
@@ -321,6 +325,7 @@ my @rl1_erboResults = $rebus1->resultset('Erbo')
   ->search( undef, { order_by => { -asc => [qw/rank erbo/] } } )->all;
 
 my $rank = 0;
+$rebus2->resultset('Category')->delete;
 for my $rl1_erbo (@rl1_erboResults) {
 
     # Update Progress
@@ -345,6 +350,12 @@ for my $rl1_erbo (@rl1_erboResults) {
     # Add to lookup table
     $erbo_links->{ $rl1_erbo->erbo_id } = $rl2_erbo->id;
 }
+# Update preference table
+my $rl2_categoriesResult = $rebus2->resultset('Category')->search(undef, { order_by => 'rank' });
+my @rl2_categoriesArray = $rl2_categoriesResult->get_column('category')->all;
+my $rl2_categories_json = encode_json \@rl2_categoriesArray;
+my $rl2_preferenceResult = $rebus2->resultset('Preference')->find({ code => 'categories' });
+$rl2_preferenceResult->update({ content => $rl2_categories_json });
 say "Categories loaded...\n";
 
 # Sequence, Material, MaterialType, MaterialRating, MaterialLabel, Tag, TagLink, MetadataSource
