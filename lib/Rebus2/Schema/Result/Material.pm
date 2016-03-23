@@ -1,12 +1,12 @@
 use utf8;
 
-package Rebus::Schema::Result::Material;
+package Rebus2::Schema::Result::Material;
 
 use Mojo::JSON;
 
 =head1 NAME
 
-Rebus::Schema::Result::Material
+Rebus2::Schema::Result::Material
 
 =cut
 
@@ -126,12 +126,12 @@ __PACKAGE__->add_unique_constraint(owner => [qw/owner owner_uuid/]);
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::ListMaterial>
+Related object: L<Rebus2::Schema::Result::ListMaterial>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_materials", "Rebus::Schema::Result::ListMaterial",
+  "list_materials", "Rebus2::Schema::Result::ListMaterial",
   {"foreign.material_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
@@ -139,13 +139,13 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::MaterialTag>
+Related object: L<Rebus2::Schema::Result::MaterialTag>
 
 =cut
 
 __PACKAGE__->has_many(
   "material_tags",
-  "Rebus::Schema::Result::MaterialTag",
+  "Rebus2::Schema::Result::MaterialTag",
   {"foreign.material_id" => "self.id"},
   {cascade_copy          => 0, cascade_delete => 0},
 );
@@ -154,13 +154,13 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::ScanRequest>
+Related object: L<Rebus2::Schema::Result::ScanRequest>
 
 =cut
 
 __PACKAGE__->has_many(
   "scan_requests",
-  "Rebus::Schema::Result::ScanRequest",
+  "Rebus2::Schema::Result::ScanRequest",
   {"foreign.material_id" => "self.id"},
   {cascade_copy          => 0, cascade_delete => 0},
 );
@@ -176,7 +176,7 @@ __PACKAGE__->filter_column(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::Material>
+Related object: L<Rebus2::Schema::Result::Material>
 
 Description: Custom has_many self join relationship
 
@@ -184,7 +184,7 @@ Description: Custom has_many self join relationship
 
 __PACKAGE__->has_many(
   "frbr_equivalents",
-  "Rebus::Schema::Result::Material",
+  "Rebus2::Schema::Result::Material",
   sub {
     my $args = shift;
     return {
@@ -198,12 +198,12 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::ListMaterialFRBR>
+Related object: L<Rebus2::Schema::Result::ListMaterialFRBR>
 
 =cut
 
 __PACKAGE__->has_many(
-  "frbr_list_materials", "Rebus::Schema::Result::ListMaterialFRBR",
+  "frbr_list_materials", "Rebus2::Schema::Result::ListMaterialFRBR",
   {"foreign.equivalent_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
@@ -211,12 +211,12 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::ListMaterialAlternative>
+Related object: L<Rebus2::Schema::Result::ListMaterialAlternative>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_material_alternatives", "Rebus::Schema::Result::ListMaterialAlternative",
+  "list_material_alternatives", "Rebus2::Schema::Result::ListMaterialAlternative",
   {"foreign.alternative_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 

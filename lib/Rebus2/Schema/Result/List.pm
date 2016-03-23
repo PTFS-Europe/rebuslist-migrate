@@ -1,12 +1,12 @@
 use utf8;
 
-package Rebus::Schema::Result::List;
+package Rebus2::Schema::Result::List;
 
 use Mojo::JSON;
 
 =head1 NAME
 
-Rebus::Schema::Result::List
+Rebus2::Schema::Result::List
 
 =cut
 
@@ -268,7 +268,7 @@ __PACKAGE__->set_primary_key("id");
 
 Type: special
 
-Related object: L<Rebus::Schema::Result::List>
+Related object: L<Rebus2::Schema::Result::List>
 
 =cut
 
@@ -279,13 +279,13 @@ __PACKAGE__->tree_columns(
 
 Type: might_have
 
-Related object: L<Rebus::Schema::Result::Buffer>
+Related object: L<Rebus2::Schema::Result::Buffer>
 
 =cut
 
 __PACKAGE__->might_have(
   "buffer",
-  "Rebus::Schema::Result::Buffer",
+  "Rebus2::Schema::Result::Buffer",
   {"foreign.list_id" => "self.id"},
   {cascade_copy      => 0, cascade_delete => 0},
 );
@@ -294,12 +294,12 @@ __PACKAGE__->might_have(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::ListMaterial>
+Related object: L<Rebus2::Schema::Result::ListMaterial>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_materials", "Rebus::Schema::Result::ListMaterial",
+  "list_materials", "Rebus2::Schema::Result::ListMaterial",
   {"foreign.list_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
@@ -307,12 +307,12 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::ListUserRole>
+Related object: L<Rebus2::Schema::Result::ListUserRole>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_user_roles", "Rebus::Schema::Result::ListUserRole",
+  "list_user_roles", "Rebus2::Schema::Result::ListUserRole",
   {"foreign.list_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
@@ -320,12 +320,12 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::MaterialTag>
+Related object: L<Rebus2::Schema::Result::MaterialTag>
 
 =cut
 
 __PACKAGE__->has_many(
-  "material_tags", "Rebus::Schema::Result::MaterialTag",
+  "material_tags", "Rebus2::Schema::Result::MaterialTag",
   {"foreign.list_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
@@ -333,13 +333,13 @@ __PACKAGE__->has_many(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::Source>
+Related object: L<Rebus2::Schema::Result::Source>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "source",
-  "Rebus::Schema::Result::Source",
+  "Rebus2::Schema::Result::Source",
   {id            => "source_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );

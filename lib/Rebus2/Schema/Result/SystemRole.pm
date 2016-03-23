@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus::Schema::Result::SystemRole;
+package Rebus2::Schema::Result::SystemRole;
 
 =head1 NAME
 
-Rebus::Schema::Result::SystemRole
+Rebus2::Schema::Result::SystemRole
 
 =cut
 
@@ -69,12 +69,12 @@ __PACKAGE__->add_unique_constraint(name => [qw/name/]);
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::User>
+Related object: L<Rebus2::Schema::Result::User>
 
 =cut
 
 __PACKAGE__->has_many(
-  "users", "Rebus::Schema::Result::User",
+  "users", "Rebus2::Schema::Result::User",
   {"foreign.system_role_id" => "self.id"},
   {cascade_copy             => 0, cascade_delete => 0},
 );
@@ -83,12 +83,12 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::SystemRolePrivilege>
+Related object: L<Rebus2::Schema::Result::SystemRolePrivilege>
 
 =cut
 
 __PACKAGE__->has_many(
-  "privileges", "Rebus::Schema::Result::SystemRolePrivilege",
+  "privileges", "Rebus2::Schema::Result::SystemRolePrivilege",
   {"foreign.role_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 

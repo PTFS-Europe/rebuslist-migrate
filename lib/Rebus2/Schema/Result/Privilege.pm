@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus::Schema::Result::Privilege;
+package Rebus2::Schema::Result::Privilege;
 
 =head1 NAME
 
-Rebus::Schema::Result::Privilege
+Rebus2::Schema::Result::Privilege
 
 =cut
 
@@ -75,13 +75,13 @@ __PACKAGE__->add_unique_constraint(name => [qw/name/]);
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::UserPrivileges>
+Related object: L<Rebus2::Schema::Result::UserPrivileges>
 
 =cut
 
 __PACKAGE__->has_many(
   "users",
-  "Rebus::Schema::Result::UserPrivilege",
+  "Rebus2::Schema::Result::UserPrivilege",
   {"foreign.privilege_id" => "self.id"},
   {cascade_copy           => 0, cascade_delete => 0},
 );
@@ -90,13 +90,13 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::SystemRolePrivilege>
+Related object: L<Rebus2::Schema::Result::SystemRolePrivilege>
 
 =cut
 
 __PACKAGE__->has_many(
   "system_roles",
-  "Rebus::Schema::Result::SystemRolePrivilege",
+  "Rebus2::Schema::Result::SystemRolePrivilege",
   {"foreign.privilege_id" => "self.id"},
   {cascade_copy           => 0, cascade_delete => 0},
 );
@@ -105,13 +105,13 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::ListRolePrivilege>
+Related object: L<Rebus2::Schema::Result::ListRolePrivilege>
 
 =cut
 
 __PACKAGE__->has_many(
   "list_roles",
-  "Rebus::Schema::Result::ListRolePrivilege",
+  "Rebus2::Schema::Result::ListRolePrivilege",
   {"foreign.privilege_id" => "self.id"},
   {cascade_copy           => 0, cascade_delete => 0},
 );

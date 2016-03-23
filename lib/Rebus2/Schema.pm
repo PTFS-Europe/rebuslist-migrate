@@ -1,6 +1,6 @@
 use utf8;
 
-package Rebus::Schema;
+package Rebus2::Schema;
 
 use strict;
 use warnings;

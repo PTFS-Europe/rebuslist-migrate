@@ -1,4 +1,4 @@
-package Rebus::Schema::ResultSet;
+package Rebus2::Schema::ResultSet;
 
 use strict;
 use warnings;

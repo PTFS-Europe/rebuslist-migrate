@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus::Schema::Result::ListRoleFlag;
+package Rebus2::Schema::Result::ListRoleFlag;
 
 =head1 NAME
 
-Rebus::Schema::Result::ListRoleFlag
+Rebus2::Schema::Result::ListRoleFlag
 
 =cut
 
@@ -60,13 +60,13 @@ __PACKAGE__->set_primary_key("role_id", "flag_id");
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::SystemRole>
+Related object: L<Rebus2::Schema::Result::SystemRole>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "list_role",
-  "Rebus::Schema::Result::ListRole",
+  "Rebus2::Schema::Result::ListRole",
   {id            => "role_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
@@ -75,12 +75,12 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::Flag>
+Related object: L<Rebus2::Schema::Result::Flag>
 
 =cut
 
 __PACKAGE__->belongs_to(
-  "flag", "Rebus::Schema::Result::Flag",
+  "flag", "Rebus2::Schema::Result::Flag",
   {id            => "flag_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );

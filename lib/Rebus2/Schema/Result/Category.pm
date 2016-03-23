@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus::Schema::Result::Category;
+package Rebus2::Schema::Result::Category;
 
 =head1 NAME
 
-Rebus::Schema::Result::Category
+Rebus2::Schema::Result::Category
 
 =cut
 
@@ -88,12 +88,12 @@ __PACKAGE__->set_primary_key("id");
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::ListMaterial>
+Related object: L<Rebus2::Schema::Result::ListMaterial>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_materials", "Rebus::Schema::Result::ListMaterial",
+  "list_materials", "Rebus2::Schema::Result::ListMaterial",
   {"foreign.category_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
@@ -101,13 +101,13 @@ __PACKAGE__->has_many(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::Source>
+Related object: L<Rebus2::Schema::Result::Source>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "source",
-  "Rebus::Schema::Result::Source",
+  "Rebus2::Schema::Result::Source",
   {id            => "source_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );

@@ -1,12 +1,12 @@
 use utf8;
 
-package Rebus::Schema::Result::User;
+package Rebus2::Schema::Result::User;
 
 use Mojo::JSON;
 
 =head1 NAME
 
-Rebus::Schema::Result::User
+Rebus2::Schema::Result::User
 
 =cut
 
@@ -130,12 +130,12 @@ __PACKAGE__->add_unique_constraint("login", ["login"]);
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::UserPrivilege>
+Related object: L<Rebus2::Schema::Result::UserPrivilege>
 
 =cut
 
 __PACKAGE__->has_many(
-  "privileges", "Rebus::Schema::Result::UserPrivilege",
+  "privileges", "Rebus2::Schema::Result::UserPrivilege",
   {"foreign.user_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
@@ -143,13 +143,13 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::Buffer>
+Related object: L<Rebus2::Schema::Result::Buffer>
 
 =cut
 
 __PACKAGE__->has_many(
   "buffers",
-  "Rebus::Schema::Result::Buffer",
+  "Rebus2::Schema::Result::Buffer",
   {"foreign.user_id" => "self.id"},
   {cascade_copy      => 0, cascade_delete => 0},
 );
@@ -158,12 +158,12 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::ListUserRole>
+Related object: L<Rebus2::Schema::Result::ListUserRole>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_user_roles", "Rebus::Schema::Result::ListUserRole",
+  "list_user_roles", "Rebus2::Schema::Result::ListUserRole",
   {"foreign.user_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
@@ -181,12 +181,12 @@ __PACKAGE__->many_to_many("lists" => "list_user_roles", "list");
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::ScanRequest>
+Related object: L<Rebus2::Schema::Result::ScanRequest>
 
 =cut
 
 __PACKAGE__->has_many(
-  "scan_requests", "Rebus::Schema::Result::ScanRequest",
+  "scan_requests", "Rebus2::Schema::Result::ScanRequest",
   {"foreign.user_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
@@ -194,13 +194,13 @@ __PACKAGE__->has_many(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::SystemRole>
+Related object: L<Rebus2::Schema::Result::SystemRole>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "system_role",
-  "Rebus::Schema::Result::SystemRole",
+  "Rebus2::Schema::Result::SystemRole",
   {id            => "system_role_id"},
   {is_deferrable => 1, join_type => "LEFT", on_delete => "RESTRICT", on_update => "RESTRICT",},
 );

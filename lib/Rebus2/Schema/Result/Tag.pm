@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus::Schema::Result::Tag;
+package Rebus2::Schema::Result::Tag;
 
 =head1 NAME
 
-Rebus::Schema::Result::Tag
+Rebus2::Schema::Result::Tag
 
 =cut
 
@@ -81,12 +81,12 @@ __PACKAGE__->add_unique_constraint(tag => [qw/text/]);
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::MaterialTag>
+Related object: L<Rebus2::Schema::Result::MaterialTag>
 
 =cut
 
 __PACKAGE__->has_many(
-  "material_tags", "Rebus::Schema::Result::MaterialTag",
+  "material_tags", "Rebus2::Schema::Result::MaterialTag",
   {"foreign.tag_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 

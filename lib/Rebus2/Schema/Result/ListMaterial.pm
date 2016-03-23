@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus::Schema::Result::ListMaterial;
+package Rebus2::Schema::Result::ListMaterial;
 
 =head1 NAME
 
-Rebus::Schema::Result::ListMaterial
+Rebus2::Schema::Result::ListMaterial
 
 =cut
 
@@ -108,13 +108,13 @@ __PACKAGE__->set_primary_key("list_id", "material_id");
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::Category>
+Related object: L<Rebus2::Schema::Result::Category>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "category",
-  "Rebus::Schema::Result::Category",
+  "Rebus2::Schema::Result::Category",
   {id            => "category_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
@@ -123,12 +123,12 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::List>
+Related object: L<Rebus2::Schema::Result::List>
 
 =cut
 
 __PACKAGE__->belongs_to(
-  "list", "Rebus::Schema::Result::List",
+  "list", "Rebus2::Schema::Result::List",
   {id            => "list_id"},
   {is_deferrable => 1, on_delete => "CASCADE", on_update => "RESTRICT"},
 );
@@ -137,13 +137,13 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::Material>
+Related object: L<Rebus2::Schema::Result::Material>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "material",
-  "Rebus::Schema::Result::Material",
+  "Rebus2::Schema::Result::Material",
   {id            => "material_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
@@ -152,13 +152,13 @@ __PACKAGE__->belongs_to(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::ListMaterialFRBR>
+Related object: L<Rebus2::Schema::Result::ListMaterialFRBR>
 
 =cut
 
 __PACKAGE__->has_many(
   "frbr_equivalents",
-  "Rebus::Schema::Result::ListMaterialFRBR",
+  "Rebus2::Schema::Result::ListMaterialFRBR",
   {"foreign.list_id" => "self.list_id", "foreign.material_id" => "self.material_id"},
   {cascade_copy      => 0,              cascade_delete        => 0},
 );
@@ -167,13 +167,13 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Rebus::Schema::Result::ListMaterialAlternative>
+Related object: L<Rebus2::Schema::Result::ListMaterialAlternative>
 
 =cut
 
 __PACKAGE__->has_many(
   "list_alternatives",
-  "Rebus::Schema::Result::ListMaterialAlternative",
+  "Rebus2::Schema::Result::ListMaterialAlternative",
   {"foreign.list_id" => "self.list_id", "foreign.material_id" => "self.material_id"},
   {cascade_copy      => 0,              cascade_delete        => 0},
 );
@@ -183,13 +183,13 @@ __PACKAGE__->has_many(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::Source>
+Related object: L<Rebus2::Schema::Result::Source>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "source",
-  "Rebus::Schema::Result::Source",
+  "Rebus2::Schema::Result::Source",
   {id            => "source_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );

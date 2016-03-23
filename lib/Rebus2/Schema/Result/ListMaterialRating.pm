@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus::Schema::Result::ListMaterialRating;
+package Rebus2::Schema::Result::ListMaterialRating;
 
 =head1 NAME
 
-Rebus::Schema::Result::ListMaterialRating
+Rebus2::Schema::Result::ListMaterialRating
 
 =cut
 
@@ -77,12 +77,12 @@ __PACKAGE__->set_primary_key("list_id", "material_id", "user_id", "type");
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::List>
+Related object: L<Rebus2::Schema::Result::List>
 
 =cut
 
 __PACKAGE__->belongs_to(
-  "list", "Rebus::Schema::Result::List",
+  "list", "Rebus2::Schema::Result::List",
   {id            => "list_id"},
   {is_deferrable => 1, on_delete => "CASCADE", on_update => "RESTRICT"},
 );
@@ -91,13 +91,13 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::Material>
+Related object: L<Rebus2::Schema::Result::Material>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "material",
-  "Rebus::Schema::Result::Material",
+  "Rebus2::Schema::Result::Material",
   {id            => "material_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
@@ -106,12 +106,12 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::User>
+Related object: L<Rebus2::Schema::Result::User>
 
 =cut
 
 __PACKAGE__->belongs_to(
-  "user", "Rebus::Schema::Result::User",
+  "user", "Rebus2::Schema::Result::User",
   {id            => "user_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );

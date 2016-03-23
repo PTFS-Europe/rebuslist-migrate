@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus::Schema::Result::ActionLog;
+package Rebus2::Schema::Result::ActionLog;
 
 =head1 NAME
 
-Rebus::Schema::Result::ActionLog
+Rebus2::Schema::Result::ActionLog
 
 =cut
 
@@ -95,13 +95,13 @@ __PACKAGE__->set_primary_key("id");
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::Action>
+Related object: L<Rebus2::Schema::Result::Action>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "action",
-  "Rebus::Schema::Result::Action",
+  "Rebus2::Schema::Result::Action",
   {id            => "action_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
@@ -110,12 +110,12 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::User>
+Related object: L<Rebus2::Schema::Result::User>
 
 =cut
 
 __PACKAGE__->belongs_to(
-  "user", "Rebus::Schema::Result::User",
+  "user", "Rebus2::Schema::Result::User",
   {id            => "user_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );

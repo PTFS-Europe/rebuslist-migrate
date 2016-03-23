@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus::Schema::Result::ListMaterialFRBR;
+package Rebus2::Schema::Result::ListMaterialFRBR;
 
 =head1 NAME
 
-Rebus::Schema::Result::ListMaterialFRBR
+Rebus2::Schema::Result::ListMaterialFRBR
 
 =cut
 
@@ -69,12 +69,12 @@ __PACKAGE__->set_primary_key("list_id", "material_id", "equivalent_id");
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::List>
+Related object: L<Rebus2::Schema::Result::List>
 
 =cut
 
 __PACKAGE__->belongs_to(
-  "list", "Rebus::Schema::Result::List",
+  "list", "Rebus2::Schema::Result::List",
   {id            => "list_id"},
   {is_deferrable => 1, join_type => "LEFT", on_delete => "CASCADE", on_update => "RESTRICT",},
 );
@@ -83,13 +83,13 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::Material>
+Related object: L<Rebus2::Schema::Result::Material>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "material",
-  "Rebus::Schema::Result::Material",
+  "Rebus2::Schema::Result::Material",
   {id            => "material_id"},
   {is_deferrable => 1, on_delete => "CASCADE", on_update => "RESTRICT"},
 );
@@ -98,13 +98,13 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::Material>
+Related object: L<Rebus2::Schema::Result::Material>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "equivalent",
-  "Rebus::Schema::Result::Material",
+  "Rebus2::Schema::Result::Material",
   {id            => "equivalent_id"},
   {is_deferrable => 1, on_delete => "CASCADE", on_update => "RESTRICT"},
 );
@@ -113,13 +113,13 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::ListMaterial>
+Related object: L<Rebus2::Schema::Result::ListMaterial>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "list_material",
-  "Rebus::Schema::Result::ListMaterial",
+  "Rebus2::Schema::Result::ListMaterial",
   {'foreign.list_id' => 'self.list_id', 'foreign.material_id' => 'self.material_id'},
   {is_deferrable => 1, join_type => "LEFT", on_delete => "CASCADE", on_update => "RESTRICT"},
 );

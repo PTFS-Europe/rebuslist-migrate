@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus::Schema::Result::ListRolePrivilege;
+package Rebus2::Schema::Result::ListRolePrivilege;
 
 =head1 NAME
 
-Rebus::Schema::Result::ListRolePrivilege
+Rebus2::Schema::Result::ListRolePrivilege
 
 =cut
 
@@ -60,13 +60,13 @@ __PACKAGE__->set_primary_key("role_id", "privilege_id");
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::SystemRole>
+Related object: L<Rebus2::Schema::Result::SystemRole>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "list_role",
-  "Rebus::Schema::Result::ListRole",
+  "Rebus2::Schema::Result::ListRole",
   {id            => "role_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
@@ -75,13 +75,13 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::Privilege>
+Related object: L<Rebus2::Schema::Result::Privilege>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "privilege",
-  "Rebus::Schema::Result::Privilege",
+  "Rebus2::Schema::Result::Privilege",
   {id            => "privilege_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );

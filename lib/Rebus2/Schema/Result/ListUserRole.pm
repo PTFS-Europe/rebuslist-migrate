@@ -1,12 +1,12 @@
 use utf8;
 
-package Rebus::Schema::Result::ListUserRole;
+package Rebus2::Schema::Result::ListUserRole;
 
 use Mojo::JSON;
 
 =head1 NAME
 
-Rebus::Schema::Result::ListUserRole
+Rebus2::Schema::Result::ListUserRole
 
 =cut
 
@@ -90,12 +90,12 @@ __PACKAGE__->set_primary_key("list_id", "user_id", "role_id");
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::List>
+Related object: L<Rebus2::Schema::Result::List>
 
 =cut
 
 __PACKAGE__->belongs_to(
-  "list", "Rebus::Schema::Result::List",
+  "list", "Rebus2::Schema::Result::List",
   {id            => "list_id"},
   {is_deferrable => 1, on_delete => "CASCADE", on_update => "RESTRICT"},
 );
@@ -104,13 +104,13 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::ListRole>
+Related object: L<Rebus2::Schema::Result::ListRole>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "role",
-  "Rebus::Schema::Result::ListRole",
+  "Rebus2::Schema::Result::ListRole",
   {id            => "role_id"},
   {is_deferrable => 1, on_delete => "CASCADE"},
 );
@@ -119,12 +119,12 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::User>
+Related object: L<Rebus2::Schema::Result::User>
 
 =cut
 
 __PACKAGE__->belongs_to(
-  "user", "Rebus::Schema::Result::User",
+  "user", "Rebus2::Schema::Result::User",
   {id            => "user_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
