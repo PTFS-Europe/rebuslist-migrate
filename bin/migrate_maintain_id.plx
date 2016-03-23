@@ -418,10 +418,10 @@ for my $rl1_sequence (@rl1_sequenceResults) {
               );
 
             # Get material tags
-            my $rl1_tagResult = $rebus1->resultset('TagLink')
-              ->find( { material_id => $rl1_sequence->material_id } );
+            my $rl1_tagResults = $rebus1->resultset('TagLink')
+              ->search( { material_id => $rl1_sequence->material_id } );
 
-            if ( defined($rl1_tagResult) ) {
+            for my $rl1_tagResult ( $rl1_tagResults->all ) {
 
                 # Get tag
                 my $rl1_tag =
