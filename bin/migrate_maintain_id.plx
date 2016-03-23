@@ -227,10 +227,10 @@ my @rl1_userResults = $rebus1->resultset('User')
   ->search( undef, { order_by => { -asc => [qw/type_id name/] } } )->all;
 
 my $role_map = {
-    1 => 30,
-    2 => 20,
-    3 => 10,
-    4 => 40
+    1 => 'librarian',
+    2 => 'staff',
+    3 => 'public',
+    4 => 'admin'
 };
 
 for my $rl1_user (@rl1_userResults) {
@@ -243,7 +243,7 @@ for my $rl1_user (@rl1_userResults) {
     my $rl2_user = $rebus2->resultset('User')->find_or_create(
         {
             name        => $rl1_user->name,
-            system_role => $role_map->{ $rl1_user->type_id },
+            system_role => { name => $role_map->{ $rl1_user->type_id } },
             login       => $rl1_user->login,
             password    => $rl1_user->password,
             email       => $rl1_user->email_address,
@@ -336,13 +336,13 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         # Link material to list
         my $rl2_sequence = $rebus2->resultset('ListMaterial')->find_or_create(
             {
-                list     => $list_links->{ $rl1_sequence->list_id },
-                material => $rl2_material->id,
+                list_id     => $list_links->{ $rl1_sequence->list_id },
+                material_id => $rl2_material->id,
                 rank     => $rl1_sequence->rank,
                 dislikes => defined($rl1_rating) ? $rl1_rating->not_likes : 0,
                 likes    => defined($rl1_rating) ? $rl1_rating->likes : 0,
-                category => $erbo_links->{ $rl1_material->erbo_id },
-                source   => 1,
+                category_id => $erbo_links->{ $rl1_material->erbo_id },
+                source_id   => 1,
                 source_uuid => $config->{'code'} . '-' . $rl2_material->id
             },
             { key => 'primary' }
@@ -366,11 +366,11 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             my $rl2_link_tag =
               $rebus2->resultset('MaterialTag')->find_or_create(
                 {
-                    material => $rl2_material->id,
-                    tag      => $rl2_tag->id,
-                    list     => $list_links->{ $rl1_sequence->list_id }
+                    material_id => $rl2_material->id,
+                    tag_id      => $rl2_tag->id,
+                    list_id     => $list_links->{ $rl1_sequence->list_id }
                 },
-                { key => 'composite' }
+                { key => 'primary' }
               );
         }
     }
@@ -381,6 +381,8 @@ say "Materials loaded...\n";
 say "Importing permissions...";
 say "Permissions loaded...\n";
 
+
+# Routines
 sub addMaterial {
     my ( $in_stock, $metadata, $owner, $owner_uuid ) = @_;
 
