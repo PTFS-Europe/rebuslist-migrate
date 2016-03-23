@@ -133,17 +133,18 @@ sub recurse {
     my $parents    = shift;
     my $unit_links = shift;
 
-    # Update Progress
-    print "Working on level " . $current_level++ . "\n";
-
     my @rl1_unitResults =
       $rebus1->resultset('OrgUnit')->search( { parent => $parents },
         { order_by => { -asc => [qw/parent org_unit_id/] } } )->all;
+
+    # Update Progress
+    print "\nWorking on level " . $current_level++ . " with " . scalar(@rl1_unitResults) . " units";
 
     if (@rl1_unitResults) {
         my $new_parents;
 
         for my $rl1_unit (@rl1_unitResults) {
+            print ".";
 
             my $rl2_unit;
             if ( $rl1_unit->parent == 0 ) {
