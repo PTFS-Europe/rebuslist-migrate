@@ -319,13 +319,24 @@ for my $rl1_user (@rl1_userResults) {
 say "Users loaded...\n";
 
 # Erbo
-say "Importing categories...";
+$total = $rebus1->resultset('Erbo')->count;
+my $category_progress =
+  Term::ProgressBar->new( { name => "Importing Categories", count => $total } );
+$category_progress->minor(0);
+$next_update  = 0;
+$current_line = 0;
+
 my $erbo_links;
 my @rl1_erboResults = $rebus1->resultset('Erbo')
   ->search( undef, { order_by => { -asc => [qw/rank erbo/] } } )->all;
 
 my $rank = 0;
 for my $rl1_erbo (@rl1_erboResults) {
+
+    # Update Progress
+    $current_line++;
+    $next_update = $category_progress->update($current_line)
+      if $current_line > $next_update;
 
     # Add category
     my $rl2_erbo = $rebus2->resultset('Category')->create(
@@ -347,11 +358,23 @@ for my $rl1_erbo (@rl1_erboResults) {
 say "Categories loaded...\n";
 
 # Sequence, Material, MaterialType, MaterialRating, MaterialLabel, Tag, TagLink, MetadataSource
-say "Importing materials...";
+$total = $rebus1->resultset('Sequence')->count;
+my $material_progress =
+  Term::ProgressBar->new( { name => "Importing Materials", count => $total } );
+$material_progress->minor(0);
+$next_update  = 0;
+$current_line = 0;
+
 my @rl1_sequenceResults = $rebus1->resultset('Sequence')
   ->search( undef, { order_by => { -asc => [qw/list_id rank/] } } )->all;
 
 for my $rl1_sequence (@rl1_sequenceResults) {
+    
+    # Update Progress
+    $current_line++;
+    $next_update = $material_progress->update($current_line)
+      if $current_line > $next_update;
+
 
     # Get material
     my $rl1_material = $rebus1->resultset('Material')
@@ -427,7 +450,6 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         }
     }
 }
-say "Materials loaded...\n";
 
 # Update counts
 say "Updating material counts...\n";
