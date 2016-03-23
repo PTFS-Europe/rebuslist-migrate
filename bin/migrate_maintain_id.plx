@@ -505,7 +505,7 @@ sub addTag {
     $text = lc($text);
     $text =~ s/\s/-/g;
 
-    my @tagResults = $rebus2->resultset('Tag')->search( { text => $text } );
+    my @tagResults = $rebus2->resultset('Tag')->search( { text => $text } )->all;
 
     unless (@tagResults) {
         my $new_tag = $rebus2->resultset('Tag')->create( { text => $text } );
