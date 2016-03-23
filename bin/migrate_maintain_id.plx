@@ -13,6 +13,7 @@ use DBIx::Class::Tree::NestedSet;
 use Authen::Passphrase::SaltedDigest;
 use DateTime;
 use DateTime::Duration;
+use Term::ProgressBar 2.00;
 
 use Data::Printer colored => 1;
 
@@ -58,15 +59,24 @@ my $end = DateTime->new(
 );
 
 # Add lists
-say "Importing lists";
+my $total = $rebus1->resultset('List')->count;
+my $list_progress = Term::ProgressBar->new( { name => "Importing lists", count => $total });
+$list_progress->minor(0);
+my $next_update = 0;
+my $current_line = 0;
+
 my $list_links;
 my $parent_links;
 my $rl1_listResults = $rebus1->resultset('List')
   ->search( undef, { order_by => { -asc => [qw/list_id/] } } );
 for my $rl1_list ( $rl1_listResults->all ) {
 
+    # Update Progress
+    $current_line++;
+    $next_update = $list_progress->update($current_line) if $current_line > $next_update;
+
     # Add child list
-    my $rl2_list = $rebus2->resultset('List')->create(
+    my $rl2_list = $rebus2->resultset('List')->find_or_create(
         {
             id                  => $rl1_list->list_id,
             root_id             => 0,
@@ -76,17 +86,18 @@ for my $rl1_list ( $rl1_listResults->all ) {
             ratio_students      => $rl1_list->ratio_students,
             updated             => $dt,
             created             => $dt,
-            source              => 1,
+            source_id           => 1,
             course_identifier   => $rl1_list->course_identifier,
             published           => $rl1_list->published_yn eq 'y' ? 1 : 0,
             inherited_published => $rl1_list->published_yn eq 'y' ? 1 : 0,
             validity_start =>
-              $start->set_year( $rl1_list->year )->subtract( { years => 1 } ),
+              $start->set_year( $rl1_list->year )->subtract( years => 1 ),
             inherited_validity_start =>
-              $start->set_year( $rl1_list->year )->subtract( { years => 1 } ),
+              $start->set_year( $rl1_list->year )->subtract( years => 1 ),
             validity_end           => $end->set_year( $rl1_list->year ),
             inherited_validity_end => $end->set_year( $rl1_list->year )
-        }
+        }, 
+        { key => 'primary' }
     );
 
     $rl2_list->update(
@@ -97,7 +108,7 @@ for my $rl1_list ( $rl1_listResults->all ) {
 
     # Add to lookup table
     $list_links->{ $rl1_list->list_id } = $rl2_list->id;
-    push @{ $parent_links->{ $rl1_list->parent } }, $rl2_list->id;
+    push @{ $parent_links->{ $rl1_list->org_unit_id } }, $rl2_list->id;
 }
 
 # Add units
@@ -120,7 +131,7 @@ sub recurse {
         for my $rl1_unit (@rl1_unitResults) {
 
             my $rl2_unit;
-            if ( $rl1_unit->parent == 0 ) {
+            if ( $rl1_unit->org_unit_id == 0 ) {
 
                 # Find next root
                 my $rootResult =

@@ -226,6 +226,18 @@ DISTRIBUTIONS
       base 0
       strict 0
       warnings 0
+  Class-MethodMaker-2.24
+    pathname: S/SC/SCHWIGON/class-methodmaker/Class-MethodMaker-2.24.tar.gz
+    provides:
+      Class::MethodMaker 2.24
+      Class::MethodMaker::Constants undef
+      Class::MethodMaker::Engine 2.24
+      Class::MethodMaker::OptExt undef
+      Class::MethodMaker::V1Compat undef
+      Generate undef
+    requirements:
+      ExtUtils::MakeMaker 0
+      perl 5.006
   Class-Mix-0.005
     pathname: Z/ZE/ZEFRAM/Class-Mix-0.005.tar.gz
     provides:
@@ -2583,6 +2595,28 @@ DISTRIBUTIONS
       perl 5.006
       strict 0
       warnings 0
+  Term-ProgressBar-2.17
+    pathname: S/SZ/SZABGAB/Term-ProgressBar-2.17.tar.gz
+    provides:
+      Term::ProgressBar 2.17
+      Term::ProgressBar::IO 2.17
+    requirements:
+      Capture::Tiny 0.13
+      Carp 0
+      Class::MethodMaker 1.02
+      ExtUtils::MakeMaker 0
+      Fatal 0
+      File::Temp 0
+      POSIX 0
+      Term::ReadKey 2.14
+      Test::Exception 0.31
+      Test::More 0.80
+  TermReadKey-2.33
+    pathname: J/JS/JSTOWE/TermReadKey-2.33.tar.gz
+    provides:
+      Term::ReadKey 2.33
+    requirements:
+      ExtUtils::MakeMaker 0
   Test-Deep-0.117
     pathname: R/RJ/RJBS/Test-Deep-0.117.tar.gz
     provides:
