@@ -194,7 +194,8 @@ sub recurse {
 
                 # Add to lookup table
                 $unit_links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
-                push @{$new_parents}, $rl1_unit->org_unit_id unless any { $_ == $rl1_unit->org_unit_id } @{$new_parents};
+                push @{$new_parents}, $rl1_unit->org_unit_id
+                  unless any { $_ == $rl1_unit->org_unit_id } @{$new_parents};
                 $rl2_unit->discard_changes;
             }
             else {
@@ -226,7 +227,8 @@ sub recurse {
 
                 # Add to lookup table
                 $unit_links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
-                push @{$new_parents},$rl1_unit->org_unit_id unless any { $_ == $rl1_unit->org_unit_id } @{$new_parents};
+                push @{$new_parents}, $rl1_unit->org_unit_id
+                  unless any { $_ == $rl1_unit->org_unit_id } @{$new_parents};
                 $rl2_unit->discard_changes;
             }
 
@@ -256,7 +258,13 @@ sub recurse {
 }
 
 # User, UserType
-say "Importing users...";
+$total = $rebus1->resultset('User')->count;
+my $user_progress =
+  Term::ProgressBar->new( { name => "Importing Users", count => $total } );
+$user_progress->minor(0);
+$next_update  = 0;
+$current_line = 0;
+
 my $user_links;
 my @rl1_userResults = $rebus1->resultset('User')
   ->search( undef, { order_by => { -asc => [qw/type_id name/] } } )->all;
@@ -270,15 +278,24 @@ my $role_map = {
 
 for my $rl1_user (@rl1_userResults) {
 
+    # Update Progress
+    $current_line++;
+    $next_update = $user_progress->update($current_line)
+      if $current_line > $next_update;
+
     unless ( defined( $rl1_user->password ) ) {
         $rl1_user->password('38a4eae20c7e4de6560116e722229e50');
     }
 
     # Add user
+    my $system_role =
+      defined( $role_map->{ $rl1_user->type_id } )
+      ? $role_map->{ $rl1_user->type_id }
+      : 'public';
     my $rl2_user = $rebus2->resultset('User')->find_or_create(
         {
             name        => $rl1_user->name,
-            system_role => { name => $role_map->{ $rl1_user->type_id } },
+            system_role => { name => $system_role },
             login       => $rl1_user->login,
             password    => $rl1_user->password,
             email       => $rl1_user->email_address,
