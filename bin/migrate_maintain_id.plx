@@ -131,7 +131,7 @@ sub recurse {
         for my $rl1_unit (@rl1_unitResults) {
 
             my $rl2_unit;
-            if ( $rl1_unit->org_unit_id == 0 ) {
+            if ( $rl1_unit->parent == 0 ) {
 
                 # Find next root
                 my $rootResult =
