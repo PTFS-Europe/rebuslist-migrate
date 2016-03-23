@@ -38,9 +38,22 @@ my $rebus2 = Rebus2::Schema->connect(
 
 say "Beggining migration...";
 my $dt    = DateTime->now;
-my $today = $rebus2->storage->datetime_parser->format_datetime($dt);
-my $start = $dt->clone->subtract( years => 1 );
-my $end   = $dt->clone->add( years => 1 );
+my $start = DateTime->new(
+    year   => 2016,
+    month  => 9,
+    day    => 1,
+    hour   => 1,
+    minute => 1,
+    second => 1
+);
+my $end = DateTime->new(
+    year   => 2016,
+    month  => 8,
+    day    => 31,
+    hour   => 23,
+    minute => 59,
+    second => 59
+);
 
 # Add lists
 say "Importing lists";
@@ -53,22 +66,24 @@ for my $rl1_list ( $rl1_listResults->all ) {
     # Add child list
     my $rl2_list = $rl2_unit->create(
         {
-            id                       => $rl1_list->list_id,
-            root_id                  => 0,
-            name                     => $rl1_list->list_name,
-            no_students              => $rl1_list->no_students,
-            ratio_books              => $rl1_list->ratio_books,
-            ratio_students           => $rl1_list->ratio_students,
-            updated                  => $dt,
-            created                  => $dt,
-            source                   => 1,
-            course_identifier        => $rl1_list->course_identifier,
-            published                => $rl1_list->published_yn eq 'y' ? 1 : 0,
-            inherited_published      => $rl1_list->published_yn eq 'y' ? 1 : 0,
-            validity_start           => $start,
-            inherited_validity_start => $start,
-            validity_end             => $end,
-            inherited_validity_end   => $end
+            id                  => $rl1_list->list_id,
+            root_id             => 0,
+            name                => $rl1_list->list_name,
+            no_students         => $rl1_list->no_students,
+            ratio_books         => $rl1_list->ratio_books,
+            ratio_students      => $rl1_list->ratio_students,
+            updated             => $dt,
+            created             => $dt,
+            source              => 1,
+            course_identifier   => $rl1_list->course_identifier,
+            published           => $rl1_list->published_yn eq 'y' ? 1 : 0,
+            inherited_published => $rl1_list->published_yn eq 'y' ? 1 : 0,
+            validity_start =>
+              $start->set_year( $rl1_list->year )->subtract( { years => 1 } ),
+            inherited_validity_start =>
+              $start->set_year( $rl1_list->year )->subtract( { years => 1 } ),
+            validity_end           => $end->set_year( $rl1_list->year ),
+            inherited_validity_end => $end->set_year( $rl1_list->year )
         }
     );
 
@@ -80,15 +95,18 @@ for my $rl1_list ( $rl1_listResults->all ) {
 
     # Add to lookup table
     $list_links->{ $rl1_list->list_id } = $rl2_list->id;
-    push @{$parent_links->{$rl1_list->parent}}, $rl2_list->id;
+    push @{ $parent_links->{ $rl1_list->parent } }, $rl2_list->id;
 }
 
 # Add units
+my $start = $dt->clone->subtract( years => 5 );
+my $end = $dt->clone->add( years => 5 );
+
 recurse( 0, {} );
 
 sub recurse {
-    my $parent = shift;
-    my $unit_links   = shift;
+    my $parent     = shift;
+    my $unit_links = shift;
 
     my @rl1_unitResults =
       $rebus1->resultset('OrgUnit')->search( { parent => $parent },
@@ -177,9 +195,13 @@ sub recurse {
             }
 
             # Add lists
-            $parent_links->{$rl1_unit->org_unit_id}} ||= [];
-            my @rl2_listResults = $rebus2->resultset('List')
-              ->search( { id => { '-in' => $parent_links->{$rl1_unit->org_unit_id}}}, { order_by => { -asc => [qw/id/] } } )->all;
+            $parent_links->{ $rl1_unit->org_unit_id } ||= [];
+            my @rl2_listResults = $rebus2->resultset('List')->search(
+                {
+                    id => { '-in' => $parent_links->{ $rl1_unit->org_unit_id } }
+                },
+                { order_by => { -asc => [qw/id/] } }
+            )->all;
 
             for my $rl2_list (@rl2_listResults) {
 
