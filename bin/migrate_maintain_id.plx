@@ -60,9 +60,10 @@ my $end = DateTime->new(
 
 # Add lists
 my $total = $rebus1->resultset('List')->count;
-my $list_progress = Term::ProgressBar->new( { name => "Importing lists", count => $total });
+my $list_progress =
+  Term::ProgressBar->new( { name => "Importing lists", count => $total } );
 $list_progress->minor(0);
-my $next_update = 0;
+my $next_update  = 0;
 my $current_line = 0;
 
 my $list_links;
@@ -73,7 +74,8 @@ for my $rl1_list ( $rl1_listResults->all ) {
 
     # Update Progress
     $current_line++;
-    $next_update = $list_progress->update($current_line) if $current_line > $next_update;
+    $next_update = $list_progress->update($current_line)
+      if $current_line > $next_update;
 
     # Add child list
     my $rl2_list = $rebus2->resultset('List')->find_or_create(
@@ -96,7 +98,7 @@ for my $rl1_list ( $rl1_listResults->all ) {
               $start->set_year( $rl1_list->year )->subtract( years => 1 ),
             validity_end           => $end->set_year( $rl1_list->year ),
             inherited_validity_end => $end->set_year( $rl1_list->year )
-        }, 
+        },
         { key => 'primary' }
     );
 
@@ -111,22 +113,42 @@ for my $rl1_list ( $rl1_listResults->all ) {
     push @{ $parent_links->{ $rl1_list->org_unit_id } }, $rl2_list->id;
 }
 
+# Update Sequence
+$rebus2->storage->dbh_do(
+    sub {
+        $_[1]->do(
+            "SELECT SETVAL('lists_id_seq', COALESCE(MAX(id), 1) ) FROM lists;");
+    }
+);
+
 # Add units
 $start = $dt->clone->subtract( years => 5 );
 $end = $dt->clone->add( years => 5 );
 
-recurse( 0, {} );
+$total = $rebus1->resultset('OrgUnit')->count;
+my $unit_progress =
+  Term::ProgressBar->new( { name => "Importing Units", count => $total } );
+$unit_progress->minor(0);
+$next_update  = 0;
+$current_line = 0;
+
+recurse( [0], {} );
 
 sub recurse {
-    my $parent     = shift;
+    my $parents    = shift;
     my $unit_links = shift;
 
+    # Update Progress
+    $current_line++;
+    $next_update = $unit_progress->update($current_line)
+      if $current_line > $next_update;
+
     my @rl1_unitResults =
-      $rebus1->resultset('OrgUnit')->search( { parent => $parent },
+      $rebus1->resultset('OrgUnit')->search( { parent => $parents },
         { order_by => { -asc => [qw/parent org_unit_id/] } } )->all;
 
     if (@rl1_unitResults) {
-        my $new_parent;
+        my $new_parents;
 
         for my $rl1_unit (@rl1_unitResults) {
 
@@ -171,7 +193,7 @@ sub recurse {
 
                 # Add to lookup table
                 $unit_links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
-                $new_parent = $rl1_unit->org_unit_id;
+                push @{$new_parents}, $rl1_unit->org_unit_id;
                 $rl2_unit->discard_changes;
             }
             else {
@@ -203,7 +225,7 @@ sub recurse {
 
                 # Add to lookup table
                 $unit_links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
-                $new_parent = $rl1_unit->org_unit_id;
+                push @{$new_parents},$rl1_unit->org_unit_id;
                 $rl2_unit->discard_changes;
             }
 
@@ -225,13 +247,12 @@ sub recurse {
                 $rl2_unit->discard_changes;
             }
         }
-        recurse( $new_parent, $unit_links );
+        recurse( $new_parents, $unit_links );
     }
     else {
         return $unit_links;
     }
 }
-say "Lists loaded...\n";
 
 # User, UserType
 say "Importing users...";
