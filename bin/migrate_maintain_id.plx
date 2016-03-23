@@ -536,9 +536,11 @@ sub mapCSL {
     my $spage = $result->spage;
     if ( defined($epage) ) {
         $epage =~ s/pp\.//g;
+        $epage =~ s/\D+//g;
     }
     if ( defined($spage) ) {
         $spage =~ s/pp\.//g;
+        $spage =~ s/\D+//g;
     }
 
 # Types: 1=Book, 2=Chapter, 3=Journal, 4=Article, 5=Scan, 7=Link, 9=Other, 10=eBook, 11=AV, 12=Note, 13=Private Note
