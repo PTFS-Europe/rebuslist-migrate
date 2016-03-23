@@ -1,4 +1,4 @@
-package Rebus::Schema::ResultSet::User;
+package Rebus2::Schema::ResultSet::User;
 
 use strict;
 use warnings;

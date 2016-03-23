@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus::Schema::Result::Preference;
+package Rebus2::Schema::Result::Preference;
 
 =head1 NAME
 
-Rebus::Schema::Result::Preference
+Rebus2::Schema::Result::Preference
 
 =cut
 
