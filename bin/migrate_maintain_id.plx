@@ -338,9 +338,9 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             {
                 list_id     => $list_links->{ $rl1_sequence->list_id },
                 material_id => $rl2_material->id,
-                rank     => $rl1_sequence->rank,
+                rank        => $rl1_sequence->rank,
                 dislikes => defined($rl1_rating) ? $rl1_rating->not_likes : 0,
-                likes    => defined($rl1_rating) ? $rl1_rating->likes : 0,
+                likes => defined($rl1_rating) ? $rl1_rating->likes : 0,
                 category_id => $erbo_links->{ $rl1_material->erbo_id },
                 source_id   => 1,
                 source_uuid => $config->{'code'} . '-' . $rl2_material->id
@@ -377,10 +377,26 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 }
 say "Materials loaded...\n";
 
+# Update counts
+say "Updating material counts...\n";
+my $rl2_listResults = $rebus2->resultset('List')->search(
+    undef,
+    {
+        '+select' => [ { count => 'list_materials.list_id' } ],
+        '+as'     => ['counted'],
+        group_by  => 'me.id',
+        join      => 'list_materials'
+    }
+);
+for my $rl2_listResult ( $rl2_listResults->all ) {
+    $rl2_listResult->update(
+        { material_count => $rl2_listResult->get_column('counted') } );
+}
+say "Counts updated...\n";
+
 # Permission, UserListPermission, UserOrgUnitPermission
 say "Importing permissions...";
 say "Permissions loaded...\n";
-
 
 # Routines
 sub addMaterial {
