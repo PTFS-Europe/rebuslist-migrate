@@ -126,7 +126,7 @@ $rebus2->storage->dbh_do(
 $start = $dt->clone->subtract( years => 5 );
 $end = $dt->clone->add( years => 5 );
 
-$total = $rebus1->resultset('OrgUnit')->count;
+$total = 100;
 my $unit_progress =
   Term::ProgressBar->new( { name => "Importing Units", count => $total } );
 $unit_progress->minor(0);
@@ -330,9 +330,9 @@ for my $rl1_erbo (@rl1_erboResults) {
     # Add category
     my $rl2_erbo = $rebus2->resultset('Category')->create(
         {
-            category => $rl1_erbo->erbo,
-            rank     => $rank++,
-            source   => 1
+            category  => $rl1_erbo->erbo,
+            rank      => $rank++,
+            source_id => 1
         }
     );
     $rl2_erbo->update(
