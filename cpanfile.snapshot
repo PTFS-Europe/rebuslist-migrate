@@ -359,11 +359,11 @@ DISTRIBUTIONS
       Crypt::UnixCrypt_XS 0.10
     requirements:
       ExtUtils::MakeMaker 0
-  DBD-Pg-3.5.1
-    pathname: T/TU/TURNSTEP/DBD-Pg-3.5.1.tar.gz
+  DBD-Pg-3.5.3
+    pathname: T/TU/TURNSTEP/DBD-Pg-3.5.3.tar.gz
     provides:
-      Bundle::DBD::Pg v3.5.1
-      DBD::Pg v3.5.1
+      Bundle::DBD::Pg v3.5.3
+      DBD::Pg v3.5.3
     requirements:
       DBI 1.614
       ExtUtils::MakeMaker 6.11
@@ -389,15 +389,15 @@ DISTRIBUTIONS
       Test::More 0.47
       Tie::Hash 0
       perl 5.006
-  DBD-mysql-4.032
-    pathname: C/CA/CAPTTOFU/DBD-mysql-4.032.tar.gz
+  DBD-mysql-4.033
+    pathname: C/CA/CAPTTOFU/DBD-mysql-4.033.tar.gz
     provides:
-      Bundle::DBD::mysql 4.032
-      DBD::mysql 4.032
+      Bundle::DBD::mysql 4.033
+      DBD::mysql 4.033
       DBD::mysql::GetInfo undef
-      DBD::mysql::db 4.032
-      DBD::mysql::dr 4.032
-      DBD::mysql::st 4.032
+      DBD::mysql::db 4.033
+      DBD::mysql::dr 4.033
+      DBD::mysql::st 4.033
     requirements:
       DBI 1.08
       Data::Dumper 0
@@ -500,10 +500,10 @@ DISTRIBUTIONS
       ExtUtils::MakeMaker 6.48
       Test::Simple 0.90
       perl 5.008
-  DBIx-Class-0.082820
-    pathname: R/RI/RIBASUSHI/DBIx-Class-0.082820.tar.gz
+  DBIx-Class-0.082821
+    pathname: R/RI/RIBASUSHI/DBIx-Class-0.082821.tar.gz
     provides:
-      DBIx::Class 0.082820
+      DBIx::Class 0.082821
       DBIx::Class::AccessorGroup undef
       DBIx::Class::Admin undef
       DBIx::Class::CDBICompat undef
@@ -751,33 +751,26 @@ DISTRIBUTIONS
       Module::Build 0.35
       Test::Exception 0
       Test::More 0
-  DateTime-1.20
-    pathname: D/DR/DROLSKY/DateTime-1.20.tar.gz
+  DateTime-1.26
+    pathname: D/DR/DROLSKY/DateTime-1.26.tar.gz
     provides:
-      DateTime 1.20
-      DateTime::Duration 1.20
-      DateTime::Helpers 1.20
-      DateTime::Infinite 1.20
-      DateTime::Infinite::Future 1.20
-      DateTime::Infinite::Past 1.20
-      DateTime::LeapSecond 1.20
-      DateTime::PP 1.20
-      DateTime::PPExtra 1.20
+      DateTime 1.26
+      DateTime::Duration 1.26
+      DateTime::Helpers 1.26
+      DateTime::Infinite 1.26
+      DateTime::Infinite::Future 1.26
+      DateTime::Infinite::Past 1.26
+      DateTime::LeapSecond 1.26
+      DateTime::PP 1.26
+      DateTime::PPExtra 1.26
     requirements:
       Carp 0
       DateTime::Locale 0.41
       DateTime::TimeZone 1.74
-      ExtUtils::CBuilder 0
       ExtUtils::MakeMaker 0
-      File::Spec 0
-      Module::Build 0.28
       POSIX 0
       Params::Validate 1.03
       Scalar::Util 0
-      Storable 0
-      Test::Fatal 0
-      Test::More 0.96
-      Test::Warnings 0.005
       Try::Tiny 0
       XSLoader 0
       base 0
@@ -786,7 +779,6 @@ DISTRIBUTIONS
       overload 0
       perl 5.008001
       strict 0
-      utf8 0
       vars 0
       warnings 0
       warnings::register 0
@@ -2551,11 +2543,11 @@ DISTRIBUTIONS
     requirements:
       ExtUtils::MakeMaker 0
       perl 5.008001
-  YAML-LibYAML-0.59
-    pathname: I/IN/INGY/YAML-LibYAML-0.59.tar.gz
+  YAML-LibYAML-0.62
+    pathname: T/TI/TINITA/YAML-LibYAML-0.62.tar.gz
     provides:
-      YAML::LibYAML 0.59
-      YAML::XS 0.59
+      YAML::LibYAML 0.62
+      YAML::XS 0.62
       YAML::XS::LibYAML undef
     requirements:
       ExtUtils::MakeMaker 0
