@@ -1,9 +1,12 @@
 use utf8;
-package Rebus2::Schema::Result::ListRole;
+
+package Rebus::Schema::Result::ListRole;
+
+use Mojo::JSON;
 
 =head1 NAME
 
-Rebus2::Schema::Result::ListRole
+Rebus::Schema::Result::ListRole
 
 =cut
 
@@ -11,18 +14,6 @@ use strict;
 use warnings;
 
 use base 'DBIx::Class::Core';
-
-=head1 COMPONENTS LOADED
-
-=over 4
-
-=item * L<DBIx::Class::InflateColumn::DateTime>
-
-=back
-
-=cut
-
-__PACKAGE__->load_components( qw( FilterColumn InflateColumn::DateTime ) );
 
 =head1 TABLE: C<list_role>
 
@@ -43,24 +34,11 @@ __PACKAGE__->table("list_roles");
   data_type: 'text'
   is_nullable: 0
 
-=head2 permissive
-
-  data_type: 'tinyint'
-  is_nullable: 0
-
 =cut
 
 __PACKAGE__->add_columns(
-  "id",
-  {
-    data_type => "integer",
-    is_auto_increment => 1,
-    is_nullable => 0,
-  },
-  "name",
-  { data_type => "text", is_nullable => 0 },
-  "permissive",
-  { data_type => "tinyint", is_nullable => 0 },
+  "id", {data_type => "integer", is_auto_increment => 1, is_nullable => 0,},
+  "name", {data_type => "text", is_nullable => 0},
 );
 
 =head1 PRIMARY KEY
@@ -75,29 +53,61 @@ __PACKAGE__->add_columns(
 
 __PACKAGE__->set_primary_key("id");
 
+=head1 UNIQUE CONSTRAINTS
+
+=over 4
+
+=item * L</name>
+
+=back
+
+=cut
+
+__PACKAGE__->add_unique_constraint(name => [qw/name/]);
+
 =head1 RELATIONS
 
-=head2 list_users
+=head2 list_user_roles
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ListUser>
+Related object: L<Rebus::Schema::Result::ListUserRole>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_users",
-  "Rebus2::Schema::Result::ListUser",
-  { "foreign.role" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "list_user_roles",
+  "Rebus::Schema::Result::ListUserRole",
+  {"foreign.role_id" => "self.id"},
+  {cascade_delete    => 1},
 );
 
+=head2 privileges
 
-__PACKAGE__->filter_column(
-    permissive => {
-        filter_to_storage   => sub { $_[1] ? 1  : 0 },
-        filter_from_storage => sub { $_[1] ? \1 : \0 }
-    }
+Type: has_many
+
+Related object: L<Rebus::Schema::Result::ListRolePrivilege>
+
+=cut
+
+__PACKAGE__->has_many(
+  "privileges", "Rebus::Schema::Result::ListRolePrivilege",
+  {"foreign.role_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
+);
+
+=head2 flags
+
+Type: has_many
+
+Related object: L<Rebus::Schema::Result::ListRoleFlag>
+
+=cut
+
+__PACKAGE__->has_many(
+  "flags",
+  "Rebus::Schema::Result::ListRoleFlag",
+  {"foreign.role_id" => "self.id"},
+  {cascade_copy      => 0, cascade_delete => 0},
 );
 
 1;

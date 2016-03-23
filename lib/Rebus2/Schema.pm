@@ -1,13 +1,14 @@
 use utf8;
-package Rebus2::Schema;
+
+package Rebus::Schema;
 
 use strict;
 use warnings;
 
 use base 'DBIx::Class::Schema';
 
-our $VERSION = 8;
+our $VERSION = 60;
 
-__PACKAGE__->load_namespaces;
+__PACKAGE__->load_namespaces(default_resultset_class => 'ResultSet');
 
 1;

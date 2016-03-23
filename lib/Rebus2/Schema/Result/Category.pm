@@ -1,9 +1,10 @@
 use utf8;
-package Rebus2::Schema::Result::Category;
+
+package Rebus::Schema::Result::Category;
 
 =head1 NAME
 
-Rebus2::Schema::Result::Category
+Rebus::Schema::Result::Category
 
 =cut
 
@@ -48,7 +49,7 @@ __PACKAGE__->table("categories");
   data_type: 'integer'
   is_nullable: 0
 
-=head2 source
+=head2 source_id
 
   data_type: 'integer'
   is_foreign_key: 1
@@ -62,24 +63,11 @@ __PACKAGE__->table("categories");
 =cut
 
 __PACKAGE__->add_columns(
-  "id",
-  {
-    data_type => "integer",
-    is_auto_increment => 1,
-    is_nullable => 0,
-  },
-  "category",
-  { data_type => "text", is_nullable => 0 },
-  "rank",
-  { data_type => "integer", is_nullable => 0 },
-  "source",
-  {
-    data_type => "integer",
-    is_foreign_key => 1,
-    is_nullable => 0,
-  },
-  "source_uuid",
-  { data_type => "text", is_nullable => 1 },
+  "id", {data_type => "integer", is_auto_increment => 1, is_nullable => 0,},
+  "category",    {data_type => "text",    is_nullable    => 0},
+  "rank",        {data_type => "integer", is_nullable    => 0},
+  "source_id",   {data_type => "integer", is_foreign_key => 1, is_nullable => 0,},
+  "source_uuid", {data_type => "text",    is_nullable    => 1},
 );
 
 =head1 PRIMARY KEY
@@ -100,30 +88,28 @@ __PACKAGE__->set_primary_key("id");
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ListMaterial>
+Related object: L<Rebus::Schema::Result::ListMaterial>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_materials",
-  "Rebus2::Schema::Result::ListMaterial",
-  { "foreign.category" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "list_materials", "Rebus::Schema::Result::ListMaterial",
+  {"foreign.category_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
 =head2 source
 
 Type: belongs_to
 
-Related object: L<Rebus2::Schema::Result::Source>
+Related object: L<Rebus::Schema::Result::Source>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "source",
-  "Rebus2::Schema::Result::Source",
-  { id => "source" },
-  { is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT" },
+  "Rebus::Schema::Result::Source",
+  {id            => "source_id"},
+  {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
 
 1;

@@ -1,9 +1,10 @@
 use utf8;
-package Rebus2::Schema::Result::ScanRequestStatus;
+
+package Rebus::Schema::Result::ScanRequestStatus;
 
 =head1 NAME
 
-Rebus2::Schema::Result::ScanRequestStatus
+Rebus::Schema::Result::ScanRequestStatus
 
 =cut
 
@@ -46,14 +47,8 @@ __PACKAGE__->table("scan_request_statuses");
 =cut
 
 __PACKAGE__->add_columns(
-  "id",
-  {
-    data_type => "integer",
-    is_auto_increment => 1,
-    is_nullable => 0,
-  },
-  "status",
-  { data_type => "text", is_nullable => 0 },
+  "id", {data_type => "integer", is_auto_increment => 1, is_nullable => 0,},
+  "status", {data_type => "text", is_nullable => 0},
 );
 
 =head1 PRIMARY KEY
@@ -74,15 +69,13 @@ __PACKAGE__->set_primary_key("id");
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ScanRequest>
+Related object: L<Rebus::Schema::Result::ScanRequest>
 
 =cut
 
 __PACKAGE__->has_many(
-  "scan_requests",
-  "Rebus2::Schema::Result::ScanRequest",
-  { "foreign.status" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "scan_requests", "Rebus::Schema::Result::ScanRequest",
+  {"foreign.status_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
 1;

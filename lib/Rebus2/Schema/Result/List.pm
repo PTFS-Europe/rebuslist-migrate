@@ -1,9 +1,12 @@
 use utf8;
-package Rebus2::Schema::Result::List;
+
+package Rebus::Schema::Result::List;
+
+use Mojo::JSON;
 
 =head1 NAME
 
-Rebus2::Schema::Result::List
+Rebus::Schema::Result::List
 
 =cut
 
@@ -22,7 +25,7 @@ use base 'DBIx::Class::Core';
 
 =cut
 
-__PACKAGE__->load_components( qw( InflateColumn::DateTime Tree::NestedSet Tree::Inheritance FilterColumn ) );
+__PACKAGE__->load_components(qw( InflateColumn::DateTime Tree::NestedSet Tree::Inheritance FilterColumn ));
 
 =head1 TABLE: C<list>
 
@@ -97,7 +100,7 @@ __PACKAGE__->table("lists");
   default_value: current_timestamp
   is_nullable: 0
 
-=head2 source
+=head2 source_id
 
   data_type: 'integer'
   is_foreign_key: 1
@@ -190,99 +193,61 @@ __PACKAGE__->table("lists");
 
 __PACKAGE__->add_columns(
   "id",
-  {
-    data_type => "integer",
-    is_auto_increment => 1,
-    is_nullable => 0,
-  },
+  {data_type => "integer", is_auto_increment => 1, is_nullable => 0},
   "type",
-  { data_type => "integer", is_nullable => 1 },
+  {data_type => "integer", is_nullable => 1},
   "root_id",
-  { data_type => "integer", is_nullable => 1 },
+  {data_type => "integer", is_nullable => 1},
   "lft",
-  { data_type => "integer", is_nullable => 0 },
+  {data_type => "integer", is_nullable => 0},
   "rgt",
-  { data_type => "integer", is_nullable => 0 },
+  {data_type => "integer", is_nullable => 0},
   "level",
-  { data_type => "integer", is_nullable => 0 },
+  {data_type => "integer", is_nullable => 0},
   "name",
-  { data_type => "text", is_nullable => 0 },
+  {data_type => "text", is_nullable => 0},
   "no_students",
-  { data_type => "integer", is_nullable => 1 },
+  {data_type => "integer", is_nullable => 1},
   "ratio_books",
-  { data_type => "integer", is_nullable => 1 },
-  "ratio_students", 
-  { data_type => "integer", is_nullable => 1 },
+  {data_type => "integer", is_nullable => 1},
+  "ratio_students",
+  {data_type => "integer", is_nullable => 1},
   "updated",
-  {
-    data_type => "timestamp",
-    datetime_undef_if_invalid => 1,
-    default_value => \"current_timestamp",
-    is_nullable => 0,
-  },
+  {data_type => "timestamp", datetime_undef_if_invalid => 1, default_value => \"current_timestamp", is_nullable => 0},
   "created",
-  {
-    data_type => "timestamp",
-    datetime_undef_if_invalid => 1,
-    default_value => \"current_timestamp",
-    is_nullable => 0,
-  },
-  "source",
-  {
-    data_type => "integer",
-    is_foreign_key => 1,
-    is_nullable => 0,
-  },
+  {data_type => "timestamp", datetime_undef_if_invalid => 1, default_value => \"current_timestamp", is_nullable => 0},
+  "source_id",
+  {data_type => "integer", is_foreign_key => 1, is_nullable => 0},
   "source_uuid",
-  { data_type => "text", is_nullable => 1 },
+  {data_type => "text", is_nullable => 1},
   "course_identifier",
-  { data_type => "text", is_nullable => 1 },
+  {data_type => "text", is_nullable => 1},
   "year",
-  { data_type => "integer", is_nullable => 1 },
+  {data_type => "integer", is_nullable => 1},
   "validity_start",
-  {
-    data_type => "timestamp",
-    datetime_undef_if_invalid => 1,
-    is_nullable => 1,
-  },
+  {data_type => "timestamp", datetime_undef_if_invalid => 1, is_nullable => 1},
   "validity_end",
-  {
-    data_type => "timestamp",
-    datetime_undef_if_invalid => 1,
-    is_nullable => 1,
-  },
+  {data_type => "timestamp", datetime_undef_if_invalid => 1, is_nullable => 1},
   "published",
-  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  {data_type => "tinyint", default_value => 0, is_nullable => 0},
   "wip",
-  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  {data_type => "tinyint", default_value => 0, is_nullable => 0},
   "moderating",
-  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  {data_type => "tinyint", default_value => 0, is_nullable => 0},
   "summary",
-  { data_type => "text", is_nullable => 1 },
+  {data_type => "text", is_nullable => 1},
   "public_note",
-  { data_type => "text", is_nullable => 1 },
+  {data_type => "text", is_nullable => 1},
   "private_note",
-  { data_type => "text", is_nullable => 1 },
+  {data_type => "text", is_nullable => 1},
   "material_count",
-  {
-    data_type => "integer",
-    default_value => 0,
-    is_nullable => 0,
-  },
+  {data_type => "integer", default_value => 0, is_nullable => 0},
   "inherited_validity_start",
-  {
-    data_type => "timestamp",
-    datetime_undef_if_invalid => 1,
-    is_nullable => 0,
-  },
+  {data_type => "timestamp", datetime_undef_if_invalid => 1, is_nullable => 0},
   "inherited_validity_end",
-  {
-    data_type => "timestamp",
-    datetime_undef_if_invalid => 1,
-    is_nullable => 0,
-  },
+  {data_type => "timestamp", datetime_undef_if_invalid => 1, is_nullable => 0},
   "inherited_published",
-  { data_type => "tinyint", is_nullable => 0 },
+  {data_type => "tinyint", is_nullable => 0},
 );
 
 =head1 PRIMARY KEY
@@ -303,147 +268,97 @@ __PACKAGE__->set_primary_key("id");
 
 Type: special
 
-Related object: L<Rebus2::Schema::Result::List>
+Related object: L<Rebus::Schema::Result::List>
 
 =cut
 
 __PACKAGE__->tree_columns(
-    {
-        root_column  => 'root_id',
-        left_column  => 'lft',
-        right_column => 'rgt',
-        level_column => 'level',
-    }
-);
+  {root_column => 'root_id', left_column => 'lft', right_column => 'rgt', level_column => 'level',});
 
 =head2 buffer
 
 Type: might_have
 
-Related object: L<Rebus2::Schema::Result::Buffer>
+Related object: L<Rebus::Schema::Result::Buffer>
 
 =cut
 
 __PACKAGE__->might_have(
   "buffer",
-  "Rebus2::Schema::Result::Buffer",
-  { "foreign.list" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "Rebus::Schema::Result::Buffer",
+  {"foreign.list_id" => "self.id"},
+  {cascade_copy      => 0, cascade_delete => 0},
 );
 
 =head2 list_materials
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ListMaterial>
+Related object: L<Rebus::Schema::Result::ListMaterial>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_materials",
-  "Rebus2::Schema::Result::ListMaterial",
-  { "foreign.list" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "list_materials", "Rebus::Schema::Result::ListMaterial",
+  {"foreign.list_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
-=head2 list_users
+=head2 list_user_roles
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ListUser>
+Related object: L<Rebus::Schema::Result::ListUserRole>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_users",
-  "Rebus2::Schema::Result::ListUser",
-  { "foreign.list" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "list_user_roles", "Rebus::Schema::Result::ListUserRole",
+  {"foreign.list_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
 =head2 material_tags
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::MaterialTag>
+Related object: L<Rebus::Schema::Result::MaterialTag>
 
 =cut
 
 __PACKAGE__->has_many(
-  "material_tags",
-  "Rebus2::Schema::Result::MaterialTag",
-  { "foreign.list" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
-
-=head2 materials_grouped
-
-Type: has_many
-
-Related object: L<Rebus2::Schema::Result::MaterialGrouped>
-
-=cut
-
-__PACKAGE__->has_many(
-  "materials_grouped",
-  "Rebus2::Schema::Result::MaterialGrouped",
-  { "foreign.list" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "material_tags", "Rebus::Schema::Result::MaterialTag",
+  {"foreign.list_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
 =head2 source
 
 Type: belongs_to
 
-Related object: L<Rebus2::Schema::Result::Source>
+Related object: L<Rebus::Schema::Result::Source>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "source",
-  "Rebus2::Schema::Result::Source",
-  { id => "source" },
-  { is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT" },
-);
-
-__PACKAGE__->filter_column(
-    published => {
-        filter_to_storage   => sub { $_[1] ? 1  : 0 },
-        filter_from_storage => sub { $_[1] ? \1 : \0 }
-    }
-);
-
-__PACKAGE__->filter_column(
-    inherited_published => {
-        filter_to_storage   => sub { $_[1] ? 1  : 0 },
-        filter_from_storage => sub { $_[1] ? \1 : \0 }
-    }
-);
-
-__PACKAGE__->filter_column(
-    wip => {
-        filter_to_storage   => sub { $_[1] ? 1  : 0 },
-        filter_from_storage => sub { $_[1] ? \1 : \0 }
-    }
-);
-
-
-__PACKAGE__->filter_column(
-    moderating => {
-        filter_to_storage   => sub { $_[1] ? 1  : 0 },
-        filter_from_storage => sub { $_[1] ? \1 : \0 }
-    }
+  "Rebus::Schema::Result::Source",
+  {id            => "source_id"},
+  {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
 
 =head2 users
 
 Type: many_to_many
 
-Composing rels: L</list_users> -> user
+Composing rels: L</list_user_roles> -> user
 
 =cut
 
-__PACKAGE__->many_to_many("users" => "list_users", "user");
+sub users {
+  my $self = shift;
+
+  return $self->search_related('list_user_roles', {})->search_related('user', {});
+}
+
+#__PACKAGE__->many_to_many("users" => "list_user_roles", "user");
 
 =head2 materials
 
@@ -454,60 +369,52 @@ Composing rels: L</list_materials> -> material
 =cut
 
 sub materials {
-    my $self = shift;
+  my $self = shift;
 
-    return $self->search_related(
-        'list_materials',
-        {},
-        {
-            'join' => 'material',
-            'select' => [qw/category rank likes dislikes/],
-            'as' => [qw/category rank likes dislikes/],
-            'order_by' => [qw/category rank/],
-            '+select' => [qw/material.id material.in_stock material.metadata/],
-            '+as' => [qw/id in_stock metadata/],
-        }
-    );
-}
-
-=head2 list_materials_sorted
-
-Type: has_many
-
-Related object: L<Rebus2::Schema::Result::ListMaterial>
-
-Description: Custom addition to list_materials to ensure resultset is always sorted as expected; by category rank, and rank.
-
-=cut
-
-sub list_materials_sorted {
-    my $self = shift;
-    my $tags = shift;
-
-    my $prefetch_material;
-    if ( $tags ) {
-        $prefetch_material = { 'material' => 'material_tags' };
-    } else {
-        $prefetch_material = 'material';
+  return $self->search_related(
+    'list_materials',
+    {},
+    {
+      'join'     => 'material',
+      'select'   => [qw/category rank likes dislikes note/],
+      'as'       => [qw/category rank likes dislikes note/],
+      'order_by' => [qw/category rank/],
+      '+select'  => [qw/material.id material.in_stock material.metadata/],
+      '+as'      => [qw/id in_stock metadata/],
     }
-
-    # NOTE: Are these prefetches best done here or further up the execution path?
-    return $self->search_related(
-        'list_materials',
-        {},
-        {
-            'prefetch' =>
-              [ 'category', $prefetch_material, { 'materials_grouped' => 'material' } ],
-            'order_by' => [qw/category.rank me.rank/]
-        }
-    );
+  );
 }
 
-
-__PACKAGE__->inheritable_columns(
-    parent => [
-        qw/no_students ratio_books ratio_students course_identifier year validity_start validity_end published summary/
-    ]
+__PACKAGE__->filter_column(
+  published => {
+    filter_to_storage => sub { $_[1] ? 1 : 0 },
+    filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
+  }
 );
+
+__PACKAGE__->filter_column(
+  inherited_published => {
+    filter_to_storage => sub { $_[1] ? 1 : 0 },
+    filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
+  }
+);
+
+__PACKAGE__->filter_column(
+  wip => {
+    filter_to_storage => sub { $_[1] ? 1 : 0 },
+    filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
+  }
+);
+
+
+__PACKAGE__->filter_column(
+  moderating => {
+    filter_to_storage => sub { $_[1] ? 1 : 0 },
+    filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
+  }
+);
+
+__PACKAGE__->inheritable_columns(parent =>
+    [qw/no_students ratio_books ratio_students course_identifier year validity_start validity_end published summary/]);
 
 1;

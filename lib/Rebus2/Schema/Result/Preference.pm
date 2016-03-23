@@ -1,9 +1,10 @@
 use utf8;
-package Rebus2::Schema::Result::Preference;
+
+package Rebus::Schema::Result::Preference;
 
 =head1 NAME
 
-Rebus2::Schema::Result::Preference
+Rebus::Schema::Result::Preference
 
 =cut
 
@@ -22,7 +23,7 @@ use base 'DBIx::Class::Core';
 
 =cut
 
-__PACKAGE__->load_components( qw(InflateColumn::DateTime InflateColumn::Serializer) );
+__PACKAGE__->load_components(qw(InflateColumn::DateTime InflateColumn::Serializer));
 
 =head1 TABLE: C<preferences>
 
@@ -41,6 +42,7 @@ __PACKAGE__->table("preferences");
 
   data_type: 'text'
   is_nullable: 1
+  default_value: '""'
 
 =head2 group
 
@@ -50,31 +52,33 @@ __PACKAGE__->table("preferences");
 
 =head2 json_schema
 
-  data_type: 'text'
+  data_type: 'jsonb'
   is_nullable: 0
 
 =head2 json_form
 
-  data_type: 'text'
+  data_type: 'jsonb'
   is_nullable: 0
 
 =cut
 
 __PACKAGE__->add_columns(
   "code",
-  { data_type => "text", is_nullable => 0 },
+  {data_type => "text", is_nullable => 0},
   "content",
-  { data_type => "text", default_value => '""', is_nullable => 0, serializer_class => "JSON", 'serializer_options' => { allow_nonref => 1 } },
-  "group",
   {
-    data_type => "integer",
-    default_value => 1,
-    is_nullable => 1,
+    data_type          => "text",
+    default_value      => '""',
+    is_nullable        => 0,
+    serializer_class   => "JSON",
+    serializer_options => {allow_nonref => 1, utf8 => 1}
   },
+  "group",
+  {data_type => "integer", default_value => 1, is_nullable => 1,},
   "json_schema",
-  { data_type => "text", is_nullable => 0, serializer_class => "JSON" },
+  {data_type => "jsonb", is_nullable => 0, serializer_class => "JSON", serializer_options => {utf8 => 1}},
   "json_form",
-  { data_type => "text", is_nullable => 0, serializer_class => "JSON" },
+  {data_type => "jsonb", is_nullable => 0, serializer_class => "JSON", serializer_options => {utf8 => 1}},
 );
 
 =head1 PRIMARY KEY

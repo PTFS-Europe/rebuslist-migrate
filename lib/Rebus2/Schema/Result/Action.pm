@@ -1,9 +1,10 @@
 use utf8;
-package Rebus2::Schema::Result::Action;
+
+package Rebus::Schema::Result::Action;
 
 =head1 NAME
 
-Rebus2::Schema::Result::Action
+Rebus::Schema::Result::Action
 
 =cut
 
@@ -46,14 +47,8 @@ __PACKAGE__->table("actions");
 =cut
 
 __PACKAGE__->add_columns(
-  "id",
-  {
-    data_type => "integer",
-    is_auto_increment => 1,
-    is_nullable => 0,
-  },
-  "action",
-  { data_type => "text", is_nullable => 0 },
+  "id", {data_type => "integer", is_auto_increment => 1, is_nullable => 0,},
+  "action", {data_type => "text", is_nullable => 0},
 );
 
 =head1 PRIMARY KEY
@@ -74,15 +69,15 @@ __PACKAGE__->set_primary_key("id");
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ActionLog>
+Related object: L<Rebus::Schema::Result::ActionLog>
 
 =cut
 
 __PACKAGE__->has_many(
   "action_logs",
-  "Rebus2::Schema::Result::ActionLog",
-  { "foreign.action" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "Rebus::Schema::Result::ActionLog",
+  {"foreign.action_id" => "self.id"},
+  {cascade_copy        => 0, cascade_delete => 0},
 );
 
 1;

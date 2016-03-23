@@ -1,9 +1,12 @@
 use utf8;
-package Rebus2::Schema::Result::User;
+
+package Rebus::Schema::Result::User;
+
+use Mojo::JSON;
 
 =head1 NAME
 
-Rebus2::Schema::Result::User
+Rebus::Schema::Result::User
 
 =cut
 
@@ -22,7 +25,7 @@ use base 'DBIx::Class::Core';
 
 =cut
 
-__PACKAGE__->load_components( qw( FilterColumn InflateColumn::DateTime PassphraseColumn ) );
+__PACKAGE__->load_components(qw( FilterColumn InflateColumn::DateTime PassphraseColumn ));
 
 =head1 TABLE: C<user>
 
@@ -43,15 +46,10 @@ __PACKAGE__->table("users");
   data_type: 'text'
   is_nullable: 0
 
-=head2 system_role
+=head2 system_role_id
 
   data_type: 'integer'
   is_foreign_key: 1
-  is_nullable: 1
-
-=head2 secret
-
-  data_type: 'integer'
   is_nullable: 1
 
 =head2 login
@@ -78,39 +76,26 @@ __PACKAGE__->table("users");
 
 __PACKAGE__->add_columns(
   "id",
-  {
-    data_type => "integer",
-    is_auto_increment => 1,
-    is_nullable => 0,
-  },
+  {data_type => "integer", is_auto_increment => 1, is_nullable => 0,},
   "name",
-  { data_type => "text", is_nullable => 0 },
-  "system_role",
-  {
-    data_type => "integer",
-    is_foreign_key => 1,
-    is_nullable => 1,
-  },
-  "secret",
-  { data_type => "integer", is_nullable => 1 },
+  {data_type => "text", is_nullable => 0},
+  "system_role_id",
+  {data_type => "integer", is_foreign_key => 1, is_nullable => 1,},
   "login",
-  { data_type => "text", is_nullable => 1 },
+  {data_type => "text", is_nullable => 1},
   "password",
   {
-    data_type        => "text",
-    is_nullable      => 1,
-    passphrase       => 'rfc2307',
-    passphrase_class => 'BlowfishCrypt',
-    passphrase_args  => {
-        cost   => '8',
-        salt_random => 1,
-    },
+    data_type               => "text",
+    is_nullable             => 1,
+    passphrase              => 'rfc2307',
+    passphrase_class        => 'BlowfishCrypt',
+    passphrase_args         => {cost => '8', salt_random => 1,},
     passphrase_check_method => 'check_passphrase',
   },
   "email",
-  { data_type => "text", is_nullable => 1 },
+  {data_type => "text", is_nullable => 1},
   "active",
-  { data_type => "tinyint", is_nullable => 0 },
+  {data_type => "tinyint", is_nullable => 0},
 );
 
 =head1 PRIMARY KEY
@@ -141,76 +126,99 @@ __PACKAGE__->add_unique_constraint("login", ["login"]);
 
 =head1 RELATIONS
 
+=head2 privileges
+
+Type: has_many
+
+Related object: L<Rebus::Schema::Result::UserPrivilege>
+
+=cut
+
+__PACKAGE__->has_many(
+  "privileges", "Rebus::Schema::Result::UserPrivilege",
+  {"foreign.user_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
+);
+
 =head2 buffers
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::Buffer>
+Related object: L<Rebus::Schema::Result::Buffer>
 
 =cut
 
 __PACKAGE__->has_many(
   "buffers",
-  "Rebus2::Schema::Result::Buffer",
-  { "foreign.user" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "Rebus::Schema::Result::Buffer",
+  {"foreign.user_id" => "self.id"},
+  {cascade_copy      => 0, cascade_delete => 0},
 );
 
-=head2 list_users
+=head2 list_user_roles
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ListUser>
+Related object: L<Rebus::Schema::Result::ListUserRole>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_users",
-  "Rebus2::Schema::Result::ListUser",
-  { "foreign.user" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "list_user_roles", "Rebus::Schema::Result::ListUserRole",
+  {"foreign.user_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
+
+=head2 lists
+
+Type: many_to_many
+
+Composing rels:  L</list_user_roles> -> list
+
+=cut
+
+__PACKAGE__->many_to_many("lists" => "list_user_roles", "list");
 
 =head2 scan_requests
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ScanRequest>
+Related object: L<Rebus::Schema::Result::ScanRequest>
 
 =cut
 
 __PACKAGE__->has_many(
-  "scan_requests",
-  "Rebus2::Schema::Result::ScanRequest",
-  { "foreign.user" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "scan_requests", "Rebus::Schema::Result::ScanRequest",
+  {"foreign.user_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
 =head2 system_role
 
 Type: belongs_to
 
-Related object: L<Rebus2::Schema::Result::SystemRole>
+Related object: L<Rebus::Schema::Result::SystemRole>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "system_role",
-  "Rebus2::Schema::Result::SystemRole",
-  { id => "system_role" },
-  {
-    is_deferrable => 1,
-    join_type     => "LEFT",
-    on_delete     => "RESTRICT",
-    on_update     => "RESTRICT",
-  },
+  "Rebus::Schema::Result::SystemRole",
+  {id            => "system_role_id"},
+  {is_deferrable => 1, join_type => "LEFT", on_delete => "RESTRICT", on_update => "RESTRICT",},
 );
 
+=head1 FILTERS
+
+=head2 active
+
+Type: filter_column
+Action: Boolean filter
+
+=cut
+
 __PACKAGE__->filter_column(
-    active => {
-        filter_to_storage   => sub { $_[1] ? 1  : 0 },
-        filter_from_storage => sub { $_[1] ? \1 : \0 }
-    }
+  active => {
+    filter_to_storage => sub { $_[1] ? 1 : 0 },
+    filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
+  }
 );
 
 1;

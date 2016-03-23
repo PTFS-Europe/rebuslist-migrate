@@ -1,9 +1,10 @@
 use utf8;
-package Rebus2::Schema::Result::ActionLog;
+
+package Rebus::Schema::Result::ActionLog;
 
 =head1 NAME
 
-Rebus2::Schema::Result::ActionLog
+Rebus::Schema::Result::ActionLog
 
 =cut
 
@@ -38,7 +39,7 @@ __PACKAGE__->table("action_logs");
   is_auto_increment: 1
   is_nullable: 0
 
-=head2 action
+=head2 action_id
 
   data_type: 'integer'
   is_foreign_key: 1
@@ -49,7 +50,7 @@ __PACKAGE__->table("action_logs");
   data_type: 'text'
   is_nullable: 0
 
-=head2 user
+=head2 user_id
 
   data_type: 'integer'
   is_nullable: 0
@@ -65,28 +66,15 @@ __PACKAGE__->table("action_logs");
 
 __PACKAGE__->add_columns(
   "id",
-  {
-    data_type => "integer",
-    is_auto_increment => 1,
-    is_nullable => 0,
-  },
-  "action",
-  {
-    data_type => "integer",
-    is_foreign_key => 1,
-    is_nullable => 0,
-  },
+  {data_type => "integer", is_auto_increment => 1, is_nullable => 0,},
+  "action_id",
+  {data_type => "integer", is_foreign_key => 1, is_nullable => 0,},
   "object",
-  { data_type => "text", is_nullable => 0 },
-  "user",
-  { data_type => "integer", is_nullable => 0 },
+  {data_type => "text", is_nullable => 0},
+  "user_id",
+  {data_type => "integer", is_nullable => 0},
   "time",
-  {
-    data_type => "timestamp",
-    datetime_undef_if_invalid => 1,
-    default_value => \"current_timestamp",
-    is_nullable => 0,
-  },
+  {data_type => "timestamp", datetime_undef_if_invalid => 1, default_value => \"current_timestamp", is_nullable => 0,},
 );
 
 =head1 PRIMARY KEY
@@ -107,15 +95,29 @@ __PACKAGE__->set_primary_key("id");
 
 Type: belongs_to
 
-Related object: L<Rebus2::Schema::Result::Action>
+Related object: L<Rebus::Schema::Result::Action>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "action",
-  "Rebus2::Schema::Result::Action",
-  { id => "action" },
-  { is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT" },
+  "Rebus::Schema::Result::Action",
+  {id            => "action_id"},
+  {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
+);
+
+=head2 user
+
+Type: belongs_to
+
+Related object: L<Rebus::Schema::Result::User>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "user", "Rebus::Schema::Result::User",
+  {id            => "user_id"},
+  {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
 
 1;

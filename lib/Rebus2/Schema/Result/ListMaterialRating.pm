@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus::Schema::Result::MaterialTag;
+package Rebus::Schema::Result::ListMaterialRating;
 
 =head1 NAME
 
-Rebus::Schema::Result::MaterialTag
+Rebus::Schema::Result::ListMaterialRating
 
 =cut
 
@@ -13,25 +13,19 @@ use warnings;
 
 use base 'DBIx::Class::Core';
 
-=head1 COMPONENTS LOADED
-
-=over 4
-
-=item * L<DBIx::Class::InflateColumn::DateTime>
-
-=back
+=head1 TABLE: C<list_material_rating>
 
 =cut
 
-__PACKAGE__->load_components("InflateColumn::DateTime");
-
-=head1 TABLE: C<material_tag>
-
-=cut
-
-__PACKAGE__->table("material_tags");
+__PACKAGE__->table("list_material_ratings");
 
 =head1 ACCESSORS
+
+=head2 list_id
+
+  data_type: 'integer'
+  is_foreign_key: 1
+  is_nullable: 0
 
 =head2 material_id
 
@@ -39,42 +33,43 @@ __PACKAGE__->table("material_tags");
   is_foreign_key: 1
   is_nullable: 0
 
-=head2 tag_id
+=head2 user_id
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 0
 
-=head2 list_id
+=head2 type
 
-  data_type: 'integer'
-  is_foreign_key: 1
+  data_type: 'text'
   is_nullable: 0
-  default_value: 0
 
 =cut
 
 __PACKAGE__->add_columns(
+  "list_id",     {data_type => "integer", is_foreign_key => 1, is_nullable => 0,},
   "material_id", {data_type => "integer", is_foreign_key => 1, is_nullable => 0,},
-  "tag_id",      {data_type => "integer", is_foreign_key => 1, is_nullable => 0,},
-  "list_id",     {data_type => "integer", is_foreign_key => 1, is_nullable => 0, default_value => 0},
+  "user_id",     {data_type => "integer", default_value  => 0, is_nullable => 0,},
+  "type",        {data_type => "text",    is_nullable    => 0},
 );
 
 =head1 PRIMARY KEY
 
 =over 4
 
+=item * L</list_id>
+
 =item * L</material_id>
 
-=item * L</tag_id>
+=item * L</user_id>
 
-=item * L</list_id>
+=item * L</type>
 
 =back
 
 =cut
 
-__PACKAGE__->set_primary_key("material_id", "tag_id", "list_id");
+__PACKAGE__->set_primary_key("list_id", "material_id", "user_id", "type");
 
 =head1 RELATIONS
 
@@ -89,8 +84,7 @@ Related object: L<Rebus::Schema::Result::List>
 __PACKAGE__->belongs_to(
   "list", "Rebus::Schema::Result::List",
   {id            => "list_id"},
-  {is_deferrable => 1, join_type => "LEFT", on_delete => "CASCADE", on_update => "RESTRICT",},
-  {join_type     => 'left'}
+  {is_deferrable => 1, on_delete => "CASCADE", on_update => "RESTRICT"},
 );
 
 =head2 material
@@ -108,17 +102,17 @@ __PACKAGE__->belongs_to(
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
 
-=head2 tag
+=head2 user
 
 Type: belongs_to
 
-Related object: L<Rebus::Schema::Result::Tag>
+Related object: L<Rebus::Schema::Result::User>
 
 =cut
 
 __PACKAGE__->belongs_to(
-  "tag", "Rebus::Schema::Result::Tag",
-  {id            => "tag_id"},
+  "user", "Rebus::Schema::Result::User",
+  {id            => "user_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
 

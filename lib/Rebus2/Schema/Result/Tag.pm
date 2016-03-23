@@ -1,9 +1,10 @@
 use utf8;
-package Rebus2::Schema::Result::Tag;
+
+package Rebus::Schema::Result::Tag;
 
 =head1 NAME
 
-Rebus2::Schema::Result::Tag
+Rebus::Schema::Result::Tag
 
 =cut
 
@@ -46,14 +47,8 @@ __PACKAGE__->table("tags");
 =cut
 
 __PACKAGE__->add_columns(
-  "id",
-  {
-    data_type => "integer",
-    is_auto_increment => 1,
-    is_nullable => 0,
-  },
-  "text",
-  { data_type => "text", is_nullable => 0 },
+  "id", {data_type => "integer", is_auto_increment => 1, is_nullable => 0,},
+  "text", {data_type => "text", is_nullable => 0},
 );
 
 =head1 PRIMARY KEY
@@ -68,21 +63,31 @@ __PACKAGE__->add_columns(
 
 __PACKAGE__->set_primary_key("id");
 
+=head1 UNIQUE CONSTRAINTS
+
+=over 4
+
+=item * L</text>
+
+=back
+
+=cut
+
+__PACKAGE__->add_unique_constraint(tag => [qw/text/]);
+
 =head1 RELATIONS
 
 =head2 material_tags
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::MaterialTag>
+Related object: L<Rebus::Schema::Result::MaterialTag>
 
 =cut
 
 __PACKAGE__->has_many(
-  "material_tags",
-  "Rebus2::Schema::Result::MaterialTag",
-  { "foreign.tag" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "material_tags", "Rebus::Schema::Result::MaterialTag",
+  {"foreign.tag_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
 1;

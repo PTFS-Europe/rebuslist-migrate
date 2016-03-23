@@ -1,9 +1,10 @@
 use utf8;
-package Rebus2::Schema::Result::SystemRole;
+
+package Rebus::Schema::Result::SystemRole;
 
 =head1 NAME
 
-Rebus2::Schema::Result::SystemRole
+Rebus::Schema::Result::SystemRole
 
 =cut
 
@@ -11,18 +12,6 @@ use strict;
 use warnings;
 
 use base 'DBIx::Class::Core';
-
-=head1 COMPONENTS LOADED
-
-=over 4
-
-=item * L<DBIx::Class::InflateColumn::DateTime>
-
-=back
-
-=cut
-
-__PACKAGE__->load_components("InflateColumn::DateTime");
 
 =head1 TABLE: C<system_role>
 
@@ -35,6 +24,7 @@ __PACKAGE__->table("system_roles");
 =head2 id
 
   data_type: 'integer'
+  is_auto_increment: 1
   is_nullable: 0
 
 =head2 name
@@ -45,10 +35,8 @@ __PACKAGE__->table("system_roles");
 =cut
 
 __PACKAGE__->add_columns(
-  "id",
-  { data_type => "integer", is_nullable => 0 },
-  "name",
-  { data_type => "text", is_nullable => 0 },
+  "id", {data_type => "integer", is_auto_increment => 1, is_nullable => 0},
+  "name", {data_type => "text", is_nullable => 0},
 );
 
 =head1 PRIMARY KEY
@@ -63,21 +51,45 @@ __PACKAGE__->add_columns(
 
 __PACKAGE__->set_primary_key("id");
 
+=head1 UNIQUE CONSTRAINTS
+
+=over 4
+
+=item * L</name>
+
+=back
+
+=cut
+
+__PACKAGE__->add_unique_constraint(name => [qw/name/]);
+
 =head1 RELATIONS
 
 =head2 users
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::User>
+Related object: L<Rebus::Schema::Result::User>
 
 =cut
 
 __PACKAGE__->has_many(
-  "users",
-  "Rebus2::Schema::Result::User",
-  { "foreign.system_role" => "self.id" },
-  { cascade_copy => 0, cascade_delete => 0 },
+  "users", "Rebus::Schema::Result::User",
+  {"foreign.system_role_id" => "self.id"},
+  {cascade_copy             => 0, cascade_delete => 0},
+);
+
+=head2 privileges
+
+Type: has_many
+
+Related object: L<Rebus::Schema::Result::SystemRolePrivilege>
+
+=cut
+
+__PACKAGE__->has_many(
+  "privileges", "Rebus::Schema::Result::SystemRolePrivilege",
+  {"foreign.role_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
 1;
