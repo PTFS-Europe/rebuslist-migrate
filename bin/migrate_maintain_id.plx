@@ -59,12 +59,12 @@ my $end = DateTime->new(
 say "Importing lists";
 my $list_links;
 my $parent_links;
-my @rl1_listResults = $rebus1->resultset('List')
+my $rl1_listResults = $rebus1->resultset('List')
   ->search( undef, { order_by => { -asc => [qw/list_id/] } } );
 for my $rl1_list ( $rl1_listResults->all ) {
 
     # Add child list
-    my $rl2_list = $rl2_unit->create(
+    my $rl2_list = $rebus2->resultset('List')->create(
         {
             id                  => $rl1_list->list_id,
             root_id             => 0,
@@ -99,8 +99,8 @@ for my $rl1_list ( $rl1_listResults->all ) {
 }
 
 # Add units
-my $start = $dt->clone->subtract( years => 5 );
-my $end = $dt->clone->add( years => 5 );
+$start = $dt->clone->subtract( years => 5 );
+$end = $dt->clone->add( years => 5 );
 
 recurse( 0, {} );
 
