@@ -125,6 +125,7 @@ $rebus2->storage->dbh_do(
 # Add units
 $start = $dt->clone->subtract( years => 5 );
 $end = $dt->clone->add( years => 5 );
+print "Importing units...\n";
 my $current_level = 0;
 
 recurse( [0], {} );
@@ -137,14 +138,10 @@ sub recurse {
       $rebus1->resultset('OrgUnit')->search( { parent => $parents },
         { order_by => { -asc => [qw/parent org_unit_id/] } } )->all;
 
-    # Update Progress
-    print "\nWorking on level " . $current_level++ . " with " . scalar(@rl1_unitResults) . " units";
-
     if (@rl1_unitResults) {
         my $new_parents;
 
         for my $rl1_unit (@rl1_unitResults) {
-            print ".";
 
             my $rl2_unit;
             if ( $rl1_unit->parent == 0 ) {
@@ -362,84 +359,89 @@ my @rl1_sequenceResults = $rebus1->resultset('Sequence')
   ->search( undef, { order_by => { -asc => [qw/list_id rank/] } } )->all;
 
 for my $rl1_sequence (@rl1_sequenceResults) {
-    
+
     # Update Progress
     $current_line++;
     $next_update = $material_progress->update($current_line)
       if $current_line > $next_update;
 
+    if ( exists( $list_links->{ $rl1_sequence->list_id } ) ) {
 
-    # Get material
-    my $rl1_material = $rebus1->resultset('Material')
-      ->find( { material_id => $rl1_sequence->material_id } );
-
-    if ( defined($rl1_material) ) {
-
-        # Map Material to CSL
-        my $csl = mapCSL($rl1_material);
-
-        my ( $owner, $owner_uuid );
-        if (   defined( $rl1_material->print_sysno )
-            || defined( $rl1_material->elec_sysno ) )
-        {
-            $owner      = $config->{'connector'};
-            $owner_uuid = $rl1_material->print_sysno;
-            $owner_uuid //= $rl1_material->elec_sysno;
-
-        }
-        else {
-            $owner = $config->{'code'};
-            $owner = $user_links->{ $rl1_sequence->list_id };
-        }
-
-        # Add material
-        my $rl2_material =
-          addMaterial( $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
-            $csl, $owner, $owner_uuid );
-
-        # Get rating
-        my $rl1_rating = $rebus1->resultset('MaterialRating')
+        # Get material
+        my $rl1_material = $rebus1->resultset('Material')
           ->find( { material_id => $rl1_sequence->material_id } );
 
-        # Link material to list
-        my $rl2_sequence = $rebus2->resultset('ListMaterial')->find_or_create(
+        if ( defined($rl1_material) ) {
+
+            # Map Material to CSL
+            my $csl = mapCSL($rl1_material);
+
+            my ( $owner, $owner_uuid );
+            if (   defined( $rl1_material->print_sysno )
+                || defined( $rl1_material->elec_sysno ) )
             {
-                list_id     => $list_links->{ $rl1_sequence->list_id },
-                material_id => $rl2_material->id,
-                rank        => $rl1_sequence->rank,
-                dislikes => defined($rl1_rating) ? $rl1_rating->not_likes : 0,
-                likes => defined($rl1_rating) ? $rl1_rating->likes : 0,
-                category_id => $erbo_links->{ $rl1_material->erbo_id },
-                source_id   => 1,
-                source_uuid => $config->{'code'} . '-' . $rl2_material->id
-            },
-            { key => 'primary' }
-        );
+                $owner      = $config->{'connector'};
+                $owner_uuid = $rl1_material->print_sysno;
+                $owner_uuid //= $rl1_material->elec_sysno;
 
-        # Get material tags
-        my $rl1_tagResult = $rebus1->resultset('TagLink')
-          ->find( { material_id => $rl1_sequence->material_id } );
+            }
+            else {
+                $owner = $config->{'code'};
+                $owner = $user_links->{ $rl1_sequence->list_id };
+            }
 
-        if ( defined($rl1_tagResult) ) {
+            # Add material
+            my $rl2_material =
+              addMaterial( $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
+                $csl, $owner, $owner_uuid );
 
-            # Get tag
-            my $rl1_tag =
-              $rebus1->resultset('Tag')
-              ->find( { tag_id => $rl1_tagResult->tag_id } );
+            # Get rating
+            my $rl1_rating = $rebus1->resultset('MaterialRating')
+              ->find( { material_id => $rl1_sequence->material_id } );
 
-            # Add tag
-            my $rl2_tag = addTag( { text => $rl1_tag->tag } );
-
-            # Link tag to material in list
-            my $rl2_link_tag =
-              $rebus2->resultset('MaterialTag')->find_or_create(
+            # Link material to list
+            my $rl2_sequence =
+              $rebus2->resultset('ListMaterial')->find_or_create(
                 {
+                    list_id     => $list_links->{ $rl1_sequence->list_id },
                     material_id => $rl2_material->id,
-                    tag_id      => $rl2_tag->id,
-                    list_id     => $list_links->{ $rl1_sequence->list_id }
+                    rank        => $rl1_sequence->rank,
+                    dislikes    => defined($rl1_rating)
+                    ? $rl1_rating->not_likes
+                    : 0,
+                    likes => defined($rl1_rating) ? $rl1_rating->likes : 0,
+                    category_id => $erbo_links->{ $rl1_material->erbo_id },
+                    source_id   => 1,
+                    source_uuid => $config->{'code'} . '-' . $rl2_material->id
                 },
                 { key => 'primary' }
               );
+
+            # Get material tags
+            my $rl1_tagResult = $rebus1->resultset('TagLink')
+              ->find( { material_id => $rl1_sequence->material_id } );
+
+            if ( defined($rl1_tagResult) ) {
+
+                # Get tag
+                my $rl1_tag =
+                  $rebus1->resultset('Tag')
+                  ->find( { tag_id => $rl1_tagResult->tag_id } );
+
+                # Add tag
+                my $rl2_tag = addTag( { text => $rl1_tag->tag } );
+
+                # Link tag to material in list
+                my $rl2_link_tag =
+                  $rebus2->resultset('MaterialTag')->find_or_create(
+                    {
+                        material_id => $rl2_material->id,
+                        tag_id      => $rl2_tag->id,
+                        list_id     => $list_links->{ $rl1_sequence->list_id }
+                    },
+                    { key => 'primary' }
+                  );
+            }
         }
     }
 }
@@ -498,7 +500,8 @@ sub addTag {
     $text = lc($text);
     $text =~ s/\s/-/g;
 
-    my @tagResults = $rebus2->resultset('Tag')->search( { text => $text } )->all;
+    my @tagResults =
+      $rebus2->resultset('Tag')->search( { text => $text } )->all;
 
     unless (@tagResults) {
         my $new_tag = $rebus2->resultset('Tag')->create( { text => $text } );
@@ -515,10 +518,10 @@ sub mapCSL {
     $csl->{'title'}  = $result->title;
     $csl->{'author'} = [];
     if ( defined( $result->authors ) ) {
-        push @$csl->{'author'}, { literal => $result->authors };
+        push @{ $csl->{'author'} }, { literal => $result->authors };
     }
     if ( defined( $result->secondary_authors ) ) {
-        push @$csl->{'author'}, { literal => $result->secondary_authors };
+        push @{ $csl->{'author'} }, { literal => $result->secondary_authors };
     }
     $csl->{'edition'}         = $result->edition;
     $csl->{'volume'}          = $result->volume;
