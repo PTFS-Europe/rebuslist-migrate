@@ -11,6 +11,7 @@ use Rebus1::Schema;
 use Rebus2::Schema;
 use DBIx::Class::Tree::NestedSet;
 use Authen::Passphrase::SaltedDigest;
+use List::Util qw/any/;
 use DateTime;
 use DateTime::Duration;
 use Term::ProgressBar 2.00;
@@ -193,7 +194,7 @@ sub recurse {
 
                 # Add to lookup table
                 $unit_links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
-                push @{$new_parents}, $rl1_unit->org_unit_id;
+                push @{$new_parents}, $rl1_unit->org_unit_id unless any { $_ == $rl1_unit->org_unit_id } @{$new_parents};
                 $rl2_unit->discard_changes;
             }
             else {
@@ -225,7 +226,7 @@ sub recurse {
 
                 # Add to lookup table
                 $unit_links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
-                push @{$new_parents},$rl1_unit->org_unit_id;
+                push @{$new_parents},$rl1_unit->org_unit_id unless any { $_ == $rl1_unit->org_unit_id } @{$new_parents};
                 $rl2_unit->discard_changes;
             }
 

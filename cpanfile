@@ -13,3 +13,4 @@ requires "DateTime::Format::Pg", "";
 requires "Mojolicious", "";
 requires "DBIx::Class::Helper::ResultSet::Errors", "";
 requires "Term::ProgressBar", "";
+requires "List::Util", "";
