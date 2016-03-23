@@ -151,7 +151,7 @@ sub recurse {
                 $rl2_unit = $rebus2->resultset('List')->create(
                     {
                         name                     => $rl1_unit->name,
-                        source                   => 1,
+                        source_id                => 1,
                         published                => 1,
                         inherited_published      => 1,
                         root_id                  => $rootID,
