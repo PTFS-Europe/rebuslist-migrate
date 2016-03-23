@@ -125,13 +125,7 @@ $rebus2->storage->dbh_do(
 # Add units
 $start = $dt->clone->subtract( years => 5 );
 $end = $dt->clone->add( years => 5 );
-
-$total = 100;
-my $unit_progress =
-  Term::ProgressBar->new( { name => "Importing Units", count => $total } );
-$unit_progress->minor(0);
-$next_update  = 0;
-$current_line = 0;
+my $current_level = 0;
 
 recurse( [0], {} );
 
@@ -140,9 +134,7 @@ sub recurse {
     my $unit_links = shift;
 
     # Update Progress
-    $current_line++;
-    $next_update = $unit_progress->update($current_line)
-      if $current_line > $next_update;
+    print "Working on level " . $current_level++ . "\n";
 
     my @rl1_unitResults =
       $rebus1->resultset('OrgUnit')->search( { parent => $parents },
