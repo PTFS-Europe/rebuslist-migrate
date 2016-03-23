@@ -33,7 +33,9 @@ my $rebus1 = Rebus1::Schema->connect(
 
 my $rebus2 = Rebus2::Schema->connect(
 "dbi:Pg:database=$config->{'database2'};host=$config->{'host2'};port=$config->{'port2'}",
-    "$config->{'username2'}", "$config->{'password2'}"
+    "$config->{'username2'}",
+    "$config->{'password2'}",
+    { 'pg_enable_utf8' => 1, 'on_connect_do' => ["SET search_path TO list"] }
 );
 
 say "Beggining migration...";
