@@ -10,3 +10,5 @@ requires "YAML::XS", "";
 requires "DateTime", "";
 requires "DateTime::Duration", "";
 requires "DateTime::Format::Pg", "";
+requires "Mojolicious", "";
+requires "DBIx::Class::Helper::ResultSet::Errors", "";
