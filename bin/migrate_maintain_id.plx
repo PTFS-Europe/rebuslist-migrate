@@ -504,6 +504,7 @@ sub addMaterial {
     );
 
     unless (@materialResults) {
+        $metadata->{'id'} = $owner_uuid;
         my $new_material = $rebus2->resultset('Material')->create(
             {
                 in_stock   => $in_stock,
@@ -540,22 +541,77 @@ sub mapCSL {
     my $result = shift;
     my $csl;
 
-    $csl->{'title'}  = $result->title;
-    $csl->{'author'} = [];
-    if ( defined( $result->authors ) ) {
-        push @{ $csl->{'author'} }, { literal => $result->authors };
+    if (   defined( $result->title )
+        && $result->title ne ''
+        && !( $result->title =~ /^\s*$/ ) )
+    {
+        $csl->{'title'} = $result->title;
     }
-    if ( defined( $result->secondary_authors ) ) {
-        push @{ $csl->{'author'} }, { literal => $result->secondary_authors };
+    if (   defined( $result->authors )
+        && $result->authors ne ''
+        && !( $result->authors =~ /^\s*$/ )
+        || defined( $result->secondary_authors )
+        && $result->secondary_authors ne ''
+        && !( $result->secondary_authors =~ /^\s*$/ ) )
+    {
+
+        $csl->{'author'} = [];
+        if ( defined( $result->authors ) ) {
+            push @{ $csl->{'author'} }, { literal => $result->authors };
+        }
+        if ( defined( $result->secondary_authors ) ) {
+            push @{ $csl->{'author'} },
+              { literal => $result->secondary_authors };
+        }
     }
-    $csl->{'edition'}         = $result->edition;
-    $csl->{'volume'}          = $result->volume;
-    $csl->{'issue'}           = $result->issue;
-    $csl->{'publisher'}       = $result->publisher;
-    $csl->{'issued'}          = { raw => $result->publication_date };
-    $csl->{'publisher-place'} = $result->publication_place;
-    $csl->{'note'}            = $result->note;
-    $csl->{'URL'}             = $result->url;
+    if (   defined( $result->edition )
+        && $result->edition ne ''
+        && !( $result->edition =~ /^\s*$/ ) )
+    {
+        $csl->{'edition'} = $result->edition;
+    }
+    if (   defined( $result->volume )
+        && $result->volume ne ''
+        && !( $result->volume =~ /^\s*$/ ) )
+    {
+        $csl->{'volume'} = $result->volume;
+    }
+    if (   defined( $result->issue )
+        && $result->issue ne ''
+        && !( $result->issue =~ /^\s*$/ ) )
+    {
+        $csl->{'issue'} = $result->issue;
+    }
+    if (   defined( $result->publisher )
+        && $result->publisher ne ''
+        && !( $result->publisher =~ /^\s*$/ ) )
+    {
+        $csl->{'publisher'} = $result->publisher;
+    }
+    if (   defined( $result->publication_date )
+        && $result->publication_date ne ''
+        && !( $result->publication_date =~ /^\s*$/ ) )
+    {
+        $csl->{'issued'} = { raw => $result->publication_date };
+    }
+    if (   defined( $result->publication_place )
+        && $result->publication_place ne ''
+        && !( $result->publication_place =~ /^\s*$/ ) )
+    {
+        $csl->{'publisher-place'} = $result->publication_place;
+    }
+    if (   defined( $result->note )
+        && $result->note ne ''
+        && !( $result->note =~ /^\s*$/ ) )
+    {
+        $csl->{'note'} = $result->note;
+    }
+    if (   defined( $result->url )
+        && $result->url ne ''
+        && !( $result->url =~ /^\s*$/ ) )
+    {
+        $csl->{'URL'} = $result->url;
+    }
 
     my $epage = $result->epage;
     my $spage = $result->spage;
