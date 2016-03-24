@@ -16,7 +16,7 @@ use DateTime;
 use DateTime::Duration;
 use Term::ProgressBar 2.00;
 
-use Mojo::JSON qw(decode_json encode_json); 
+use Mojo::JSON qw(decode_json encode_json);
 use Data::Printer colored => 1;
 
 use Getopt::Long;
@@ -350,12 +350,15 @@ for my $rl1_erbo (@rl1_erboResults) {
     # Add to lookup table
     $erbo_links->{ $rl1_erbo->erbo_id } = $rl2_erbo->id;
 }
+
 # Update preference table
-my $rl2_categoriesResult = $rebus2->resultset('Category')->search(undef, { order_by => 'rank' });
+my $rl2_categoriesResult =
+  $rebus2->resultset('Category')->search( undef, { order_by => 'rank' } );
 my @rl2_categoriesArray = $rl2_categoriesResult->get_column('category')->all;
 my $rl2_categories_json = encode_json \@rl2_categoriesArray;
-my $rl2_preferenceResult = $rebus2->resultset('Preference')->find({ code => 'categories' });
-$rl2_preferenceResult->update({ content => $rl2_categories_json });
+my $rl2_preferenceResult =
+  $rebus2->resultset('Preference')->find( { code => 'categories' } );
+$rl2_preferenceResult->update( { content => $rl2_categories_json } );
 say "Categories loaded...\n";
 
 # Sequence, Material, MaterialType, MaterialRating, MaterialLabel, Tag, TagLink, MetadataSource
@@ -388,8 +391,16 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             my $csl = mapCSL($rl1_material);
 
             my ( $owner, $owner_uuid );
-            if (   defined( $rl1_material->print_sysno )
-                || defined( $rl1_material->elec_sysno ) )
+            if (
+                (
+                       defined( $rl1_material->print_sysno )
+                    && $rl1_material->print_sysno ne ''
+                    && !( $rl1_material->print_sysno =~ /^\s*$/ )
+                )
+                || (   defined( $rl1_material->elec_sysno )
+                    && $rl1_material->elec_sysno ne ''
+                    && !( $rl1_material->elec_sysno =~ /^\s*$/ ) )
+              )
             {
                 $owner      = $config->{'connector'};
                 $owner_uuid = $rl1_material->print_sysno;
@@ -397,8 +408,11 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
             }
             else {
-                $owner = $config->{'code'};
-                $owner = $user_links->{ $rl1_sequence->list_id };
+                print "Adding owner as code\n";
+
+                # FIXME - This has changed in the RL2 Schema recently
+                $owner      = $config->{'code'};
+                $owner_uuid = '1-' . $user_links->{ $rl1_sequence->list_id };
             }
 
             # Add material
