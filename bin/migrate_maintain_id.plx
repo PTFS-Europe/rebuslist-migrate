@@ -408,11 +408,12 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
             }
             else {
-                print "Adding owner as code\n";
 
                 # FIXME - This has changed in the RL2 Schema recently
                 $owner      = $config->{'code'};
-                $owner_uuid = '1-' . $user_links->{ $rl1_sequence->list_id };
+                $owner_uuid = '1-';
+                $owner_uuid .= $user_links->{ $rl1_sequence->list_id }
+                  if defined( $user_links->{ $rl1_sequence->list_id } );
             }
 
             # Add material
