@@ -613,8 +613,20 @@ sub mapCSL {
         $csl->{'URL'} = $result->url;
     }
 
-    my $epage = $result->epage;
-    my $spage = $result->spage;
+    my $epage;
+    if (   defined( $result->epage )
+        && $result->epage ne ''
+        && !( $result->epage =~ /^\s*$/ ) )
+    {
+        $epage = $result->epage;
+    }
+    my $spage;
+    if (   defined( $result->spage )
+        && $result->spage ne ''
+        && !( $result->spage =~ /^\s*$/ ) )
+    {
+        $spage = $result->spage;
+    }
     if ( defined($epage) ) {
         $epage =~ s/pp\.//g;
         $epage =~ s/\D+//g;
@@ -624,83 +636,146 @@ sub mapCSL {
         $spage =~ s/\D+//g;
     }
 
-# Types: 1=Book, 2=Chapter, 3=Journal, 4=Article, 5=Scan, 7=Link, 9=Other, 10=eBook, 11=AV, 12=Note, 13=Private Note
+    my $secondary_title;
+    if (   defined( $result->secondary_title )
+        && $result->secondary_title ne ''
+        && !( $result->secondary_title =~ /^\s*$/ ) )
+    {
+        $secondary_title = $result->secondary_title;
+    }
+
+    # Types:
+    # 1=Book,
+    # 2=Chapter,
+    # 3=Journal,
+    # 4=Article,
+    # 5=Scan,
+    # 7=Link,
+    # 9=Other,
+    # 10=eBook,
+    # 11=AV,
+    # 12=Note,
+    # 13=Private Note
     if ( $result->material_type_id == 1 ) {
-        $csl->{'type'}             = 'book';
-        $csl->{'collection-title'} = $result->secondary_title;
-        $csl->{'number-of-pages'}  = $result->spage;
-        $csl->{'ISBN'} =
-          defined( $result->print_control_no )
-          ? $result->print_control_no
-          : $result->elec_control_no;
+        $csl->{'type'} = 'book';
+        if ( defined($secondary_title) ) {
+            $csl->{'collection-title'} = $result->secondary_title;
+        }
+        $csl->{'number-of-pages'} = $spage if defined($spage);
+        if (   defined( $result->print_control_no )
+            || defined( $result->elec_control_no ) )
+        {
+            $csl->{'ISBN'} =
+              defined( $result->print_control_no )
+              ? $result->print_control_no
+              : $result->elec_control_no;
+        }
     }
     if ( $result->material_type_id == 2 ) {
-        $csl->{'type'}            = 'chapter';
-        $csl->{'container-title'} = $result->secondary_title;
-        $csl->{'page-first'}      = $result->spage;
-        $csl->{'number-of-pages'} =
-          defined($epage) && defined($spage) ? $epage - $spage : undef;
-        $csl->{'ISBN'} =
-          defined( $result->print_control_no )
-          ? $result->print_control_no
-          : $result->elec_control_no;
+        $csl->{'type'} = 'chapter';
+        if ( defined($secondary_title) ) {
+            $csl->{'container-title'} = $result->secondary_title;
+        }
+        $csl->{'page-first'} = $spage if defined($spage);
+        $csl->{'number-of-pages'} = $epage - $spage
+          if ( defined($epage) && defined($spage) );
+        if (   defined( $result->print_control_no )
+            || defined( $result->elec_control_no ) )
+        {
+            $csl->{'ISBN'} =
+              defined( $result->print_control_no )
+              ? $result->print_control_no
+              : $result->elec_control_no;
+        }
     }
     if ( $result->material_type_id == 3 ) {
         $csl->{'type'} = 'journal';    #CUSTOM
-        $csl->{'ISSN'} =
-          defined( $result->print_control_no )
-          ? $result->print_control_no
-          : $result->elec_control_no;
+        if (   defined( $result->print_control_no )
+            || defined( $result->elec_control_no ) )
+        {
+            $csl->{'ISSN'} =
+              defined( $result->print_control_no )
+              ? $result->print_control_no
+              : $result->elec_control_no;
+        }
     }
     if ( $result->material_type_id == 4 ) {
-        $csl->{'type'}            = 'article';
-        $csl->{'container-title'} = $result->secondary_title;
-        $csl->{'page-first'}      = $result->spage;
-        $csl->{'number-of-pages'} =
-          defined($epage) && defined($spage) ? $epage - $spage : undef;
-        $csl->{'ISSN'} =
-          defined( $result->print_control_no )
-          ? $result->print_control_no
-          : $result->elec_control_no;
+        $csl->{'type'} = 'article';
+        if ( defined($secondary_title) ) {
+            $csl->{'container-title'} = $result->secondary_title;
+        }
+        $csl->{'page-first'} = $spage if defined($spage);
+        $csl->{'number-of-pages'} = $epage - $spage
+          if ( defined($epage) && defined($spage) );
+        if (   defined( $result->print_control_no )
+            || defined( $result->elec_control_no ) )
+        {
+            $csl->{'ISSN'} =
+              defined( $result->print_control_no )
+              ? $result->print_control_no
+              : $result->elec_control_no;
+        }
     }
     if ( $result->material_type_id == 5 ) {
-        $csl->{'type'}            = 'entry';
-        $csl->{'container-title'} = $result->secondary_title;
-        $csl->{'page-first'}      = $result->spage;
-        $csl->{'number-of-pages'} =
-          defined($epage) && defined($spage) ? $epage - $spage : undef;
-        $csl->{'ISBN'} =
-          defined( $result->print_control_no )
-          ? $result->print_control_no
-          : $result->elec_control_no;
+        $csl->{'type'} = 'entry';
+        if ( defined($secondary_title) ) {
+            $csl->{'container-title'} = $result->secondary_title;
+        }
+        $csl->{'page-first'} = $result->spage if defined($spage);
+        $csl->{'number-of-pages'} = $epage - $spage
+          if defined($epage) && defined($spage);
+        if (   defined( $result->print_control_no )
+            || defined( $result->elec_control_no ) )
+        {
+            $csl->{'ISBN'} =
+              defined( $result->print_control_no )
+              ? $result->print_control_no
+              : $result->elec_control_no;
+        }
     }
     if ( $result->material_type_id == 7 ) {
-        $csl->{'type'}            = 'webpage';
-        $csl->{'container-title'} = $result->secondary_title;
+        $csl->{'type'} = 'webpage';
+        if ( defined($secondary_title) ) {
+            $csl->{'container-title'} = $result->secondary_title;
+        }
     }
     if ( $result->material_type_id == 9 ) {
-        $csl->{'type'}            = 'entry';
-        $csl->{'container-title'} = $result->secondary_title;
-        $csl->{'page-first'}      = $result->spage;
-        $csl->{'number-of-pages'} =
-          defined($epage) && defined($spage) ? $epage - $spage : undef;
-        $csl->{'ISBN'} =
-          defined( $result->print_control_no )
-          ? $result->print_control_no
-          : $result->elec_control_no;
+        $csl->{'type'} = 'entry';
+        if ( defined($secondary_title) ) {
+            $csl->{'container-title'} = $result->secondary_title;
+        }
+        $csl->{'page-first'} = $result->spage if defined($spage);
+        $csl->{'number-of-pages'} = $epage - $spage
+          if defined($epage) && defined($spage);
+        if (   defined( $result->print_control_no )
+            || defined( $result->elec_control_no ) )
+        {
+            $csl->{'ISBN'} =
+              defined( $result->print_control_no )
+              ? $result->print_control_no
+              : $result->elec_control_no;
+        }
     }
     if ( $result->material_type_id == 10 ) {
-        $csl->{'type'}            = 'book';
-        $csl->{'container-title'} = $result->secondary_title;
-        $csl->{'number-of-pages'} = $result->spage;
-        $csl->{'ISBN'} =
-          defined( $result->print_control_no )
-          ? $result->print_control_no
-          : $result->elec_control_no;
+        $csl->{'type'} = 'book';
+        if ( defined($secondary_title) ) {
+            $csl->{'container-title'} = $result->secondary_title;
+        }
+        $csl->{'number-of-pages'} = $result->spage if defined($spage);
+        if (   defined( $result->print_control_no )
+            || defined( $result->elec_control_no ) )
+        {
+            $csl->{'ISBN'} =
+              defined( $result->print_control_no )
+              ? $result->print_control_no
+              : $result->elec_control_no;
+        }
     }
     if ( $result->material_type_id == 11 ) {
-        $csl->{'type'}             = 'broadcast';
-        $csl->{'collection-title'} = $result->secondary_title;
+        $csl->{'type'} = 'broadcast';
+        if ( defined($secondary_title) ) {
+            $csl->{'collection-title'} = $result->secondary_title;
+        }
     }
 
     # 12=Note and 13=Private Note are handled prior to this
