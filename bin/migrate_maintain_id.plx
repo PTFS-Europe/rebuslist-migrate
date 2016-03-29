@@ -83,19 +83,20 @@ for my $rl1_list ( $rl1_listResults->all ) {
     # Add child list
     my $rl2_list = $rebus2->resultset('List')->find_or_create(
         {
-            id                       => $rl1_list->list_id,
-            root_id                  => 1,
-            name                     => decode_entities($rl1_list->list_name),
-            no_students              => $rl1_list->no_students,
-            ratio_books              => $rl1_list->ratio_books,
-            ratio_students           => $rl1_list->ratio_students,
-            updated                  => $dt,
-            created                  => $dt,
-            source_id                => 1,
-            course_identifier        => decode_entities($rl1_list->course_identifier),
-            published                => $rl1_list->published_yn eq 'y' ? 1 : 0,
-            inherited_published      => $rl1_list->published_yn eq 'y' ? 1 : 0,
-            validity_start           => $start->set_year( $rl1_list->year ),
+            id             => $rl1_list->list_id,
+            root_id        => 1,
+            name           => decode_entities( $rl1_list->list_name ),
+            no_students    => $rl1_list->no_students,
+            ratio_books    => $rl1_list->ratio_books,
+            ratio_students => $rl1_list->ratio_students,
+            updated        => $dt,
+            created        => $dt,
+            source_id      => 1,
+            course_identifier =>
+              decode_entities( $rl1_list->course_identifier ),
+            published           => $rl1_list->published_yn eq 'y' ? 1 : 0,
+            inherited_published => $rl1_list->published_yn eq 'y' ? 1 : 0,
+            validity_start      => $start->set_year( $rl1_list->year ),
             inherited_validity_start => $start->set_year( $rl1_list->year ),
             validity_end =>
               $end->set_year( $rl1_list->year )->add( years => 1 ),
@@ -166,9 +167,9 @@ sub recurse {
                 # Add new tree
                 $rl2_unit = $rebus2->resultset('List')->create(
                     {
-                        name                     => decode_entities($rl1_unit->name),
-                        source_id                => 1,
-                        published                => 1,
+                        name      => decode_entities( $rl1_unit->name ),
+                        source_id => 1,
+                        published => 1,
                         inherited_published      => 1,
                         root_id                  => $rootID,
                         validity_start           => $start,
@@ -199,9 +200,9 @@ sub recurse {
                 # Add rightmost child to existing node
                 $rl2_unit = $parentResult->create_rightmost_child(
                     {
-                        name                     => decode_entities($rl1_unit->name),
-                        source                   => 1,
-                        published                => 1,
+                        name      => decode_entities( $rl1_unit->name ),
+                        source    => 1,
+                        published => 1,
                         inherited_published      => 1,
                         validity_start           => $start,
                         inherited_validity_start => $start,
@@ -454,7 +455,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                   ->find( { tag_id => $rl1_tagResult->tag_id } );
 
                 # Add tag
-                my $rl2_tag = addTag( { text => $rl1_tag->tag } );
+                my $rl2_tag = addTag( $rl1_tag->tag );
 
                 # Link tag to material in list
                 my $rl2_link_tag =
@@ -537,12 +538,13 @@ for my $rl1_ulp (@rl1_user_list_permissionResults) {
     if (   exists( $list_links->{ $rl1_ulp->list_id } )
         && exists( $user_links->{ $rl1_ulp->user_id } ) )
     {
-        $rebus2->resultset('ListUserRole')->create(
+        $rebus2->resultset('ListUserRole')->find_or_create(
             {
                 list_id => $list_links->{ $rl1_ulp->list_id },
                 user_id => $user_links->{ $rl1_ulp->user_id },
                 role    => { name => 'editor' }
-            }
+            },
+            { key => 'primary' }
         );
     }
 }
