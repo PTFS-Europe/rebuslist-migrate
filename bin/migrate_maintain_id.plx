@@ -129,7 +129,7 @@ $end = $dt->clone->add( years => 5 );
 print "Importing units...\n";
 my $current_level = 0;
 
-recurse( [0], {} );
+my $unit_links = recurse( [0], {} );
 
 sub recurse {
     my $parents    = shift;
@@ -490,8 +490,99 @@ for my $rl2_listResult ( $rl2_listResults->all ) {
 say "Counts updated...\n";
 
 # Permission, UserListPermission, UserOrgUnitPermission
-say "Importing permissions...";
+# 'Permission' handled in User import above
+$total = $rebus1->resultset('UserOrgUnitPermission')->count;
+$total = $total + $rebus1->resultset('UserListPermission')->count;
+my $permission_progress =
+  Term::ProgressBar->new(
+    { name => "Importing Permissions", count => $total } );
+$permission_progress->minor(0);
+$next_update  = 0;
+$current_line = 0;
+
+my @rl1_user_org_unit_permissionResults =
+  $rebus1->resultset('UserOrgUnitPermission')
+  ->search( undef, { order_by => { -asc => [qw/org_unit_id user_id/] } } )->all;
+
+for my $rl1_uoup (@rl1_user_org_unit_permissionResults) {
+
+    # Update Progress
+    $current_line++;
+    $next_update = $permission_progress->update($current_line)
+      if $current_line > $next_update;
+
+    if (   exists( $unit_links->{ $rl1_uoup->org_unit_id } )
+        && exists( $user_links->{ $rl1_uoup->user_id } ) )
+    {
+        $rebus2->resultset('ListUserRole')->create(
+            {
+                list_id => $unit_links->{ $rl1_uoup->org_unit_id },
+                user_id => $user_links->{ $rl1_uoup->user_id },
+                role    => { name => 'editor' }
+            }
+        );
+    }
+}
+
+my @rl1_user_list_permissionResults =
+  $rebus1->resultset('UserListPermission')
+  ->search( undef, { order_by => { -asc => [qw/list_id user_id/] } } )->all;
+
+for my $rl1_ulp (@rl1_user_list_permissionResults) {
+
+    # Update Progress
+    $current_line++;
+    $next_update = $permission_progress->update($current_line)
+      if $current_line > $next_update;
+
+    if (   exists( $list_links->{ $rl1_ulp->list_id } )
+        && exists( $user_links->{ $rl1_ulp->user_id } ) )
+    {
+        $rebus2->resultset('ListUserRole')->create(
+            {
+                list_id => $list_links->{ $rl1_ulp->list_id },
+                user_id => $user_links->{ $rl1_ulp->user_id },
+                role    => { name => 'editor' }
+            }
+        );
+    }
+}
+
 say "Permissions loaded...\n";
+
+# OwnersLink
+$total = $rebus1->resultset('OwnersLink')->count;
+my $owners_progress =
+  Term::ProgressBar->new( { name => "Importing Owners", count => $total } );
+$owners_progress->minor(0);
+$next_update  = 0;
+$current_line = 0;
+
+my @rl1_owners =
+  $rebus1->resultset('OwnersLink')
+  ->search( undef,
+    { order_by => { -asc => [qw/list_id owner_id leader_yn/] } } )->all;
+
+for my $rl1_owner (@rl1_owners) {
+
+    # Update Progress
+    $current_line++;
+    $next_update = $owners_progress->update($current_line)
+      if $current_line > $next_update;
+
+    if (   exists( $list_links->{ $rl1_owner->list_id } )
+        && exists( $user_links->{ $rl1_owner->owner_id } ) )
+    {
+        my $name = $rl1_owner->leader_yn eq 'y' ? 'leader' : 'owner';
+        $rebus2->resultset('ListUserRole')->create(
+            {
+                list_id => $list_links->{ $rl1_owner->list_id },
+                user_id => $user_links->{ $rl1_owner->owner_id },
+                role    => { name => $name }
+            }
+        );
+    }
+}
 
 # Routines
 sub addMaterial {
