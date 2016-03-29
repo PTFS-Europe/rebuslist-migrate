@@ -12,6 +12,7 @@ use Rebus2::Schema;
 use DBIx::Class::Tree::NestedSet;
 use Authen::Passphrase::SaltedDigest;
 use List::Util qw/any/;
+use Scalar::Util 'looks_like_number';
 use DateTime;
 use DateTime::Duration;
 use HTML::Entities qw/decode_entities/;
@@ -712,6 +713,11 @@ sub mapCSL {
         && !( $result->epage =~ /^\s*$/ ) )
     {
         $epage = $result->epage;
+        $epage =~ s/pp\.//g;
+        $epage =~ s/\D+//g;
+        unless ( looks_like_number($epage) ) {
+            print "\$epage: " . $result->epage . "\n";
+        }
     }
     my $spage;
     if (   defined( $result->spage )
@@ -719,14 +725,11 @@ sub mapCSL {
         && !( $result->spage =~ /^\s*$/ ) )
     {
         $spage = $result->spage;
-    }
-    if ( defined($epage) ) {
-        $epage =~ s/pp\.//g;
-        $epage =~ s/\D+//g;
-    }
-    if ( defined($spage) ) {
         $spage =~ s/pp\.//g;
         $spage =~ s/\D+//g;
+        unless ( looks_like_number($spage) ) {
+            print "\$spage: " . $result->spage . "\n";
+        }
     }
 
     my $secondary_title;
