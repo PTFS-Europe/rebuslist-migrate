@@ -14,6 +14,7 @@ use Authen::Passphrase::SaltedDigest;
 use List::Util qw/any/;
 use DateTime;
 use DateTime::Duration;
+use HTML::Entities qw/decode_entities/;
 use Term::ProgressBar 2.00;
 
 use Mojo::JSON qw(decode_json encode_json);
@@ -84,14 +85,14 @@ for my $rl1_list ( $rl1_listResults->all ) {
         {
             id                       => $rl1_list->list_id,
             root_id                  => 1,
-            name                     => $rl1_list->list_name,
+            name                     => decode_entities($rl1_list->list_name),
             no_students              => $rl1_list->no_students,
             ratio_books              => $rl1_list->ratio_books,
             ratio_students           => $rl1_list->ratio_students,
             updated                  => $dt,
             created                  => $dt,
             source_id                => 1,
-            course_identifier        => $rl1_list->course_identifier,
+            course_identifier        => decode_entities($rl1_list->course_identifier),
             published                => $rl1_list->published_yn eq 'y' ? 1 : 0,
             inherited_published      => $rl1_list->published_yn eq 'y' ? 1 : 0,
             validity_start           => $start->set_year( $rl1_list->year ),
@@ -165,7 +166,7 @@ sub recurse {
                 # Add new tree
                 $rl2_unit = $rebus2->resultset('List')->create(
                     {
-                        name                     => $rl1_unit->name,
+                        name                     => decode_entities($rl1_unit->name),
                         source_id                => 1,
                         published                => 1,
                         inherited_published      => 1,
@@ -198,7 +199,7 @@ sub recurse {
                 # Add rightmost child to existing node
                 $rl2_unit = $parentResult->create_rightmost_child(
                     {
-                        name                     => $rl1_unit->name,
+                        name                     => decode_entities($rl1_unit->name),
                         source                   => 1,
                         published                => 1,
                         inherited_published      => 1,
