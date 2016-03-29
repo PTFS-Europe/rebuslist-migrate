@@ -71,7 +71,7 @@ my $current_line = 0;
 my $list_links;
 my $parent_links;
 my $rl1_listResults = $rebus1->resultset('List')
-  ->search( undef, { order_by => { -asc => [qw/list_id/] } } );
+  ->search( undef, { order_by => { '-asc' => [qw/list_id/] } } );
 for my $rl1_list ( $rl1_listResults->all ) {
 
     # Update Progress
@@ -82,24 +82,24 @@ for my $rl1_list ( $rl1_listResults->all ) {
     # Add child list
     my $rl2_list = $rebus2->resultset('List')->find_or_create(
         {
-            id                  => $rl1_list->list_id,
-            root_id             => 0,
-            name                => $rl1_list->list_name,
-            no_students         => $rl1_list->no_students,
-            ratio_books         => $rl1_list->ratio_books,
-            ratio_students      => $rl1_list->ratio_students,
-            updated             => $dt,
-            created             => $dt,
-            source_id           => 1,
-            course_identifier   => $rl1_list->course_identifier,
-            published           => $rl1_list->published_yn eq 'y' ? 1 : 0,
-            inherited_published => $rl1_list->published_yn eq 'y' ? 1 : 0,
-            validity_start =>
-              $start->set_year( $rl1_list->year )->subtract( years => 1 ),
-            inherited_validity_start =>
-              $start->set_year( $rl1_list->year )->subtract( years => 1 ),
-            validity_end           => $end->set_year( $rl1_list->year ),
-            inherited_validity_end => $end->set_year( $rl1_list->year )
+            id                       => $rl1_list->list_id,
+            root_id                  => 1,
+            name                     => $rl1_list->list_name,
+            no_students              => $rl1_list->no_students,
+            ratio_books              => $rl1_list->ratio_books,
+            ratio_students           => $rl1_list->ratio_students,
+            updated                  => $dt,
+            created                  => $dt,
+            source_id                => 1,
+            course_identifier        => $rl1_list->course_identifier,
+            published                => $rl1_list->published_yn eq 'y' ? 1 : 0,
+            inherited_published      => $rl1_list->published_yn eq 'y' ? 1 : 0,
+            validity_start           => $start->set_year( $rl1_list->year ),
+            inherited_validity_start => $start->set_year( $rl1_list->year ),
+            validity_end =>
+              $end->set_year( $rl1_list->year )->add( years => 1 ),
+            inherited_validity_end =>
+              $end->set_year( $rl1_list->year )->add( years => 1 )
         },
         { key => 'primary' }
     );
@@ -137,7 +137,7 @@ sub recurse {
 
     my @rl1_unitResults =
       $rebus1->resultset('OrgUnit')->search( { parent => $parents },
-        { order_by => { -asc => [qw/parent org_unit_id/] } } )->all;
+        { order_by => { '-asc' => [qw/parent org_unit_id/] } } )->all;
 
     if (@rl1_unitResults) {
         my $new_parents;
@@ -150,7 +150,8 @@ sub recurse {
                 # Find next root
                 my $rootResult =
                   $rebus2->resultset('List')
-                  ->search( {}, { order_by => 'root_id', rows => '1' } )
+                  ->search( {},
+                    { order_by => { '-asc' => [qw/root_id/] }, rows => '1' } )
                   ->single;
                 my $rootID;
                 if ( defined($rootResult) ) {
@@ -234,14 +235,11 @@ sub recurse {
 
             for my $rl2_list (@rl2_listResults) {
 
-                unless ( $rl2_list->name eq 'Hidden List' ) {
+                # Attach list
+                $rl2_unit->attach_rightmost_child($rl2_list);
 
-                    # Attach list
-                    $rl2_unit->attach_rightmost_child($rl2_list);
-
-                    $rl2_list->discard_changes;
-                    $rl2_unit->discard_changes;
-                }
+                $rl2_list->discard_changes;
+                $rl2_unit->discard_changes;
             }
         }
         recurse( $new_parents, $unit_links );
