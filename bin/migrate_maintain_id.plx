@@ -529,6 +529,8 @@ my @rl1_user_list_permissionResults =
   $rebus1->resultset('UserListPermission')
   ->search( undef, { order_by => { -asc => [qw/list_id user_id/] } } )->all;
 
+my $rl2_roleID = $rebus2->resultset('ListRole')->search( { name => 'editor' }, { rows => 1 } )->single->get_column('id');
+
 for my $rl1_ulp (@rl1_user_list_permissionResults) {
 
     # Update Progress
@@ -543,7 +545,7 @@ for my $rl1_ulp (@rl1_user_list_permissionResults) {
             {
                 list_id => $list_links->{ $rl1_ulp->list_id },
                 user_id => $user_links->{ $rl1_ulp->user_id },
-                role    => { name => 'editor' }
+                role_id => $rl2_roleID
             },
             { key => 'primary' }
         );
