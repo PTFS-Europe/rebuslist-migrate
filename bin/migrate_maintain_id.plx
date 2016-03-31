@@ -417,10 +417,15 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                   if defined( $user_links->{ $rl1_sequence->list_id } );
             }
 
+            my $eBook =
+              ( $rl1_material->material_type_id == 10 )
+              ? Mojo::JSON->true
+              : Mojo::JSON->false;
+
             # Add material
             my $rl2_material =
               addMaterial( $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
-                $csl, $owner, $owner_uuid );
+                $csl, $owner, $owner_uuid, $eBook );
 
             # Get rating
             my $rl1_rating = $rebus1->resultset('MaterialRating')
@@ -529,7 +534,9 @@ my @rl1_user_list_permissionResults =
   $rebus1->resultset('UserListPermission')
   ->search( undef, { order_by => { -asc => [qw/list_id user_id/] } } )->all;
 
-my $rl2_roleID = $rebus2->resultset('ListRole')->search( { name => 'editor' }, { rows => 1 } )->single->get_column('id');
+my $rl2_roleID =
+  $rebus2->resultset('ListRole')->search( { name => 'editor' }, { rows => 1 } )
+  ->single->get_column('id');
 
 for my $rl1_ulp (@rl1_user_list_permissionResults) {
 
@@ -590,7 +597,7 @@ for my $rl1_owner (@rl1_owners) {
 
 # Routines
 sub addMaterial {
-    my ( $in_stock, $metadata, $owner, $owner_uuid ) = @_;
+    my ( $in_stock, $metadata, $owner, $owner_uuid, $eBook ) = @_;
 
     my @materialResults = $rebus2->resultset('Material')->search(
         {
@@ -606,7 +613,8 @@ sub addMaterial {
                 in_stock   => $in_stock,
                 metadata   => $metadata,
                 owner      => $owner,
-                owner_uuid => $owner_uuid
+                owner_uuid => $owner_uuid,
+                electronic => $eBook
             }
         );
 
