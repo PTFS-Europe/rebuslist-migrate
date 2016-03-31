@@ -413,8 +413,6 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                 # FIXME - This has changed in the RL2 Schema recently
                 $owner      = $config->{'code'};
                 $owner_uuid = '1-';
-                $owner_uuid .= $user_links->{ $rl1_sequence->list_id }
-                  if defined( $user_links->{ $rl1_sequence->list_id } );
             }
 
             my $eBook =
@@ -599,6 +597,28 @@ for my $rl1_owner (@rl1_owners) {
 sub addMaterial {
     my ( $in_stock, $metadata, $owner, $owner_uuid, $eBook ) = @_;
 
+    # Local Material
+    if ( $owner_uuid eq '1-' ) {
+        $metadata->{'id'} = $owner_uuid;
+        my $new_material = $rebus2->resultset('Material')->create(
+            {
+                in_stock   => $in_stock,
+                metadata   => $metadata,
+                owner      => $owner,
+                owner_uuid => undef,
+                electronic => $eBook
+            }
+        );
+
+        my $metadata = $new_material->metadata;
+        $metadata->{'id'} = '1-' . $new_material->id;
+        $new_material->update(
+            { metadata => $metadata, owner_uuid => '1-' . $new_material->id } );
+
+        return $new_material;
+    }
+
+    # Remote Material
     my @materialResults = $rebus2->resultset('Material')->search(
         {
             owner      => $owner,
@@ -606,7 +626,7 @@ sub addMaterial {
         }
     );
 
-    unless (@materialResults) {
+    unless ( @materialResults ) {
         $metadata->{'id'} = $owner_uuid;
         my $new_material = $rebus2->resultset('Material')->create(
             {
