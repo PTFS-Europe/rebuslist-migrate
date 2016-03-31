@@ -68,6 +68,12 @@ __PACKAGE__->table("materials");
   data_type: 'text'
   is_nullable: 1
 
+=head2 electronic
+
+  data_type: 'tinyint'
+  is_nullable: 0
+  default_value: 1
+
 =head2 updated
 
   data_type: 'timestamp'
@@ -88,6 +94,8 @@ __PACKAGE__->add_columns(
   {data_type => "text", is_nullable => 1},
   "owner_uuid",
   {data_type => "text", is_nullable => 1},
+  "electronic",
+  {data_type => "tinyint", is_nullable => 0, default_value => 1},
   "frbr_id",
   {data_type => "text", is_nullable => 1},
   "updated",
@@ -165,13 +173,6 @@ __PACKAGE__->has_many(
   {cascade_copy          => 0, cascade_delete => 0},
 );
 
-__PACKAGE__->filter_column(
-  in_stock => {
-    filter_to_storage => sub { $_[1] ? 1 : 0 },
-    filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
-  }
-);
-
 =head2 frbr_equivalents
 
 Type: has_many
@@ -236,10 +237,39 @@ sub as_hash {
     metadata   => $self->metadata,
     owner      => $self->owner,
     owner_uuid => $self->owner_uuid,
-    frbr_id    => $self->frbr_id
+    frbr_id    => $self->frbr_id,
+    electronic => $self->electronic
   };
 
   return $material;
 }
+
+=head1 FILTERS
+
+=head2 in_stock
+
+Type: boolean filter
+
+=cut
+
+__PACKAGE__->filter_column(
+  in_stock => {
+    filter_to_storage => sub { $_[1] ? 1 : 0 },
+    filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
+  }
+);
+
+=head2 electronic
+
+Type: boolean filter
+
+=cut
+
+__PACKAGE__->filter_column(
+  electronic => {
+    filter_to_storage => sub { $_[1] ? 1 : 0 },
+    filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
+  }
+);
 
 1;
