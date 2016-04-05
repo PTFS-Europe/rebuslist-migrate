@@ -626,7 +626,7 @@ sub addMaterial {
         }
     );
 
-    unless ( @materialResults ) {
+    unless (@materialResults) {
         $metadata->{'id'} = $owner_uuid;
         my $new_material = $rebus2->resultset('Material')->create(
             {
@@ -905,6 +905,15 @@ sub mapCSL {
     }
 
     # 12=Note and 13=Private Note are handled prior to this
+    my @strings = (
+        qw/chapter-number citation-number collection-number number-of-pages number-of-volumes page page-first/
+    );
+
+    for my $key (@strings) {
+        if ( exists( $csl->{$key} ) ) {
+            $csl->{$key} = $csl->{$key} . "";
+        }
+    }
 
     return $csl;
 }
