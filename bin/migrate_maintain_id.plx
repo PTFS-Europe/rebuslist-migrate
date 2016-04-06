@@ -608,7 +608,6 @@ sub addMaterial {
         my $json_title = encode_json $title_json;
         my $found = $rebus2->resultset('Material')->search({ metadata => {'@>' => $json_title}});
         if ($found->count == 1) {
-          print "Found Manual Material\n";
           my $new_material = $found->next;
           return $new_material;
         }
