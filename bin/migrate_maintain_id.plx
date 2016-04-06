@@ -133,6 +133,7 @@ print "Importing units...\n";
 my $current_level = 0;
 
 my $unit_links = recurse( [0], {} );
+
 sub recurse {
     my $parents    = shift;
     my $unit_links = shift;
@@ -602,23 +603,38 @@ sub addMaterial {
 
     # Local Material
     if ( $owner_uuid eq '1-' ) {
-        $metadata->{'id'} = $owner_uuid;
-        my $new_material = $rebus2->resultset('Material')->create(
-            {
-                in_stock   => $in_stock,
-                metadata   => $metadata,
-                owner      => $owner,
-                owner_uuid => undef,
-                electronic => $eBook
-            }
-        );
+        my $title = $metadata->{'title'};
+        my $title_json = { title => $title };
+        my $json_title = encode_json $title_json;
+        my $found = $rebus2->resultset('Material')->search({ metadata => {'@>' => $json_title}});
+        if ($found->count == 1) {
+          print "Found Manual Material\n";
+          my $new_material = $found->next;
+          return $new_material;
+        }
+        else {
+            $metadata->{'id'} = $owner_uuid;
+            my $new_material = $rebus2->resultset('Material')->create(
+                {
+                    in_stock   => $in_stock,
+                    metadata   => $metadata,
+                    owner      => $owner,
+                    owner_uuid => undef,
+                    electronic => $eBook
+                }
+            );
 
-        my $metadata = $new_material->metadata;
-        $metadata->{'id'} = '1-' . $new_material->id;
-        $new_material->update(
-            { metadata => $metadata, owner_uuid => '1-' . $new_material->id } );
+            my $metadata = $new_material->metadata;
+            $metadata->{'id'} = '1-' . $new_material->id;
+            $new_material->update(
+                {
+                    metadata   => $metadata,
+                    owner_uuid => '1-' . $new_material->id
+                }
+            );
 
-        return $new_material;
+            return $new_material;
+        }
     }
 
     # Remote Material
