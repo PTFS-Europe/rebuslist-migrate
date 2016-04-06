@@ -85,7 +85,7 @@ for my $rl1_list ( $rl1_listResults->all ) {
     my $rl2_list = $rebus2->resultset('List')->find_or_create(
         {
             id             => $rl1_list->list_id,
-            root_id        => 1,
+            root_id        => $rl1_list->list_id,
             name           => decode_entities( $rl1_list->list_name ),
             no_students    => $rl1_list->no_students,
             ratio_books    => $rl1_list->ratio_books,
@@ -133,7 +133,6 @@ print "Importing units...\n";
 my $current_level = 0;
 
 my $unit_links = recurse( [0], {} );
-
 sub recurse {
     my $parents    = shift;
     my $unit_links = shift;
@@ -187,11 +186,13 @@ sub recurse {
                     }
                 );
 
+                # Ensure Unit it refetched
+                $rl2_unit->discard_changes;
+
                 # Add to lookup table
                 $unit_links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
                 push @{$new_parents}, $rl1_unit->org_unit_id
                   unless any { $_ == $rl1_unit->org_unit_id } @{$new_parents};
-                $rl2_unit->discard_changes;
             }
             else {
                 # Get existing parent
@@ -220,27 +221,29 @@ sub recurse {
                     }
                 );
 
+                # Ensure Unit it refetched
+                $rl2_unit->discard_changes;
+
                 # Add to lookup table
                 $unit_links->{ $rl1_unit->org_unit_id } = $rl2_unit->id;
                 push @{$new_parents}, $rl1_unit->org_unit_id
                   unless any { $_ == $rl1_unit->org_unit_id } @{$new_parents};
-                $rl2_unit->discard_changes;
             }
 
             # Add lists
             $parent_links->{ $rl1_unit->org_unit_id } ||= [];
-            my @rl2_listResults = $rebus2->resultset('List')->search(
+            my $rl2_listResults = $rebus2->resultset('List')->search(
                 {
                     id => { '-in' => $parent_links->{ $rl1_unit->org_unit_id } }
                 },
                 { order_by => { -asc => [qw/id/] } }
-            )->all;
+            );
 
-            for my $rl2_list (@rl2_listResults) {
+            while ( my $rl2_list = $rl2_listResults->next ) {
 
                 # Attach list
+                $rl2_unit->discard_changes;
                 $rl2_unit->attach_rightmost_child($rl2_list);
-
                 $rl2_list->discard_changes;
                 $rl2_unit->discard_changes;
             }
