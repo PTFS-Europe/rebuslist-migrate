@@ -396,28 +396,21 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             my $csl = mapCSL($rl1_material);
 
             my ( $owner, $owner_uuid );
-            if (
-                (
-                       defined( $rl1_material->print_sysno )
-                    && $rl1_material->print_sysno ne ''
-                    && !( $rl1_material->print_sysno =~ /^\s*$/ )
-                )
-                || (   defined( $rl1_material->elec_sysno )
-                    && $rl1_material->elec_sysno ne ''
-                    && !( $rl1_material->elec_sysno =~ /^\s*$/ ) )
-              )
+            if (   defined( $rl1_material->print_sysno )
+                && $rl1_material->print_sysno ne ''
+                && !( $rl1_material->print_sysno =~ /^\s*$/ ) )
             {
                 $owner      = $config->{'connector'};
-                $owner_uuid = $rl1_material->print_sysno
-                  if ( $rl1_material->print_sysno ne ''
-                    && !( $rl1_material->print_sysno =~ /^\s*$/ ) );
-                $owner_uuid = $rl1_material->elec_sysno
-                  if ( !defined($owner_uuid)
-                    && $rl1_material->elec_sysno ne ''
-                    && !( $rl1_material->elec_sysno =~ /^\s*$/ ) );
+                $owner_uuid = $rl1_material->print_sysno;
             }
-
-            unless ( defined($owner_uuid) ) {
+            elsif (defined( $rl1_material->elec_sysno )
+                && $rl1_material->elec_sysno ne ''
+                && !( $rl1_material->elec_sysno =~ /^\s*$/ ) )
+            {
+                $owner      = $config->{'connector'};
+                $owner_uuid = $rl1_material->elec_sysno;
+            }
+            else {
                 $owner      = $config->{'code'};
                 $owner_uuid = '1-';
             }
