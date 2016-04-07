@@ -408,13 +408,16 @@ for my $rl1_sequence (@rl1_sequenceResults) {
               )
             {
                 $owner      = $config->{'connector'};
-                $owner_uuid = $rl1_material->print_sysno;
-                $owner_uuid //= $rl1_material->elec_sysno;
-
+                $owner_uuid = $rl1_material->print_sysno
+                  if ( $rl1_material->print_sysno ne ''
+                    && !( $rl1_material->print_sysno =~ /^\s*$/ ) );
+                $owner_uuid = $rl1_material->elec_sysno
+                  if ( !defined($owner_uuid)
+                    && $rl1_material->elec_sysno ne ''
+                    && !( $rl1_material->elec_sysno =~ /^\s*$/ ) );
             }
-            else {
 
-                # FIXME - This has changed in the RL2 Schema recently
+            unless ( defined($owner_uuid) ) {
                 $owner      = $config->{'code'};
                 $owner_uuid = '1-';
             }
@@ -603,13 +606,14 @@ sub addMaterial {
 
     # Local Material
     if ( $owner_uuid eq '1-' ) {
-        my $title = $metadata->{'title'};
+        my $title      = $metadata->{'title'};
         my $title_json = { title => $title };
         my $json_title = encode_json $title_json;
-        my $found = $rebus2->resultset('Material')->search({ metadata => {'@>' => $json_title}});
-        if ($found->count == 1) {
-          my $new_material = $found->next;
-          return $new_material;
+        my $found      = $rebus2->resultset('Material')
+          ->search( { metadata => { '@>' => $json_title } } );
+        if ( $found->count == 1 ) {
+            my $new_material = $found->next;
+            return $new_material;
         }
         else {
             $metadata->{'id'} = $owner_uuid;
