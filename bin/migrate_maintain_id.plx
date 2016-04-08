@@ -775,7 +775,8 @@ sub mapCSL {
         && $result->publication_date ne ''
         && !( $result->publication_date =~ /^\s*$/ ) )
     {
-        $csl->{'issued'} = { raw => $result->publication_date };
+        #$csl->{'issued'} = { raw => $result->publication_date };
+        # Convert to ISO8601 Date
     }
     if (   defined( $result->publication_place )
         && $result->publication_place ne ''
