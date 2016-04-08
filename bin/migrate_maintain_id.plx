@@ -812,7 +812,7 @@ sub mapCSL {
               : $result->elec_control_no;
         }
     }
-    if ( $result->material_type_id == 2 ) {
+    elsif ( $result->material_type_id == 2 ) {
         $csl->{'type'} = 'chapter';
         if ( defined($secondary_title) ) {
             $csl->{'container-title'} = $result->secondary_title;
@@ -829,7 +829,7 @@ sub mapCSL {
               : $result->elec_control_no;
         }
     }
-    if ( $result->material_type_id == 3 ) {
+    elsif ( $result->material_type_id == 3 ) {
         $csl->{'type'} = 'journal';    #CUSTOM
         if (   defined( $result->print_control_no )
             || defined( $result->elec_control_no ) )
@@ -840,7 +840,7 @@ sub mapCSL {
               : $result->elec_control_no;
         }
     }
-    if ( $result->material_type_id == 4 ) {
+    elsif ( $result->material_type_id == 4 ) {
         $csl->{'type'} = 'article';
         if ( defined($secondary_title) ) {
             $csl->{'container-title'} = $result->secondary_title;
@@ -857,7 +857,7 @@ sub mapCSL {
               : $result->elec_control_no;
         }
     }
-    if ( $result->material_type_id == 5 ) {
+    elsif ( $result->material_type_id == 5 ) {
         $csl->{'type'} = 'entry';
         if ( defined($secondary_title) ) {
             $csl->{'container-title'} = $result->secondary_title;
@@ -874,13 +874,13 @@ sub mapCSL {
               : $result->elec_control_no;
         }
     }
-    if ( $result->material_type_id == 7 ) {
+    elsif ( $result->material_type_id == 7 ) {
         $csl->{'type'} = 'webpage';
         if ( defined($secondary_title) ) {
             $csl->{'container-title'} = $result->secondary_title;
         }
     }
-    if ( $result->material_type_id == 9 ) {
+    elsif ( $result->material_type_id == 9 ) {
         $csl->{'type'} = 'entry';
         if ( defined($secondary_title) ) {
             $csl->{'container-title'} = $result->secondary_title;
@@ -897,7 +897,7 @@ sub mapCSL {
               : $result->elec_control_no;
         }
     }
-    if ( $result->material_type_id == 10 ) {
+    elsif ( $result->material_type_id == 10 ) {
         $csl->{'type'} = 'book';
         if ( defined($secondary_title) ) {
             $csl->{'container-title'} = $result->secondary_title;
@@ -912,14 +912,31 @@ sub mapCSL {
               : $result->elec_control_no;
         }
     }
-    if ( $result->material_type_id == 11 ) {
+    elsif ( $result->material_type_id == 11 ) {
         $csl->{'type'} = 'broadcast';
         if ( defined($secondary_title) ) {
             $csl->{'collection-title'} = $result->secondary_title;
         }
     }
+    else {
+        $csl->{'type'} = 'book';
+        if ( defined($secondary_title) ) {
+            $csl->{'collection-title'} = $result->secondary_title;
+        }
+        $csl->{'number-of-pages'} = $spage if defined($spage);
+        if (   defined( $result->print_control_no )
+            || defined( $result->elec_control_no ) )
+        {
+            $csl->{'ISBN'} =
+              defined( $result->print_control_no )
+              ? $result->print_control_no
+              : $result->elec_control_no;
+        }
+    }
 
     # 12=Note and 13=Private Note are handled prior to this
+
+    # Force strings to strings
     my @strings = (
         qw/chapter-number citation-number collection-number number-of-pages number-of-volumes page page-first/
     );
