@@ -397,7 +397,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
                 # Note
                 my $listResult = $rebus2->find(
-                    { id => $list_links->{ $rl2_sequence->list_id } } );
+                    { id => $list_links->{ $rl1_sequence->list_id } } );
                 if ( defined( $listResult->public_note ) ) {
                     $listResult->update(
                         {
@@ -415,7 +415,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
                 # Private Note
                 my $listResult = $rebus2->find(
-                    { id => $list_links->{ $rl2_sequence->list_id } } );
+                    { id => $list_links->{ $rl1_sequence->list_id } } );
                 if ( defined( $listResult->private_note ) ) {
                     $listResult->update(
                         {
