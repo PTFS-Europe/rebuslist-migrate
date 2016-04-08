@@ -645,7 +645,7 @@ sub addMaterial {
         $metadata->{'id'} = $owner_uuid;
         my $new_material = $rebus2->resultset('Material')->create(
             {
-                in_stock   => $in_stock,
+                in_stock   => Mojo::JSON->true,
                 metadata   => $metadata,
                 owner      => $owner,
                 owner_uuid => $owner_uuid,
