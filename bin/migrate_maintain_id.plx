@@ -392,85 +392,129 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
         if ( defined($rl1_material) ) {
 
-            # Map Material to CSL
-            my $csl = mapCSL($rl1_material);
+            # Handle Note/Private Note
+            if ( $rl1_material->material_type_id == 12 ) {
 
-            my ( $owner, $owner_uuid );
-            if (   defined( $rl1_material->print_sysno )
-                && $rl1_material->print_sysno ne ''
-                && !( $rl1_material->print_sysno =~ /^\s*$/ ) )
-            {
-                $owner      = $config->{'connector'};
-                $owner_uuid = $rl1_material->print_sysno;
+                # Note
+                my $listResult = $rebus2->find(
+                    { id => $list_links->{ $rl2_sequence->list_id } } );
+                if ( defined( $listResult->public_note ) ) {
+                    $listResult->update(
+                        {
+                            public_note => $listResult->public_note
+                              . "\n\n $rl1_material->title"
+                        }
+                    );
+                }
+                else {
+                    $listResult->update(
+                        { public_note => $rl1_material->title } );
+                }
             }
-            elsif (defined( $rl1_material->elec_sysno )
-                && $rl1_material->elec_sysno ne ''
-                && !( $rl1_material->elec_sysno =~ /^\s*$/ ) )
-            {
-                $owner      = $config->{'connector'};
-                $owner_uuid = $rl1_material->elec_sysno;
+            elsif ( $rl1_material->material_type_id == 13 ) {
+
+                # Private Note
+                my $listResult = $rebus2->find(
+                    { id => $list_links->{ $rl2_sequence->list_id } } );
+                if ( defined( $listResult->private_note ) ) {
+                    $listResult->update(
+                        {
+                            private_note => $listResult->private_note
+                              . "\n\n $rl1_material->title"
+                        }
+                    );
+                }
+                else {
+                    $listResult->update(
+                        { private_note => $rl1_material->title } );
+                }
             }
+
+            # Handle Everything Else
             else {
-                $owner      = $config->{'code'};
-                $owner_uuid = '1-';
-            }
 
-            my $eBook =
-              ( $rl1_material->material_type_id == 10 )
-              ? Mojo::JSON->true
-              : Mojo::JSON->false;
-
-            # Add material
-            my $rl2_material =
-              addMaterial( $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
-                $csl, $owner, $owner_uuid, $eBook );
-
-            # Get rating
-            my $rl1_rating = $rebus1->resultset('MaterialRating')
-              ->find( { material_id => $rl1_sequence->material_id } );
-
-            # Link material to list
-            my $rl2_sequence =
-              $rebus2->resultset('ListMaterial')->find_or_create(
+                my ( $owner, $owner_uuid );
+                if (   defined( $rl1_material->print_sysno )
+                    && $rl1_material->print_sysno ne ''
+                    && !( $rl1_material->print_sysno =~ /^\s*$/ ) )
                 {
-                    list_id     => $list_links->{ $rl1_sequence->list_id },
-                    material_id => $rl2_material->id,
-                    rank        => $rl1_sequence->rank,
-                    dislikes    => defined($rl1_rating)
-                    ? $rl1_rating->not_likes
-                    : 0,
-                    likes => defined($rl1_rating) ? $rl1_rating->likes : 0,
-                    category_id => $erbo_links->{ $rl1_material->erbo_id },
-                    source_id   => 1,
-                    source_uuid => $config->{'code'} . '-' . $rl2_material->id
-                },
-                { key => 'primary' }
-              );
+                    $owner      = $config->{'connector'};
+                    $owner_uuid = $rl1_material->print_sysno;
+                }
+                elsif (defined( $rl1_material->elec_sysno )
+                    && $rl1_material->elec_sysno ne ''
+                    && !( $rl1_material->elec_sysno =~ /^\s*$/ ) )
+                {
+                    $owner      = $config->{'connector'};
+                    $owner_uuid = $rl1_material->elec_sysno;
+                }
+                else {
+                    $owner      = $config->{'code'};
+                    $owner_uuid = '1-';
+                }
 
-            # Get material tags
-            my $rl1_tagResults = $rebus1->resultset('TagLink')
-              ->search( { material_id => $rl1_sequence->material_id } );
+                my $eBook =
+                  ( $rl1_material->material_type_id == 10 )
+                  ? Mojo::JSON->true
+                  : Mojo::JSON->false;
 
-            for my $rl1_tagResult ( $rl1_tagResults->all ) {
+                # Map Material to CSL
+                my $csl = mapCSL($rl1_material);
 
-                # Get tag
-                my $rl1_tag =
-                  $rebus1->resultset('Tag')
-                  ->find( { tag_id => $rl1_tagResult->tag_id } );
+                # Add material
+                my $rl2_material =
+                  addMaterial( $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
+                    $csl, $owner, $owner_uuid, $eBook );
 
-                # Add tag
-                my $rl2_tag = addTag( $rl1_tag->tag );
+                # Get rating
+                my $rl1_rating = $rebus1->resultset('MaterialRating')
+                  ->find( { material_id => $rl1_sequence->material_id } );
 
-                # Link tag to material in list
-                my $rl2_link_tag =
-                  $rebus2->resultset('MaterialTag')->find_or_create(
+                # Link material to list
+                my $rl2_sequence =
+                  $rebus2->resultset('ListMaterial')->find_or_create(
                     {
+                        list_id     => $list_links->{ $rl1_sequence->list_id },
                         material_id => $rl2_material->id,
-                        tag_id      => $rl2_tag->id,
-                        list_id     => $list_links->{ $rl1_sequence->list_id }
+                        rank        => $rl1_sequence->rank
+                        ,    #FIXME: We cannot rely on rl1 rank being correct!
+                        dislikes => defined($rl1_rating)
+                        ? $rl1_rating->not_likes
+                        : 0,
+                        likes => defined($rl1_rating) ? $rl1_rating->likes : 0,
+                        category_id => $erbo_links->{ $rl1_material->erbo_id },
+                        source_id   => 1,
+                        source_uuid => $config->{'code'} . '-'
+                          . $rl2_material->id
                     },
                     { key => 'primary' }
                   );
+
+                # Get material tags
+                my $rl1_tagResults = $rebus1->resultset('TagLink')
+                  ->search( { material_id => $rl1_sequence->material_id } );
+
+                for my $rl1_tagResult ( $rl1_tagResults->all ) {
+
+                    # Get tag
+                    my $rl1_tag =
+                      $rebus1->resultset('Tag')
+                      ->find( { tag_id => $rl1_tagResult->tag_id } );
+
+                    # Add tag
+                    my $rl2_tag = addTag( $rl1_tag->tag );
+
+                    # Link tag to material in list
+                    my $rl2_link_tag =
+                      $rebus2->resultset('MaterialTag')->find_or_create(
+                        {
+                            material_id => $rl2_material->id,
+                            tag_id      => $rl2_tag->id,
+                            list_id => $list_links->{ $rl1_sequence->list_id }
+                        },
+                        { key => 'primary' }
+                      );
+                }
             }
         }
     }
