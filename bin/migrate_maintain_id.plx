@@ -396,7 +396,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             if ( $rl1_material->material_type_id == 12 ) {
 
                 # Note
-                my $listResult = $rebus2->find(
+                my $listResult = $rebus2->resultset('List')->find(
                     { id => $list_links->{ $rl1_sequence->list_id } } );
                 if ( defined( $listResult->public_note ) ) {
                     $listResult->update(
@@ -414,7 +414,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             elsif ( $rl1_material->material_type_id == 13 ) {
 
                 # Private Note
-                my $listResult = $rebus2->find(
+                my $listResult = $rebus2->resultset('List')->find(
                     { id => $list_links->{ $rl1_sequence->list_id } } );
                 if ( defined( $listResult->private_note ) ) {
                     $listResult->update(
