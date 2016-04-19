@@ -396,8 +396,8 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             if ( $rl1_material->material_type_id == 12 ) {
 
                 # Note
-                my $listResult = $rebus2->resultset('List')->find(
-                    { id => $list_links->{ $rl1_sequence->list_id } } );
+                my $listResult = $rebus2->resultset('List')
+                  ->find( { id => $list_links->{ $rl1_sequence->list_id } } );
                 if ( defined( $listResult->public_note ) ) {
                     $listResult->update(
                         {
@@ -414,8 +414,8 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             elsif ( $rl1_material->material_type_id == 13 ) {
 
                 # Private Note
-                my $listResult = $rebus2->resultset('List')->find(
-                    { id => $list_links->{ $rl1_sequence->list_id } } );
+                my $listResult = $rebus2->resultset('List')
+                  ->find( { id => $list_links->{ $rl1_sequence->list_id } } );
                 if ( defined( $listResult->private_note ) ) {
                     $listResult->update(
                         {
@@ -548,6 +548,10 @@ $permission_progress->minor(0);
 $next_update  = 0;
 $current_line = 0;
 
+my $rl2_editorID =
+  $rebus2->resultset('ListRole')->search( { name => 'editor' }, { rows => 1 } )
+  ->single->get_column('id');
+
 my @rl1_user_org_unit_permissionResults =
   $rebus1->resultset('UserOrgUnitPermission')
   ->search( undef, { order_by => { -asc => [qw/org_unit_id user_id/] } } )->all;
@@ -562,12 +566,13 @@ for my $rl1_uoup (@rl1_user_org_unit_permissionResults) {
     if (   exists( $unit_links->{ $rl1_uoup->org_unit_id } )
         && exists( $user_links->{ $rl1_uoup->user_id } ) )
     {
-        $rebus2->resultset('ListUserRole')->create(
+        $rebus2->resultset('ListUserRole')->find_or_create(
             {
                 list_id => $unit_links->{ $rl1_uoup->org_unit_id },
                 user_id => $user_links->{ $rl1_uoup->user_id },
-                role    => { name => 'editor' }
-            }
+                role_id => $rl2_editorID
+            },
+            { key => 'primary' }
         );
     }
 }
@@ -575,10 +580,6 @@ for my $rl1_uoup (@rl1_user_org_unit_permissionResults) {
 my @rl1_user_list_permissionResults =
   $rebus1->resultset('UserListPermission')
   ->search( undef, { order_by => { -asc => [qw/list_id user_id/] } } )->all;
-
-my $rl2_roleID =
-  $rebus2->resultset('ListRole')->search( { name => 'editor' }, { rows => 1 } )
-  ->single->get_column('id');
 
 for my $rl1_ulp (@rl1_user_list_permissionResults) {
 
@@ -594,7 +595,7 @@ for my $rl1_ulp (@rl1_user_list_permissionResults) {
             {
                 list_id => $list_links->{ $rl1_ulp->list_id },
                 user_id => $user_links->{ $rl1_ulp->user_id },
-                role_id => $rl2_roleID
+                role_id => $rl2_editorID
             },
             { key => 'primary' }
         );
@@ -616,6 +617,11 @@ my @rl1_owners =
   ->search( undef,
     { order_by => { -asc => [qw/list_id owner_id leader_yn/] } } )->all;
 
+my $roleResult = $rebus2->resultset('ListRole')->find( { name => 'leader' } );
+my $leaderID = $roleResult->id;
+$roleResult = $rebus2->resultset('ListRole')->find( { name => 'owner' } );
+my $ownerID = $roleResult->id;
+
 for my $rl1_owner (@rl1_owners) {
 
     # Update Progress
@@ -626,13 +632,14 @@ for my $rl1_owner (@rl1_owners) {
     if (   exists( $list_links->{ $rl1_owner->list_id } )
         && exists( $user_links->{ $rl1_owner->owner_id } ) )
     {
-        my $name = $rl1_owner->leader_yn eq 'y' ? 'leader' : 'owner';
-        $rebus2->resultset('ListUserRole')->create(
+        my $roleID = $rl1_owner->leader_yn eq 'y' ? $leaderID : $ownerID;
+        $rebus2->resultset('ListUserRole')->find_or_create(
             {
                 list_id => $list_links->{ $rl1_owner->list_id },
                 user_id => $user_links->{ $rl1_owner->owner_id },
-                role    => { name => $name }
-            }
+                role_id => $roleID
+            }, 
+            { key => 'primary' }
         );
     }
 }
