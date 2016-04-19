@@ -204,7 +204,7 @@ sub recurse {
                 $rl2_unit = $parentResult->create_rightmost_child(
                     {
                         name      => decode_entities( $rl1_unit->name ),
-                        source    => 1,
+                        source_id => 1,
                         published => 1,
                         inherited_published      => 1,
                         validity_start           => $start,
