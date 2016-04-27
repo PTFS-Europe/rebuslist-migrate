@@ -15,3 +15,4 @@ requires "DBIx::Class::Helper::ResultSet::Errors", "";
 requires "Term::ProgressBar", "";
 requires "List::Util", "";
 requires "HTML::Entities", "";
+requires "Data::Printer", "";
