@@ -286,6 +286,9 @@ for my $rl1_user (@rl1_userResults) {
         $rl1_user->password('38a4eae20c7e4de6560116e722229e50');
     }
 
+    my $email = defined( $rl1_user->email_address ) ? $rl1_user->email_address : 'me@myemail.com';
+    my $login = defined( $rl1_user->login ) ? $rl1_user->login : 'login'.$current_line;
+
     # Add user
     my $system_role =
       defined( $role_map->{ $rl1_user->type_id } )
@@ -295,9 +298,9 @@ for my $rl1_user (@rl1_userResults) {
         {
             name        => $rl1_user->name,
             system_role => { name => $system_role },
-            login       => $rl1_user->login,
+            login       => $login,
             password    => $rl1_user->password,
-            email       => $rl1_user->email_address,
+            email       => $email,
             active      => 1
         }
     );
