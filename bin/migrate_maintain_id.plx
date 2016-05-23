@@ -366,6 +366,12 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         # Map Material to CSL
         my $csl = mapCSL($rl1_material);
 
+        # Array up CSL
+        $csl = arrayCSL($csl);
+
+        # Clean up CSL
+        $csl = cleanCSL($csl);
+
         # Add material
         my $rl2_material = addMaterial($rl1_material->in_stock_yn eq 'y' ? 1 : 0, $csl, $owner, $owner_uuid, $eBook);
 
@@ -773,6 +779,133 @@ sub mapCSL {
   for my $key (@strings) {
     if (exists($csl->{$key})) {
       $csl->{$key} = $csl->{$key} . "";
+    }
+  }
+
+  return $csl;
+}
+
+sub arrayCSL {
+  my $csl = shift;
+
+  # CSL properties that we need to turn into an array of
+  # strings
+  my @array_me = ("id", "language", "genre", "ISBN", "ISSN", "medium", "note", "references", "URL");
+
+  # CSL properties that are having their type changed to number
+  my @to_number = ("number-of-pages");
+
+  # CSL properties that are having their type changed to string
+  my @to_string = ("edition", "issue", "volume");
+
+  # Iterate each property that we need to array-ify
+  for my $arr_prop (@array_me) {
+
+    # If it's defined
+    if (defined($csl->{$arr_prop})) {
+
+      # If it's not already an array
+      if (ref($csl->{$arr_prop}) ne "ARRAY") {
+
+        # Turn it into a string
+        $csl->{$arr_prop} = $csl->{$arr_prop} . "";
+
+        # Convert to an arrayref
+        $csl->{$arr_prop} = [$csl->{$arr_prop}];
+      }
+      else {
+        # It is an array, ensure it's an array of strings
+        for my $arr_ele (@{$csl->{$arr_prop}}) {
+          $arr_ele = $arr_ele . "";
+        }
+      }
+    }
+  }
+
+  # Iterate each property that we're changing to a number
+  for my $num_prop (@to_number) {
+
+    # If it's defined
+    if (defined($csl->{$num_prop})) {
+      chomp $csl->{$num_prop};
+
+      # If it looks like a number
+      if (Scalar::Util::looks_like_number($csl->{$num_prop})) {
+
+        # Force it to a number
+        $csl->{$num_prop} = $csl->{$num_prop} + 0;
+      }
+      else {
+        # We can't turn this value into a number, so drop it
+        $csl->{$num_prop} = undef;
+      }
+    }
+  }
+
+  # Iterate each property that we're changing to a string
+  for my $str_prop (@to_string) {
+
+    # If it's defined
+    if (defined($csl->{$str_prop})) {
+      $csl->{$str_prop} = $csl->{$str_prop} . "";
+    }
+  }
+
+  return $csl;
+}
+
+sub cleanCSL {
+  my $csl = shift;
+
+  # Dates
+  my @dateFields = qw/accessed container event-date issued original-date submitted/;
+  my $yyyy       = qr{^(\\d{4})$};
+  my $yyyymm     = qr{^(\\d{4})-(\\d{2})$};
+  my $yyyymmdd   = qr{^(\\d{4})-(\\d{2})-(\\d{2})$};
+  my $isodate    = qr{^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$};
+
+  # Language
+  my @langFields = qw/language/;
+  my $isolang    = qr{^[a-z]{2}-[A-Z]{2}$};
+
+  # Iterate each property that we need to date-ify
+  for my $date_prop (@dateFields) {
+
+    # If it's defined
+    if (defined($csl->{$date_prop})) {
+
+      # Coerce to ISO
+      if ($csl->{$date_prop} =~ /$yyyymmdd/) {
+        $csl->{$date_prop} = "$1-$2-$3T00:00:01Z";
+      }
+      elsif ($csl->{$date_prop} =~ /$yyyymm/) {
+        $csl->{$date_prop} = "$1-$2-01T00:00:01Z";
+      }
+      elsif ($csl->{$date_prop} =~ /$yyyy/) {
+        $csl->{$date_prop} = "$1-01-01T00:00:01Z";
+      }
+      elsif (!($csl->{$date_prop} =~ /$isodate/)) {
+
+        # Remove unrecognised format
+        delete $csl->{$date_prop};
+      }
+    }
+  }
+
+  # Iterate each property we need to language-ify
+  for my $lang_prop (@langFields) {
+
+    # If it's defined
+    if (defined($csl->{$lang_prop})) {
+
+      # Remove unrecognised format
+      for (my $i = $#{$csl->{$lang_prop}}; --$i >= 0;) {
+        if (!($csl->{$lang_prop}[$i] =~ /$isolang/)) {
+
+          # Remove unrecognised format
+          delete $csl->{$lang_prop}[$i];
+        }
+      }
     }
   }
 
