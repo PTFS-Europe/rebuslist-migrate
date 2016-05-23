@@ -103,6 +103,29 @@ DISTRIBUTIONS
       Test::More 0
       parent 0
       perl 5.008001
+  CPAN-Meta-2.150005
+    pathname: D/DA/DAGOLDEN/CPAN-Meta-2.150005.tar.gz
+    provides:
+      CPAN::Meta 2.150005
+      CPAN::Meta::Converter 2.150005
+      CPAN::Meta::Feature 2.150005
+      CPAN::Meta::History 2.150005
+      CPAN::Meta::Merge 2.150005
+      CPAN::Meta::Prereqs 2.150005
+      CPAN::Meta::Spec 2.150005
+      CPAN::Meta::Validator 2.150005
+    requirements:
+      CPAN::Meta::Requirements 2.121
+      CPAN::Meta::YAML 0.008
+      Carp 0
+      ExtUtils::MakeMaker 6.17
+      JSON::PP 2.27200
+      Parse::CPAN::Meta 1.4414
+      Scalar::Util 0
+      perl 5.008
+      strict 0
+      version 0.88
+      warnings 0
   Capture-Tiny-0.30
     pathname: D/DA/DAGOLDEN/Capture-Tiny-0.30.tar.gz
     provides:
@@ -315,14 +338,6 @@ DISTRIBUTIONS
       Test::Exception 0
       Test::More 0
       ok 0
-  Cpanel-JSON-XS-3.0115
-    pathname: R/RU/RURBAN/Cpanel-JSON-XS-3.0115.tar.gz
-    provides:
-      Cpanel::JSON::XS 3.0115
-    requirements:
-      ExtUtils::MakeMaker 0
-      Pod::Text 2.08
-      Pod::Usage 1.33
   Crypt-DES-2.07
     pathname: D/DP/DPARIS/Crypt-DES-2.07.tar.gz
     provides:
@@ -385,8 +400,12 @@ DISTRIBUTIONS
   DBD-Pg-3.5.3
     pathname: T/TU/TURNSTEP/DBD-Pg-3.5.3.tar.gz
     provides:
-      Bundle::DBD::Pg v3.5.3
-      DBD::Pg v3.5.3
+      Bundle::DBD::Pg 3.005003
+      DBD::Pg 3.005003
+      DBD::Pg::DefaultValue 3.005003
+      DBD::Pg::db 3.005003
+      DBD::Pg::dr 3.005003
+      DBD::Pg::st 3.005003
     requirements:
       DBI 1.614
       ExtUtils::MakeMaker 6.11
@@ -881,13 +900,11 @@ DISTRIBUTIONS
       Data::Page 2.02
     requirements:
       Class::Accessor::Chained::Fast 0
-      Module::Build 0.35
       Test::Exception 0
       Test::More 0
   Data-Printer-0.38
     pathname: G/GA/GARU/Data-Printer-0.38.tar.gz
     provides:
-      DDP undef
       Data::Printer 0.38
       Data::Printer::Filter undef
       Data::Printer::Filter::DB undef
@@ -1875,15 +1892,6 @@ DISTRIBUTIONS
     requirements:
       ExtUtils::MakeMaker 0
       File::Spec 0
-  Digest-MD5-2.54
-    pathname: G/GA/GAAS/Digest-MD5-2.54.tar.gz
-    provides:
-      Digest::MD5 2.54
-    requirements:
-      Digest::base 1.00
-      ExtUtils::MakeMaker 0
-      XSLoader 0
-      perl 5.006
   Digest-SHA1-2.13
     pathname: G/GA/GAAS/Digest-SHA1-2.13.tar.gz
     provides:
@@ -2046,7 +2054,6 @@ DISTRIBUTIONS
       JSON::MaybeXS 1.003005
     requirements:
       Carp 0
-      Cpanel::JSON::XS 2.3310
       ExtUtils::CBuilder 0.27
       ExtUtils::MakeMaker 0
       File::Spec 0
@@ -2069,7 +2076,6 @@ DISTRIBUTIONS
     provides:
       Lingua::EN::Inflect 1.899
     requirements:
-      ExtUtils::MakeMaker 0
       Test::More 0
   List-MoreUtils-0.413
     pathname: R/RE/REHSACK/List-MoreUtils-0.413.tar.gz
@@ -2096,6 +2102,56 @@ DISTRIBUTIONS
       ExtUtils::MakeMaker 6.59
       Test::More 0.47
       perl 5.006
+  Module-Build-0.4216
+    pathname: L/LE/LEONT/Module-Build-0.4216.tar.gz
+    provides:
+      Module::Build 0.4216
+      Module::Build::Base 0.4216
+      Module::Build::Compat 0.4216
+      Module::Build::Config 0.4216
+      Module::Build::Cookbook 0.4216
+      Module::Build::Dumper 0.4216
+      Module::Build::Notes 0.4216
+      Module::Build::PPMMaker 0.4216
+      Module::Build::Platform::Default 0.4216
+      Module::Build::Platform::MacOS 0.4216
+      Module::Build::Platform::Unix 0.4216
+      Module::Build::Platform::VMS 0.4216
+      Module::Build::Platform::VOS 0.4216
+      Module::Build::Platform::Windows 0.4216
+      Module::Build::Platform::aix 0.4216
+      Module::Build::Platform::cygwin 0.4216
+      Module::Build::Platform::darwin 0.4216
+      Module::Build::Platform::os2 0.4216
+      Module::Build::PodParser 0.4216
+    requirements:
+      CPAN::Meta 2.142060
+      CPAN::Meta::YAML 0.003
+      Cwd 0
+      Data::Dumper 0
+      ExtUtils::CBuilder 0.27
+      ExtUtils::Install 0
+      ExtUtils::Manifest 0
+      ExtUtils::Mkbootstrap 0
+      ExtUtils::ParseXS 2.21
+      File::Basename 0
+      File::Compare 0
+      File::Copy 0
+      File::Find 0
+      File::Path 0
+      File::Spec 0.82
+      File::Temp 0.15
+      Getopt::Long 0
+      Module::Metadata 1.000002
+      Parse::CPAN::Meta 1.4401
+      Perl::OSType 1
+      Pod::Man 2.17
+      TAP::Harness 3.29
+      Test::More 0.49
+      Text::Abbrev 0
+      Text::ParseWords 0
+      perl 5.006001
+      version 0.87
   Module-Find-0.13
     pathname: C/CR/CRENZ/Module-Find-0.13.tar.gz
     provides:
@@ -2262,7 +2318,6 @@ DISTRIBUTIONS
       JSON::PP 2.27103
       Pod::Simple 3.09
       Time::Local 1.2
-      perl 5.010001
   Moo-2.000002
     pathname: H/HA/HAARG/Moo-2.000002.tar.gz
     provides:
@@ -2368,24 +2423,12 @@ DISTRIBUTIONS
       Params::Validate::XS 1.21
     requirements:
       Carp 0
-      Devel::Peek 0
       Exporter 0
       ExtUtils::CBuilder 0
-      ExtUtils::MakeMaker 0
-      File::Spec 0
-      File::Temp 0
       Module::Build 0.28
       Module::Implementation 0
       Scalar::Util 1.10
-      Test::Fatal 0
-      Test::More 0.96
-      Test::Requires 0
-      Tie::Array 0
-      Tie::Hash 0
       XSLoader 0
-      base 0
-      lib 0
-      overload 0
       perl 5.008001
       strict 0
       vars 0
@@ -2412,7 +2455,6 @@ DISTRIBUTIONS
       Parse::RecDescent::Token 1.967009
       Parse::RecDescent::UncondReject 1.967009
     requirements:
-      ExtUtils::MakeMaker 6.5702
       Test::More 0
       Text::Balanced 1.95
   Path-Class-0.35
@@ -2437,12 +2479,9 @@ DISTRIBUTIONS
       Module::Build 0.3601
       Perl::OSType 0
       Scalar::Util 0
-      Test 0
-      Test::More 0
       overload 0
       parent 0
       strict 0
-      warnings 0
   Role-Tiny-2.000001
     pathname: H/HA/HAARG/Role-Tiny-2.000001.tar.gz
     provides:
@@ -2775,7 +2814,6 @@ DISTRIBUTIONS
     requirements:
       Capture::Tiny 0.24
       Data::Dumper 2.126
-      ExtUtils::MakeMaker 0
       Test::More 0
       Text::Diff 0.35
   Test-Exception-0.40
@@ -2794,27 +2832,6 @@ DISTRIBUTIONS
       perl 5.006001
       strict 0
       warnings 0
-  Test-Fatal-0.014
-    pathname: R/RJ/RJBS/Test-Fatal-0.014.tar.gz
-    provides:
-      Test::Fatal 0.014
-    requirements:
-      Carp 0
-      Exporter 5.57
-      ExtUtils::MakeMaker 0
-      Test::Builder 0
-      Try::Tiny 0.07
-      strict 0
-      warnings 0
-  Test-Requires-0.10
-    pathname: T/TO/TOKUHIROM/Test-Requires-0.10.tar.gz
-    provides:
-      Test::Requires 0.10
-    requirements:
-      ExtUtils::MakeMaker 6.64
-      Test::Builder::Module 0
-      Test::More 0.47
-      perl 5.006
   Test-Simple-1.001014
     pathname: E/EX/EXODIST/Test-Simple-1.001014.tar.gz
     provides:
@@ -2851,19 +2868,6 @@ DISTRIBUTIONS
       Test::Builder::Tester 1.02
       Test::More 0
       perl 5.006
-  Test-Warnings-0.021
-    pathname: E/ET/ETHER/Test-Warnings-0.021.tar.gz
-    provides:
-      Test::Warnings 0.021
-    requirements:
-      Carp 0
-      Exporter 0
-      ExtUtils::MakeMaker 0
-      Test::Builder 0
-      parent 0
-      perl 5.006
-      strict 0
-      warnings 0
   Text-Brew-0.02
     pathname: K/KC/KCIVEY/Text-Brew-0.02.tar.gz
     provides:
