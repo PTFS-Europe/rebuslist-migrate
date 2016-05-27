@@ -246,7 +246,8 @@ for my $rl1_user (@rl1_userResults) {
   );
 
   # Convert Password Hash
-  my $ppr = Authen::Passphrase::SaltedDigest->new(algorithm => "MD5", hash_hex => $rl1_user->password);
+  my $hashedPassword = defined($rl1_user->password) && $rl1_user->password ne "" ? $rl1_user->password : 'acd2dd34b761c2f1ecc66982c874b2b3';
+  my $ppr = Authen::Passphrase::SaltedDigest->new(algorithm => "MD5", hash_hex => $hashedPassword);
   my $pass_string = $ppr->as_rfc2307;
   $rl2_user->store_column(password => $pass_string);
   $rl2_user->make_column_dirty('password');
