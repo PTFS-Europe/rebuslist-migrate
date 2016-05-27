@@ -539,15 +539,16 @@ sub addMaterial {
       return $new_material;
     }
     else {
-      $metadata->{'id'} = $owner_uuid;
+      $metadata->{'id'} = [ $owner_uuid ];
       my $new_material
         = $rebus2->resultset('Material')
         ->create(
         {in_stock => $in_stock, metadata => $metadata, owner => $owner, owner_uuid => undef, electronic => $eBook});
 
       my $metadata = $new_material->metadata;
-      $metadata->{'id'} = '1-' . $new_material->id;
-      $new_material->update({metadata => $metadata, owner_uuid => '1-' . $new_material->id});
+      my $id = '1-' . $new_material->id;
+      $metadata->{'id'} = [ $id ];
+      $new_material->update({metadata => $metadata, owner_uuid => $id});
 
       return $new_material;
     }
@@ -557,7 +558,7 @@ sub addMaterial {
   my @materialResults = $rebus2->resultset('Material')->search({owner => $owner, owner_uuid => $owner_uuid});
 
   unless (@materialResults) {
-    $metadata->{'id'} = $owner_uuid;
+    $metadata->{'id'} = [ $owner_uuid ];
     my $new_material = $rebus2->resultset('Material')->create(
       {
         in_stock   => Mojo::JSON->true,
