@@ -400,7 +400,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                     $listResult->update(
                         {
                             public_note => $listResult->public_note
-                              . "\n\n $rl1_material->title"
+                              . "\n\n" . $rl1_material->title;
                         }
                     );
                 }
@@ -418,7 +418,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                     $listResult->update(
                         {
                             private_note => $listResult->private_note
-                              . "\n\n $rl1_material->title"
+                              . "\n\n" $rl1_material->title
                         }
                     );
                 }
