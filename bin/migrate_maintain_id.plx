@@ -95,9 +95,10 @@ for my $rl1_list ( $rl1_listResults->all ) {
             source_id      => 1,
             course_identifier =>
               decode_entities( $rl1_list->course_identifier ),
-            published           => $rl1_list->published_yn eq 'y' ? 1 : 0,
-            inherited_published => $rl1_list->published_yn eq 'y' ? 1 : 0,
-            validity_start      => $start->set_year( $rl1_list->year ),
+            year                     => $rl1_list->year,
+            published                => $rl1_list->published_yn eq 'y' ? 1 : 0,
+            inherited_published      => $rl1_list->published_yn eq 'y' ? 1 : 0,
+            validity_start           => $start->set_year( $rl1_list->year ),
             inherited_validity_start => $start->set_year( $rl1_list->year ),
             validity_end =>
               $end->set_year( $rl1_list->year )->add( years => 1 ),
@@ -399,8 +400,8 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                 if ( defined( $listResult->public_note ) ) {
                     $listResult->update(
                         {
-                            public_note => $listResult->public_note
-                              . "\n\n" . $rl1_material->title;
+                            public_note => $listResult->public_note . "\n\n"
+                              . $rl1_material->title;
                         }
                     );
                 }
