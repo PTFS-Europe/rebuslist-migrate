@@ -711,10 +711,9 @@ sub addMaterial {
 sub addTag {
     my $text = shift;
 
-    $text = lc($text);
-    $text =~ s/^\s+|\s+$//g
+    $text =~ s/^\s+|\s+$//g;
 
-      unless ( length $text ) {
+    unless ( length $text ) {
         return;
     }
 
