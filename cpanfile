@@ -16,3 +16,4 @@ requires "Term::ProgressBar", "";
 requires "List::Util", "";
 requires "HTML::Entities", "";
 requires "Data::Printer", "";
+requires "JSON::Validator", "";
