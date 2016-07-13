@@ -53,19 +53,21 @@ __PACKAGE__->table("list_user_roles");
   is_foreign_key: 1
   is_nullable: 0
 
-=head2 inherited
+=head2 inherited_from
 
-  data_type: 'tinyint'
+  data_type: 'integer'
   default_value: 0
+  is_foreign_key: 1
   is_nullable: 0
+
 
 =cut
 
 __PACKAGE__->add_columns(
-  "list_id",   {data_type => "integer", is_foreign_key => 1, is_nullable => 0,},
-  "user_id",   {data_type => "integer", is_foreign_key => 1, is_nullable => 0,},
-  "role_id",   {data_type => "integer", is_foreign_key => 1, is_nullable => 0,},
-  "inherited", {data_type => "tinyint", default_value  => 0, is_nullable => 0},
+  "list_id",        {data_type => "integer", is_foreign_key => 1, is_nullable    => 0,},
+  "user_id",        {data_type => "integer", is_foreign_key => 1, is_nullable    => 0,},
+  "role_id",        {data_type => "integer", is_foreign_key => 1, is_nullable    => 0,},
+  "inherited_from", {data_type => "integer", default_value  => 0, is_foreign_key => 1, is_nullable => 0,},
 );
 
 =head1 PRIMARY KEY
@@ -129,11 +131,18 @@ __PACKAGE__->belongs_to(
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
 
-__PACKAGE__->filter_column(
-  inherited => {
-    filter_to_storage => sub { $_[1] ? 1 : 0 },
-    filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
-  }
+=head2 list_inherited
+
+Type: belongs_to
+
+Related object: L<Rebus2::Schema::Result::List>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "list_inherited", "Rebus2::Schema::Result::List",
+  {id            => "inherited_from"},
+  {is_deferrable => 1, on_delete => "CASCADE", on_update => "RESTRICT"},
 );
 
 1;

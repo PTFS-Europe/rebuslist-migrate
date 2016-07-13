@@ -72,7 +72,7 @@ __PACKAGE__->table("materials");
 
   data_type: 'tinyint'
   is_nullable: 0
-  default_value: 1
+  default_value: 0
 
 =head2 updated
 
@@ -80,6 +80,7 @@ __PACKAGE__->table("materials");
   datetime_undef_if_invalid: 1
   default_value: current_timestamp
   is_nullable: 0
+  retrieve_on_insert: 1
 
 =cut
 
@@ -95,11 +96,17 @@ __PACKAGE__->add_columns(
   "owner_uuid",
   {data_type => "text", is_nullable => 1},
   "electronic",
-  {data_type => "tinyint", is_nullable => 0, default_value => 1},
+  {data_type => "tinyint", is_nullable => 0, default_value => 0},
   "frbr_id",
   {data_type => "text", is_nullable => 1},
   "updated",
-  {data_type => "timestamp", datetime_undef_if_invalid => 1, default_value => \"current_timestamp", is_nullable => 0,},
+  {
+    data_type                 => "timestamp",
+    datetime_undef_if_invalid => 1,
+    default_value             => \"current_timestamp",
+    is_nullable               => 0,
+    retrieve_on_insert        => 1
+  },
 );
 
 =head1 PRIMARY KEY
@@ -129,6 +136,36 @@ __PACKAGE__->set_primary_key("id");
 __PACKAGE__->add_unique_constraint(owner => [qw/owner owner_uuid/]);
 
 =head1 RELATIONS
+
+=head2 fixed_fields
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::MaterialFixedFields>
+
+=cut
+
+__PACKAGE__->has_many(
+  "fixed_fields",
+  "Rebus2::Schema::Result::MaterialFixedFields",
+  {"foreign.material_id" => "self.id"},
+  {cascade_copy          => 0, cascade_delete => 0},
+);
+
+=head2 removed_fields
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::MaterialRemovedFields>
+
+=cut
+
+__PACKAGE__->has_many(
+  "removed_fields",
+  "Rebus2::Schema::Result::MaterialRemovedFields",
+  {"foreign.material_id" => "self.id"},
+  {cascade_copy          => 0, cascade_delete => 0},
+);
 
 =head2 list_materials
 
@@ -172,6 +209,26 @@ __PACKAGE__->has_many(
   {"foreign.material_id" => "self.id"},
   {cascade_copy          => 0, cascade_delete => 0},
 );
+
+=head2 container
+
+Type: might_have
+
+Related object: L<Rebus2::Schema::Result::MaterialAnalytic>
+
+=cut
+
+__PACKAGE__->might_have(container => 'Rebus2::Schema::Result::MaterialAnalytic', {'foreign.analytic_id' => 'self.id'},);
+
+=head2 analytics
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::MaterialAnalytic>
+
+=cut
+
+__PACKAGE__->has_many(analytics => 'Rebus2::Schema::Result::MaterialAnalytic', {'foreign.container_id' => 'self.id'},);
 
 =head2 frbr_equivalents
 

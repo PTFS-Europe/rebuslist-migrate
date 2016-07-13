@@ -72,6 +72,16 @@ __PACKAGE__->table("users");
   data_type: 'tinyint'
   is_nullable: 0
 
+=head2 reset_guid
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 reset_request
+
+  data_type: 'timestamp'
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -96,6 +106,11 @@ __PACKAGE__->add_columns(
   {data_type => "text", is_nullable => 1},
   "active",
   {data_type => "tinyint", is_nullable => 0},
+  "reset_guid",
+  {data_type => "text", is_nullable => 1},
+  "reset_request",
+  {data_type => "timestamp", datetime_undef_if_invalid => 1, is_nullable => 1},
+
 );
 
 =head1 PRIMARY KEY

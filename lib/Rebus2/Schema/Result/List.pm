@@ -19,7 +19,13 @@ use base 'DBIx::Class::Core';
 
 =over 4
 
+=item * L<DBIx::Class::FilterColumn>
+
 =item * L<DBIx::Class::InflateColumn::DateTime>
+
+=item * L<DBIx::Class::Tree::NestedSet>
+
+=item * L<DBIx::Class::Tree::Inheritance>
 
 =back
 
@@ -92,6 +98,7 @@ __PACKAGE__->table("lists");
   datetime_undef_if_invalid: 1
   default_value: current_timestamp
   is_nullable: 0
+  retrieve_on_insert: 1
 
 =head2 created
 
@@ -99,6 +106,7 @@ __PACKAGE__->table("lists");
   datetime_undef_if_invalid: 1
   default_value: current_timestamp
   is_nullable: 0
+  retrieve_on_insert: 1
 
 =head2 source_id
 
@@ -213,9 +221,21 @@ __PACKAGE__->add_columns(
   "ratio_students",
   {data_type => "integer", is_nullable => 1},
   "updated",
-  {data_type => "timestamp", datetime_undef_if_invalid => 1, default_value => \"current_timestamp", is_nullable => 0},
+  {
+    data_type                 => "timestamp",
+    datetime_undef_if_invalid => 1,
+    default_value             => \"current_timestamp",
+    is_nullable               => 0,
+    retrieve_on_insert        => 1
+  },
   "created",
-  {data_type => "timestamp", datetime_undef_if_invalid => 1, default_value => \"current_timestamp", is_nullable => 0},
+  {
+    data_type                 => "timestamp",
+    datetime_undef_if_invalid => 1,
+    default_value             => \"current_timestamp",
+    is_nullable               => 0,
+    retrieve_on_insert        => 1
+  },
   "source_id",
   {data_type => "integer", is_foreign_key => 1, is_nullable => 0},
   "source_uuid",
@@ -262,18 +282,53 @@ __PACKAGE__->add_columns(
 
 __PACKAGE__->set_primary_key("id");
 
-=head1 RELATIONS
+=head1 COMPONENT DEFINITIONS
 
 =head2 tree_columns
 
-Type: special
+=over 4
 
-Related object: L<Rebus2::Schema::Result::List>
+=item * L</root_id>
+
+=item * L</lft>
+
+=item * L</rgt>
+
+=item * L</level>
 
 =cut
 
 __PACKAGE__->tree_columns(
   {root_column => 'root_id', left_column => 'lft', right_column => 'rgt', level_column => 'level',});
+
+=head2 inheritable_columns
+
+=over 4
+
+=item * L</no_students>
+
+=item * L</ratio_books>
+
+=item * L</ratio_students>
+
+=item * L</course_identifier>
+
+=item * L</year>
+
+=item * L</validity_start>
+
+=item * L</validity_end>
+
+=item * L</published>
+
+=item * L</summary>
+
+=cut
+
+__PACKAGE__->inheritable_columns(parent =>
+    [qw/no_students ratio_books ratio_students course_identifier year validity_start validity_end published summary/]);
+
+=head1 RELATIONS
 
 =head2 buffer
 
@@ -316,6 +371,20 @@ __PACKAGE__->has_many(
   {"foreign.list_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
+=head2 list_user_roles_inheritance
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::ListUserRole>
+
+=cut
+
+__PACKAGE__->has_many(
+  "list_user_roles_inheritance", "Rebus2::Schema::Result::ListUserRole",
+  {"foreign.inherited_from" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
+);
+
+
 =head2 material_tags
 
 Type: has_many
@@ -343,6 +412,8 @@ __PACKAGE__->belongs_to(
   {id            => "source_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
+
+=head1 CUSTOM ACCESSORS
 
 =head2 users
 
@@ -385,12 +456,26 @@ sub materials {
   );
 }
 
+=head1 FILTERED COLUMNS
+
+=head2 published
+
+Type: Boolean
+
+=cut
+
 __PACKAGE__->filter_column(
   published => {
     filter_to_storage => sub { $_[1] ? 1 : 0 },
     filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
   }
 );
+
+=head2 inherited_published
+
+Type: Boolean
+
+=cut
 
 __PACKAGE__->filter_column(
   inherited_published => {
@@ -399,6 +484,12 @@ __PACKAGE__->filter_column(
   }
 );
 
+=head2 wip
+
+Type: Boolean
+
+=cut
+
 __PACKAGE__->filter_column(
   wip => {
     filter_to_storage => sub { $_[1] ? 1 : 0 },
@@ -406,6 +497,11 @@ __PACKAGE__->filter_column(
   }
 );
 
+=head2 moderating
+
+Type: Boolean
+
+=cut
 
 __PACKAGE__->filter_column(
   moderating => {
@@ -414,7 +510,51 @@ __PACKAGE__->filter_column(
   }
 );
 
-__PACKAGE__->inheritable_columns(parent =>
-    [qw/no_students ratio_books ratio_students course_identifier year validity_start validity_end published summary/]);
+=head1 CUSTOM FUNCTIONS
+
+=head2 assign
+
+Given a user and a role, assign said user the given role on this list and ensure inheritance is obeyed
+
+=cut
+
+sub assign {
+  my $self = shift;
+  my ($userID, $roleID) = @_;
+
+  my $guard = $self->result_source->schema->txn_scope_guard;
+  $self->create_related('list_user_roles', {user_id => $userID, role_id => $roleID, inherited_from => 0});
+  my @descendants = $self->descendants->search(undef, {columns => [qw(id)]})->all;
+  for my $descendant (@descendants) {
+    $descendant->find_or_create_related('list_user_roles',
+      {user_id => $userID, role_id => $roleID, inherited_from => $self->id});
+  }
+  $guard->commit;
+
+  return $self;
+}
+
+=head2 divest
+
+Given a user and a role, divest said user the given role on this list and ensure inheritance is obeyed
+
+=cut
+
+# FIXME: I'm sure this could be done in one query as per List.pm _update_list routine?
+sub divest {
+  my $self = shift;
+  my ($userID, $roleID) = @_;
+
+  my $guard = $self->result_source->schema->txn_scope_guard;
+  $self->delete_related('list_user_roles', {user_id => $userID, role_id => $roleID, inherited_from => 0});
+  my @descendants = $self->descendants->search(undef, {columns => [qw(id)]})->all;
+  for my $descendant (@descendants) {
+    $descendant->delete_related('list_user_roles',
+      {user_id => $userID, role_id => $roleID, inherited_from => $self->id});
+  }
+  $guard->commit;
+
+  return $self;
+}
 
 1;

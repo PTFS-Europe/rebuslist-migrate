@@ -51,6 +51,7 @@ __PACKAGE__->table("buffers");
   datetime_undef_if_invalid: 1
   default_value: current_timestamp
   is_nullable: 0
+  retrieve_on_insert: 1
 
 =head2 created
 
@@ -58,6 +59,7 @@ __PACKAGE__->table("buffers");
   datetime_undef_if_invalid: 1
   default_value: current_timestamp
   is_nullable: 0
+  retrieve_on_insert: 1
 
 =head2 version
 
@@ -90,9 +92,21 @@ __PACKAGE__->add_columns(
   "user_id",
   {data_type => "integer", is_foreign_key => 1, is_nullable => 0,},
   "updated",
-  {data_type => "timestamp", datetime_undef_if_invalid => 1, default_value => \"current_timestamp", is_nullable => 0,},
+  {
+    data_type                 => "timestamp",
+    datetime_undef_if_invalid => 1,
+    default_value             => \"current_timestamp",
+    is_nullable               => 0,
+    retrieve_on_insert        => 1
+  },
   "created",
-  {data_type => "timestamp", datetime_undef_if_invalid => 1, default_value => \"current_timestamp", is_nullable => 0,},
+  {
+    data_type                 => "timestamp",
+    datetime_undef_if_invalid => 1,
+    default_value             => \"current_timestamp",
+    is_nullable               => 0,
+    retrieve_on_insert        => 1
+  },
   "version",
   {data_type => "integer", default_value => 0, is_nullable => 0,},
   "model",
