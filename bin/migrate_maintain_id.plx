@@ -19,6 +19,7 @@ use HTML::Entities qw/decode_entities/;
 use Term::ProgressBar 2.00;
 
 use Mojo::JSON qw(decode_json encode_json);
+use JSON::Validator;
 use Data::Printer colored => 1;
 
 use Getopt::Long;
@@ -43,6 +44,12 @@ my $rebus2 = Rebus2::Schema->connect(
     { 'pg_enable_utf8' => 1, 'on_connect_do' => ["SET search_path TO list"] }
 );
 
+# Load Validator
+my $validator = JSON::Validator->new;
+$validator->schema(
+    '/home/rebus/rebus-list/specification/definitions/csl-rebus.json');
+
+# Begin Migration
 say "Beggining migration...";
 my $dt    = DateTime->now;
 my $start = DateTime->new(
@@ -683,6 +690,14 @@ sub addMaterial {
             $new_material->update(
                 { metadata => $metadata, owner_uuid => $id } );
 
+            # Validate metadata
+            my @errors = $validator->validate($metadata);
+            if (@errors) {
+                use Data::Dumper;
+                warn "Errors: " . Dumper(@errors) . "\n";
+                exit;
+            }
+
             return $new_material;
         }
     }
@@ -693,6 +708,15 @@ sub addMaterial {
 
     unless (@materialResults) {
         $metadata->{'id'} = [$owner_uuid];
+
+        # Validate metadata
+        my @errors = $validator->validate($metadata);
+        if (@errors) {
+            use Data::Dumper;
+            warn "Errors: " . Dumper(@errors) . "\n";
+            exit;
+        }
+
         my $new_material = $rebus2->resultset('Material')->create(
             {
                 in_stock   => Mojo::JSON->true,
@@ -814,9 +838,6 @@ sub mapCSL {
         $epage = $result->epage;
         $epage =~ s/pp\.//g;
         $epage =~ s/\D+//g;
-        unless ( looks_like_number($epage) ) {
-            print "\$epage: " . $result->epage . "\n";
-        }
     }
     my $spage;
     if (   defined( $result->spage )
@@ -826,9 +847,6 @@ sub mapCSL {
         $spage = $result->spage;
         $spage =~ s/pp\.//g;
         $spage =~ s/\D+//g;
-        unless ( looks_like_number($spage) ) {
-            print "\$spage: " . $result->spage . "\n";
-        }
     }
 
     my $secondary_title;
@@ -856,7 +874,8 @@ sub mapCSL {
         if ( defined($secondary_title) ) {
             $csl->{'collection-title'} = $result->secondary_title;
         }
-        $csl->{'number-of-pages'} = $spage if defined($spage);
+        $csl->{'number-of-pages'} = $spage
+          if ( defined($spage) && looks_like_number($spage) );
         if (   defined( $result->print_control_no )
             || defined( $result->elec_control_no ) )
         {
@@ -873,7 +892,10 @@ sub mapCSL {
         }
         $csl->{'page-first'} = $spage if defined($spage);
         $csl->{'number-of-pages'} = $epage - $spage
-          if ( defined($epage) && defined($spage) );
+          if ( defined($epage)
+            && looks_like_number($epage)
+            && defined($spage)
+            && looks_like_number($spage) );
         if (   defined( $result->print_control_no )
             || defined( $result->elec_control_no ) )
         {
@@ -901,7 +923,10 @@ sub mapCSL {
         }
         $csl->{'page-first'} = $spage if defined($spage);
         $csl->{'number-of-pages'} = $epage - $spage
-          if ( defined($epage) && defined($spage) );
+          if ( defined($epage)
+            && looks_like_number($epage)
+            && defined($spage)
+            && looks_like_number($spage) );
         if (   defined( $result->print_control_no )
             || defined( $result->elec_control_no ) )
         {
@@ -918,7 +943,10 @@ sub mapCSL {
         }
         $csl->{'page-first'} = $result->spage if defined($spage);
         $csl->{'number-of-pages'} = $epage - $spage
-          if defined($epage) && defined($spage);
+          if ( defined($epage)
+            && looks_like_number($epage)
+            && defined($spage)
+            && looks_like_number($spage) );
         if (   defined( $result->print_control_no )
             || defined( $result->elec_control_no ) )
         {
@@ -941,7 +969,10 @@ sub mapCSL {
         }
         $csl->{'page-first'} = $result->spage if defined($spage);
         $csl->{'number-of-pages'} = $epage - $spage
-          if defined($epage) && defined($spage);
+          if ( defined($epage)
+            && looks_like_number($epage)
+            && defined($spage)
+            && looks_like_number($spage) );
         if (   defined( $result->print_control_no )
             || defined( $result->elec_control_no ) )
         {
@@ -956,7 +987,8 @@ sub mapCSL {
         if ( defined($secondary_title) ) {
             $csl->{'container-title'} = $result->secondary_title;
         }
-        $csl->{'number-of-pages'} = $result->spage if defined($spage);
+        $csl->{'number-of-pages'} = $result->spage
+          if ( defined($spage) && looks_like_number($spage) );
         if (   defined( $result->print_control_no )
             || defined( $result->elec_control_no ) )
         {
@@ -977,7 +1009,8 @@ sub mapCSL {
         if ( defined($secondary_title) ) {
             $csl->{'collection-title'} = $result->secondary_title;
         }
-        $csl->{'number-of-pages'} = $spage if defined($spage);
+        $csl->{'number-of-pages'} = $spage
+          if ( defined($spage) && looks_like_number($spage) );
         if (   defined( $result->print_control_no )
             || defined( $result->elec_control_no ) )
         {
