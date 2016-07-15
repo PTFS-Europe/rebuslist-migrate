@@ -754,285 +754,319 @@ sub addTag {
 }
 
 sub mapCSL {
-    my $result = shift;
+    my $materialResult = shift;
     my $csl;
 
-    if (   defined( $result->title )
-        && $result->title ne ''
-        && !( $result->title =~ /^\s*$/ ) )
-    {
-        $csl->{'title'} = $result->title;
-    }
-    if (   defined( $result->authors )
-        && $result->authors ne ''
-        && !( $result->authors =~ /^\s*$/ )
-        || defined( $result->secondary_authors )
-        && $result->secondary_authors ne ''
-        && !( $result->secondary_authors =~ /^\s*$/ ) )
-    {
-
-        $csl->{'author'} = [];
-        if ( defined( $result->authors ) ) {
-            push @{ $csl->{'author'} }, { literal => $result->authors };
-        }
-        if ( defined( $result->secondary_authors ) ) {
-            push @{ $csl->{'author'} },
-              { literal => $result->secondary_authors };
-        }
-    }
-    if (   defined( $result->edition )
-        && $result->edition ne ''
-        && !( $result->edition =~ /^\s*$/ ) )
-    {
-        $csl->{'edition'} = $result->edition;
-    }
-    if (   defined( $result->volume )
-        && $result->volume ne ''
-        && !( $result->volume =~ /^\s*$/ ) )
-    {
-        $csl->{'volume'} = $result->volume;
-    }
-    if (   defined( $result->issue )
-        && $result->issue ne ''
-        && !( $result->issue =~ /^\s*$/ ) )
-    {
-        $csl->{'issue'} = $result->issue;
-    }
-    if (   defined( $result->publisher )
-        && $result->publisher ne ''
-        && !( $result->publisher =~ /^\s*$/ ) )
-    {
-        $csl->{'publisher'} = $result->publisher;
-    }
-    if (   defined( $result->publication_date )
-        && $result->publication_date ne ''
-        && !( $result->publication_date =~ /^\s*$/ ) )
-    {
-        #$csl->{'issued'} = { raw => $result->publication_date };
-        # Convert to ISO8601 Date
-    }
-    if (   defined( $result->publication_place )
-        && $result->publication_place ne ''
-        && !( $result->publication_place =~ /^\s*$/ ) )
-    {
-        $csl->{'publisher-place'} = $result->publication_place;
-    }
-    if (   defined( $result->note )
-        && $result->note ne ''
-        && !( $result->note =~ /^\s*$/ ) )
-    {
-        $csl->{'note'} = $result->note;
-    }
-    if (   defined( $result->url )
-        && $result->url ne ''
-        && !( $result->url =~ /^\s*$/ ) )
-    {
-        $csl->{'URL'} = $result->url;
+    my $material = { $materialResult->get_columns };
+    for my $field ( keys %{$material} ) {
+        delete $material->{$field}
+          unless ( defined( $material->{$field} )
+            && $material->{$field} ne ''
+            && $material->{$field} !~ /^\s*$/ );
     }
 
+    # Title
+    $csl->{title} = $material->{title} if exists( $material->{title} );
+
+    # Authors
+    $csl->{author} = [];
+    push @{ $csl->{author} }, { literal => $material->{authors} }
+      if exists( $material->{authors} );
+
+    # Edition
+    $csl->{edition} = $material->{edition} if exists( $material->{edition} );
+
+    # Volume
+    $csl->{volume} = $material->{volume} if exists( $material->{volume} );
+
+    # Issue
+    $csl->{issue} = $material->{issue} if exists( $material->{issue} );
+
+    # Publisher
+    $csl->{publisher} = $material->{publisher}
+      if exists( $material->{publisher} );
+
+    # Publication Date
+    $csl->{issued} = $material->{publication_date}
+      if exists( $material->{publication_date} );
+
+    # Publication Place
+    $csl->{'publisher-place'} = $material->{publication_place}
+      if exists( $material->{publication_place} );
+
+    # Public Note
+    $csl->{'note'} = $material->{note} if exists( $material->{note} );
+
+    # URL
+    $csl->{'URL'} = $material->{url} if exists( $material->{url} );
+
+    # Per Type Mappings
+
+    # Start Page
+    $material->{spage} =~ s/pp\.//g if exists( $material->{spage} );
+
+    # End Page
+    $material->{epage} =~ s/pp\.//g if exists( $material->{epage} );
+
+    # End Page
     my $epage;
-    if (   defined( $result->epage )
-        && $result->epage ne ''
-        && !( $result->epage =~ /^\s*$/ ) )
+    if (   defined( $materialResult->epage )
+        && $materialResult->epage ne ''
+        && !( $materialResult->epage =~ /^\s*$/ ) )
     {
-        $epage = $result->epage;
+        $epage = $materialResult->epage;
         $epage =~ s/pp\.//g;
         $epage =~ s/\D+//g;
     }
-    my $spage;
-    if (   defined( $result->spage )
-        && $result->spage ne ''
-        && !( $result->spage =~ /^\s*$/ ) )
-    {
-        $spage = $result->spage;
-        $spage =~ s/pp\.//g;
-        $spage =~ s/\D+//g;
-    }
 
+    # Secondary Title
     my $secondary_title;
-    if (   defined( $result->secondary_title )
-        && $result->secondary_title ne ''
-        && !( $result->secondary_title =~ /^\s*$/ ) )
+    if (   defined( $materialResult->secondary_title )
+        && $materialResult->secondary_title ne ''
+        && !( $materialResult->secondary_title =~ /^\s*$/ ) )
     {
-        $secondary_title = $result->secondary_title;
+        $secondary_title = $materialResult->secondary_title;
     }
 
     # Types:
-    # 1=Book,
-    # 2=Chapter,
-    # 3=Journal,
-    # 4=Article,
-    # 5=Scan,
-    # 7=Link,
-    # 9=Other,
-    # 10=eBook,
-    # 11=AV,
-    # 12=Note,
-    # 13=Private Note
-    if ( $result->material_type_id == 1 ) {
+    # 1=Book
+    if ( $materialResult->material_type_id == 1 ) {
+
+        # Type
         $csl->{'type'} = 'book';
-        if ( defined($secondary_title) ) {
-            $csl->{'collection-title'} = $result->secondary_title;
-        }
-        $csl->{'number-of-pages'} = $spage
-          if ( defined($spage) && looks_like_number($spage) );
-        if (   defined( $result->print_control_no )
-            || defined( $result->elec_control_no ) )
-        {
-            $csl->{'ISBN'} =
-              defined( $result->print_control_no )
-              ? $result->print_control_no
-              : $result->elec_control_no;
-        }
+
+        # Secondary Title
+        $csl->{'collection-title'} = $material->{secondary_title}
+          if exists( $material->{secondary_title} );
+
+        # Secondary Authors
+        $csl->{editor} = [];
+        push @{ $csl->{editor} }, { literal => $material->{secondary_authors} }
+          if exists( $material->{secondary_authors} );
+
+        # Start Page -> Number of Pages
+        $material->{spage} =~ s/\D+//g if exists( $material->{spage} );
+        $csl->{'number-of-pages'} = $material->{spage}
+          if exists( $material->{spage} );
+
+        # ISBN
+        $csl->{ISBN} = $material->{elec_control_no}
+          if exists( $material->{elec_control_no} );
+        $csl->{ISBN} = $material->{print_control_no}
+          if exists( $material->{print_control_no} );
     }
-    elsif ( $result->material_type_id == 2 ) {
+
+    # 2=Chapter
+    elsif ( $materialResult->material_type_id == 2 ) {
+
+        # Type
         $csl->{'type'} = 'chapter';
-        if ( defined($secondary_title) ) {
-            $csl->{'container-title'} = $result->secondary_title;
-        }
-        $csl->{'page-first'} = $spage if defined($spage);
-        $csl->{'number-of-pages'} = $epage - $spage
-          if ( defined($epage)
-            && looks_like_number($epage)
-            && defined($spage)
-            && looks_like_number($spage) );
-        if (   defined( $result->print_control_no )
-            || defined( $result->elec_control_no ) )
-        {
-            $csl->{'ISBN'} =
-              defined( $result->print_control_no )
-              ? $result->print_control_no
-              : $result->elec_control_no;
-        }
+
+        # Secondary Title
+        $csl->{'container-title'} = $material->{secondary_title}
+          if exists( $material->{secondary_title} );
+
+        # Start Page
+        $csl->{'page-first'} = $material->{spage}
+          if exists( $material->{spage} );
+
+        # End Page
+        $material->{epage} =~ s/\D+//g if exists( $material->{epage} );
+        $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
+          if ( exists( $material->{epage} ) && exists( $material->{spage} ) );
+
+        # ISBN
+        $csl->{ISBN} = $material->{elec_control_no}
+          if exists( $material->{elec_control_no} );
+        $csl->{ISBN} = $material->{print_control_no}
+          if exists( $material->{print_control_no} );
     }
-    elsif ( $result->material_type_id == 3 ) {
-        $csl->{'type'} = 'journal';    #CUSTOM
-        if (   defined( $result->print_control_no )
-            || defined( $result->elec_control_no ) )
-        {
-            $csl->{'ISSN'} =
-              defined( $result->print_control_no )
-              ? $result->print_control_no
-              : $result->elec_control_no;
-        }
+
+    # 3=Journal
+    elsif ( $materialResult->material_type_id == 3 ) {
+
+        # Type
+        $csl->{'type'} = 'journal';
+
+        # Secondary Authors
+        push @{ $csl->{author} }, { literal => $material->{secondary_authors} }
+          if exists( $material->{secondary_authors} );
+
+        # ISSN
+        $csl->{ISSN} = $material->{elec_control_no}
+          if exists( $material->{elec_control_no} );
+        $csl->{ISSN} = $material->{print_control_no}
+          if exists( $material->{print_control_no} );
     }
-    elsif ( $result->material_type_id == 4 ) {
+
+    # 4=Article
+    elsif ( $materialResult->material_type_id == 4 ) {
+
+        # Type
         $csl->{'type'} = 'article';
-        if ( defined($secondary_title) ) {
-            $csl->{'container-title'} = $result->secondary_title;
-        }
-        $csl->{'page-first'} = $spage if defined($spage);
-        $csl->{'number-of-pages'} = $epage - $spage
-          if ( defined($epage)
-            && looks_like_number($epage)
-            && defined($spage)
-            && looks_like_number($spage) );
-        if (   defined( $result->print_control_no )
-            || defined( $result->elec_control_no ) )
-        {
-            $csl->{'ISSN'} =
-              defined( $result->print_control_no )
-              ? $result->print_control_no
-              : $result->elec_control_no;
-        }
+
+        # Secondary Title
+        $csl->{'container-title'} = $material->{secondary_title}
+          if exists( $material->{secondary_title} );
+
+        # Start Page
+        $csl->{'page-first'} = $material->{spage}
+          if exists( $material->{spage} );
+
+        # End Page
+        $material->{epage} =~ s/\D+//g if exists( $material->{epage} );
+        $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
+          if ( exists( $material->{epage} ) && exists( $material->{spage} ) );
+
+        # ISSN
+        $csl->{ISSN} = $material->{elec_control_no}
+          if exists( $material->{elec_control_no} );
+        $csl->{ISSN} = $material->{print_control_no}
+          if exists( $material->{print_control_no} );
     }
-    elsif ( $result->material_type_id == 5 ) {
+
+    # 5=Scan
+    elsif ( $materialResult->material_type_id == 5 ) {
+
+        # Type
         $csl->{'type'} = 'entry';
-        if ( defined($secondary_title) ) {
-            $csl->{'container-title'} = $result->secondary_title;
-        }
-        $csl->{'page-first'} = $result->spage if defined($spage);
-        $csl->{'number-of-pages'} = $epage - $spage
-          if ( defined($epage)
-            && looks_like_number($epage)
-            && defined($spage)
-            && looks_like_number($spage) );
-        if (   defined( $result->print_control_no )
-            || defined( $result->elec_control_no ) )
-        {
-            $csl->{'ISBN'} =
-              defined( $result->print_control_no )
-              ? $result->print_control_no
-              : $result->elec_control_no;
-        }
+
+        # Secondary Title
+        $csl->{'container-title'} = $material->{secondary_title}
+          if exists( $material->{secondary_title} );
+
+        # Start Page
+        $csl->{'page-first'} = $material->{spage}
+          if exists( $material->{spage} );
+
+        # End Page
+        $material->{epage} =~ s/\D+//g if exists( $material->{epage} );
+        $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
+          if ( exists( $material->{epage} ) && exists( $material->{spage} ) );
+
+        # ISBN
+        $csl->{ISBN} = $material->{elec_control_no}
+          if exists( $material->{elec_control_no} );
+        $csl->{ISBN} = $material->{print_control_no}
+          if exists( $material->{print_control_no} );
     }
-    elsif ( $result->material_type_id == 7 ) {
+
+    # 7=Link
+    elsif ( $materialResult->material_type_id == 7 ) {
+
+        # Type
         $csl->{'type'} = 'webpage';
-        if ( defined($secondary_title) ) {
-            $csl->{'container-title'} = $result->secondary_title;
-        }
+
+        # Secondary Title
+        $csl->{'container-title'} = $material->{secondary_title}
+          if exists( $material->{secondary_title} );
+
+        # Secondary Authors
+        push @{ $csl->{author} }, { literal => $material->{secondary_authors} }
+          if exists( $material->{secondary_authors} );
     }
-    elsif ( $result->material_type_id == 9 ) {
+
+    # 9=Other
+    elsif ( $materialResult->material_type_id == 9 ) {
+
+        # Type
         $csl->{'type'} = 'entry';
-        if ( defined($secondary_title) ) {
-            $csl->{'container-title'} = $result->secondary_title;
-        }
-        $csl->{'page-first'} = $result->spage if defined($spage);
-        $csl->{'number-of-pages'} = $epage - $spage
-          if ( defined($epage)
-            && looks_like_number($epage)
-            && defined($spage)
-            && looks_like_number($spage) );
-        if (   defined( $result->print_control_no )
-            || defined( $result->elec_control_no ) )
-        {
-            $csl->{'ISBN'} =
-              defined( $result->print_control_no )
-              ? $result->print_control_no
-              : $result->elec_control_no;
-        }
+
+        # Secondary Title
+        $csl->{'container-title'} = $material->{secondary_title}
+          if exists( $material->{secondary_title} );
+
+        # Start Page
+        $csl->{'page-first'} = $material->{spage}
+          if exists( $material->{spage} );
+
+        # End Page
+        $material->{epage} =~ s/\D+//g if exists( $material->{epage} );
+        $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
+          if ( exists( $material->{epage} ) && exists( $material->{spage} ) );
+
+        # ISBN
+        $csl->{ISBN} = $material->{elec_control_no}
+          if exists( $material->{elec_control_no} );
+        $csl->{ISBN} = $material->{print_control_no}
+          if exists( $material->{print_control_no} );
     }
-    elsif ( $result->material_type_id == 10 ) {
+
+    # 10=eBook
+    elsif ( $materialResult->material_type_id == 10 ) {
+
+        # Type
         $csl->{'type'} = 'book';
-        if ( defined($secondary_title) ) {
-            $csl->{'container-title'} = $result->secondary_title;
-        }
-        $csl->{'number-of-pages'} = $result->spage
-          if ( defined($spage) && looks_like_number($spage) );
-        if (   defined( $result->print_control_no )
-            || defined( $result->elec_control_no ) )
-        {
-            $csl->{'ISBN'} =
-              defined( $result->print_control_no )
-              ? $result->print_control_no
-              : $result->elec_control_no;
-        }
+
+        # Secondary Title
+        $csl->{'collection-title'} = $material->{secondary_title}
+          if exists( $material->{secondary_title} );
+
+        # Secondary Authors
+        $csl->{editor} = [];
+        push @{ $csl->{editor} }, { literal => $material->{secondary_authors} }
+          if exists( $material->{secondary_authors} );
+
+        # Start Page -> Number of Pages
+        $material->{spage} =~ s/\D+//g if exists( $material->{spage} );
+        $csl->{'number-of-pages'} = $material->{spage}
+          if exists( $material->{spage} );
+
+        # ISBN
+        $csl->{ISBN} = $material->{elec_control_no}
+          if exists( $material->{elec_control_no} );
+        $csl->{ISBN} = $material->{print_control_no}
+          if exists( $material->{print_control_no} );
     }
-    elsif ( $result->material_type_id == 11 ) {
+
+    # 11=AV
+    elsif ( $materialResult->material_type_id == 11 ) {
+
+        # Type
         $csl->{'type'} = 'broadcast';
+
+        # Secondary Title
+        $csl->{'collection-title'} = $material->{secondary_title}
+          if exists( $material->{secondary_title} );
+
+        # Secondary Authors
+        $csl->{editor} = [];
+        push @{ $csl->{editor} }, { literal => $material->{secondary_authors} }
+          if exists( $material->{secondary_authors} );
         if ( defined($secondary_title) ) {
-            $csl->{'collection-title'} = $result->secondary_title;
+            $csl->{'collection-title'} = $materialResult->secondary_title;
         }
     }
+
+    # 12=Note
+    # 13=Private Note
+    # NONE
     else {
+        # Type
         $csl->{'type'} = 'book';
-        if ( defined($secondary_title) ) {
-            $csl->{'collection-title'} = $result->secondary_title;
-        }
-        $csl->{'number-of-pages'} = $spage
-          if ( defined($spage) && looks_like_number($spage) );
-        if (   defined( $result->print_control_no )
-            || defined( $result->elec_control_no ) )
-        {
-            $csl->{'ISBN'} =
-              defined( $result->print_control_no )
-              ? $result->print_control_no
-              : $result->elec_control_no;
-        }
+
+        # Secondary Title
+        $csl->{'collection-title'} = $material->{secondary_title}
+          if exists( $material->{secondary_title} );
+
+        # Secondary Authors
+        $csl->{editor} = [];
+        push @{ $csl->{editor} }, { literal => $material->{secondary_authors} }
+          if exists( $material->{secondary_authors} );
+
+        # Start Page -> Number of Pages
+        $material->{spage} =~ s/\D+//g if exists( $material->{spage} );
+        $csl->{'number-of-pages'} = $material->{spage}
+          if exists( $material->{spage} );
+
+        # ISBN
+        $csl->{ISBN} = $material->{elec_control_no}
+          if exists( $material->{elec_control_no} );
+        $csl->{ISBN} = $material->{print_control_no}
+          if exists( $material->{print_control_no} );
     }
 
     # 12=Note and 13=Private Note are handled prior to this
-
-    # Force strings to strings
-    my @strings = (
-        qw/chapter-number citation-number collection-number number-of-pages number-of-volumes page page-first/
-    );
-
-    for my $key (@strings) {
-        if ( exists( $csl->{$key} ) ) {
-            $csl->{$key} = $csl->{$key} . "";
-        }
-    }
 
     return $csl;
 }
@@ -1092,7 +1126,7 @@ sub arrayCSL {
             }
             else {
                 # We can't turn this value into a number, so drop it
-                $csl->{$num_prop} = undef;
+                delete $csl->{$num_prop};
             }
         }
     }
@@ -1120,10 +1154,6 @@ sub cleanCSL {
     my $yyyymmdd = qr{^(\\d{4})-(\\d{2})-(\\d{2})$};
     my $isodate  = qr{^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$};
 
-    # Language
-    my @langFields = qw/language/;
-    my $isolang    = qr{^[a-z]{2}-[A-Z]{2}$};
-
     # Iterate each property that we need to date-ify
     for my $date_prop (@dateFields) {
 
@@ -1148,6 +1178,10 @@ sub cleanCSL {
         }
     }
 
+    # Language
+    my @langFields = qw/language/;
+    my $isolang    = qr{^[a-z]{2}-[A-Z]{2}$};
+
     # Iterate each property we need to language-ify
     for my $lang_prop (@langFields) {
 
@@ -1162,6 +1196,27 @@ sub cleanCSL {
                     delete $csl->{$lang_prop}[$i];
                 }
             }
+        }
+    }
+
+    # Strings
+    my @strings = (
+        qw/chapter-number citation-number collection-number number-of-pages number-of-volumes page page-first/
+    );
+
+    # Force strings to strings
+    for my $key (@strings) {
+        if ( exists( $csl->{$key} ) ) {
+            $csl->{$key} = $csl->{$key} . "";
+        }
+    }
+
+    # Remove any empty/undefined fields
+    for my $key ( keys %{$csl} ) {
+        if ( ref $csl->{$key} eq 'ARRAY' && !@{ $csl->{$key} }
+            || !defined( $csl->{$key} ) )
+        {
+            delete $csl->{$key};
         }
     }
 
