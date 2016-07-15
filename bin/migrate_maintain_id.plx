@@ -484,6 +484,66 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                   addMaterial( $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
                     $csl, $owner, $owner_uuid, $eBook );
 
+                # Add analytic link (if chapter or article)
+                if ( $csl->{type} eq 'article' || $csl->{type} eq 'chapter' ) {
+                    $owner      = $config->{'connector'};
+                    $owner_uuid = undef;
+                    if (   defined( $rl1_material->print_sysno )
+                        && $rl1_material->print_sysno ne ''
+                        && !( $rl1_material->print_sysno =~ /^\s*$/ ) )
+                    {
+                        $owner_uuid = $rl1_material->print_sysno;
+                    }
+                    elsif (defined( $rl1_material->elec_sysno )
+                        && $rl1_material->elec_sysno ne ''
+                        && !( $rl1_material->elec_sysno =~ /^\s*$/ ) )
+                    {
+                        $owner_uuid = $rl1_material->elec_sysno;
+                    }
+                    if ( defined($owner_uuid) ) {
+                        my $containerResult =
+                          $rebus2->resultset('Material')
+                          ->search(
+                            { owner => $owner, owner_uuid => $owner_uuid },
+                            { rows => 1 } )->single;
+
+                        if ( defined($containerResult) ) {
+                            $rebus2->resultset('MaterialAnalytic')
+                              ->find_or_create(
+                                {
+                                    containter_id => $containerResult->id,
+                                    analytic_id   => $rl2_material->id
+                                }
+                              );
+                        }
+                        else {
+                            my $metadata = {
+                                id    => $owner_uuid,
+                                type  => 'unknown',
+                                title => 'Skelital Container Record'
+                            };
+                            $containerResult =
+                              $rebus2->resultset('Material')->create(
+                                {
+                                    in_stock   => Mojo::JSON->true,
+                                    metadata   => $metadata,
+                                    owner      => $owner,
+                                    owner_uuid => $owner_uuid,
+                                    electronic => Mojo::JSON->false;
+                                }
+                              );
+
+                            $rebus2->resultset('MaterialAnalytic')
+                              ->find_or_create(
+                                {
+                                    containter_id => $containerResult->id,
+                                    analytic_id   => $rl2_material->id
+                                }
+                              );
+                        }
+                    }
+                }
+
                 # Get rating
                 my $rl1_rating = $rebus1->resultset('MaterialRating')
                   ->find( { material_id => $rl1_sequence->material_id } );
@@ -732,10 +792,16 @@ sub addMaterial {
     }
 
     # Remote Material
-    my @materialResults = $rebus2->resultset('Material')
-      ->search( { owner => $owner, owner_uuid => $owner_uuid } );
+    my $materialResult =
+      $rebus2->resultset('Material')
+      ->find( { owner => $owner, owner_uuid => $owner_uuid }, { rows => 1 } )
+      ->single;
 
-    unless (@materialResults) {
+    if ( defined($materialResult) ) {
+        $materialResult->update( { metadata => $metadata } );
+        return $materialResult;
+    }
+    else {
         $metadata->{'id'} = [$owner_uuid];
 
         # Validate metadata
@@ -758,8 +824,6 @@ sub addMaterial {
 
         return $new_material;
     }
-
-    return $materialResults[0];
 }
 
 sub addTag {
