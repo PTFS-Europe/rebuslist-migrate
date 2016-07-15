@@ -884,7 +884,9 @@ sub mapCSL {
         delete $material->{epage}
           if ( exists( $material->{epage} ) && $material->{epage} eq '' );
         $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
-          if ( exists( $material->{epage} ) && exists( $material->{spage} ) );
+          if ( exists( $material->{epage} )
+            && exists( $material->{spage} )
+            && looks_like_number( $material->{spage} ) );
 
         # ISBN
         $csl->{ISBN} = $material->{elec_control_no}
@@ -929,7 +931,9 @@ sub mapCSL {
         delete $material->{epage}
           if ( exists( $material->{epage} ) && $material->{epage} eq '' );
         $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
-          if ( exists( $material->{epage} ) && exists( $material->{spage} ) );
+          if ( exists( $material->{epage} )
+            && exists( $material->{spage} )
+            && looks_like_number( $material->{spage} ) );
 
         # ISSN
         $csl->{ISSN} = $material->{elec_control_no}
@@ -957,7 +961,9 @@ sub mapCSL {
         delete $material->{epage}
           if ( exists( $material->{epage} ) && $material->{epage} eq '' );
         $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
-          if ( exists( $material->{epage} ) && exists( $material->{spage} ) );
+          if ( exists( $material->{epage} )
+            && exists( $material->{spage} )
+            && looks_like_number( $material->{spage} ) );
 
         # ISBN
         $csl->{ISBN} = $material->{elec_control_no}
@@ -1000,7 +1006,9 @@ sub mapCSL {
         delete $material->{epage}
           if ( exists( $material->{epage} ) && $material->{epage} eq '' );
         $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
-          if ( exists( $material->{epage} ) && exists( $material->{spage} ) );
+          if ( exists( $material->{epage} )
+            && exists( $material->{spage} )
+            && looks_like_number( $material->{spage} ) );
 
         # ISBN
         $csl->{ISBN} = $material->{elec_control_no}
