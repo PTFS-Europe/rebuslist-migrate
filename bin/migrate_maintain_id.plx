@@ -503,16 +503,15 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                     if ( defined($owner_uuid) ) {
                         my $containerResult =
                           $rebus2->resultset('Material')
-                          ->search(
-                            { owner => $owner, owner_uuid => $owner_uuid },
-                            { rows => 1 } )->single;
+                          ->find(
+                            { owner => $owner, owner_uuid => $owner_uuid } );
 
                         if ( defined($containerResult) ) {
                             $rebus2->resultset('MaterialAnalytic')
                               ->find_or_create(
                                 {
                                     container_id => $containerResult->id,
-                                    analytic_id   => $rl2_material->id
+                                    analytic_id  => $rl2_material->id
                                 }
                               );
                         }
@@ -537,7 +536,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                               ->find_or_create(
                                 {
                                     container_id => $containerResult->id,
-                                    analytic_id   => $rl2_material->id
+                                    analytic_id  => $rl2_material->id
                                 }
                               );
                         }
@@ -744,7 +743,7 @@ sub addMaterial {
                 my $isbn_json = { ISBN => $isbn };
                 my $json_isbn = encode_json $isbn_json;
                 my $found2 =
-                  $found->search( { metadata => { '@>' => $isbn } } );
+                  $found->search( { metadata => { '@>' => $json_isbn } } );
                 if ( $found2->count == 1 ) {
                     my $new_material = $found2->next;
                     return $new_material;
@@ -755,7 +754,7 @@ sub addMaterial {
                 my $issn_json = { ISSN => $issn };
                 my $json_issn = encode_json $issn_json;
                 my $found2 =
-                  $found->search( { metadata => { '@>' => $issn } } );
+                  $found->search( { metadata => { '@>' => $json_issn } } );
                 if ( $found2->count == 1 ) {
                     my $new_material = $found2->next;
                     return $new_material;
@@ -794,8 +793,7 @@ sub addMaterial {
     # Remote Material
     my $materialResult =
       $rebus2->resultset('Material')
-      ->find( { owner => $owner, owner_uuid => $owner_uuid }, { rows => 1 } )
-      ->single;
+      ->find( { owner => $owner, owner_uuid => $owner_uuid }, { rows => 1 } );
 
     if ( defined($materialResult) ) {
         $materialResult->update( { metadata => $metadata } );
