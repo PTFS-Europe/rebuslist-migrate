@@ -440,8 +440,22 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             # Handle Everything Else
             else {
 
+                # Map Material to CSL
+                my $csl = mapCSL($rl1_material);
+
+                # Array up CSL
+                $csl = arrayCSL($csl);
+
+                # Clean up CSL
+                $csl = cleanCSL($csl);
+
+                # Identify RL1 Local, Article and Chapter Type Materials
                 my ( $owner, $owner_uuid );
-                if (   defined( $rl1_material->print_sysno )
+                if ( $csl->{type} eq 'article' || $csl->{type} eq 'chapter' ) {
+                    $owner      = $config->{'code'};
+                    $owner_uuid = '1-';
+                }
+                elsif (defined( $rl1_material->print_sysno )
                     && $rl1_material->print_sysno ne ''
                     && !( $rl1_material->print_sysno =~ /^\s*$/ ) )
                 {
@@ -464,15 +478,6 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                   ( $rl1_material->material_type_id == 10 )
                   ? Mojo::JSON->true
                   : Mojo::JSON->false;
-
-                # Map Material to CSL
-                my $csl = mapCSL($rl1_material);
-
-                # Array up CSL
-                $csl = arrayCSL($csl);
-
-                # Clean up CSL
-                $csl = cleanCSL($csl);
 
                 # Add material
                 my $rl2_material =
@@ -664,7 +669,8 @@ sub addMaterial {
     # Local Material
     if ( $owner_uuid eq '1-' ) {
         my $title      = $metadata->{'title'};
-        my $title_json = { title => $title };
+        my $type       = $metadata->{'type'};
+        my $title_json = { title => $title, type => $type };
         my $json_title = encode_json $title_json;
         my $found      = $rebus2->resultset('Material')
           ->search( { metadata => { '@>' => $json_title } } );
@@ -672,34 +678,57 @@ sub addMaterial {
             my $new_material = $found->next;
             return $new_material;
         }
-        else {
-            $metadata->{'id'} = [$owner_uuid];
-            my $new_material = $rebus2->resultset('Material')->create(
-                {
-                    in_stock   => $in_stock,
-                    metadata   => $metadata,
-                    owner      => $owner,
-                    owner_uuid => undef,
-                    electronic => $eBook
+        elsif ( $found->count >= 1 ) {
+            my $isbn = $metadata->{ISBN} if exists( $metadata->{ISBN} );
+            if ($isbn) {
+                my $isbn_json = { ISBN => $isbn };
+                my $json_isbn = encode_json $isbn_json;
+                my $found2 =
+                  $found->search( { metadata => { '@>' => $isbn } } );
+                if ( $found2->count == 1 ) {
+                    my $new_material = $found2->next;
+                    return $new_material;
                 }
-            );
-
-            my $metadata = $new_material->metadata;
-            my $id       = '1-' . $new_material->id;
-            $metadata->{'id'} = [$id];
-            $new_material->update(
-                { metadata => $metadata, owner_uuid => $id } );
-
-            # Validate metadata
-            my @errors = $validator->validate($metadata);
-            if (@errors) {
-                use Data::Dumper;
-                warn "Errors: " . Dumper(@errors) . "\n";
-                exit;
             }
-
-            return $new_material;
+            my $issn = $metadata->{ISSN} if exists( $metadata->{ISSN} );
+            if ($isbn) {
+                my $issn_json = { ISSN => $issn };
+                my $json_issn = encode_json $issn_json;
+                my $found2 =
+                  $found->search( { metadata => { '@>' => $issn } } );
+                if ( $found2->count == 1 ) {
+                    my $new_material = $found2->next;
+                    return $new_material;
+                }
+            }
         }
+
+        # Not Found
+        $metadata->{'id'} = [$owner_uuid];
+        my $new_material = $rebus2->resultset('Material')->create(
+            {
+                in_stock   => $in_stock,
+                metadata   => $metadata,
+                owner      => $owner,
+                owner_uuid => undef,
+                electronic => $eBook
+            }
+        );
+
+        my $metadata = $new_material->metadata;
+        my $id       = '1-' . $new_material->id;
+        $metadata->{'id'} = [$id];
+        $new_material->update( { metadata => $metadata, owner_uuid => $id } );
+
+        # Validate metadata
+        my @errors = $validator->validate($metadata);
+        if (@errors) {
+            use Data::Dumper;
+            warn "Errors: " . Dumper(@errors) . "\n";
+            exit;
+        }
+
+        return $new_material;
     }
 
     # Remote Material
