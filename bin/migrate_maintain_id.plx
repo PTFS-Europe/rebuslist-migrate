@@ -511,7 +511,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                             $rebus2->resultset('MaterialAnalytic')
                               ->find_or_create(
                                 {
-                                    containter_id => $containerResult->id,
+                                    container_id => $containerResult->id,
                                     analytic_id   => $rl2_material->id
                                 }
                               );
@@ -529,14 +529,14 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                                     metadata   => $metadata,
                                     owner      => $owner,
                                     owner_uuid => $owner_uuid,
-                                    electronic => Mojo::JSON->false;
+                                    electronic => Mojo::JSON->false
                                 }
                               );
 
                             $rebus2->resultset('MaterialAnalytic')
                               ->find_or_create(
                                 {
-                                    containter_id => $containerResult->id,
+                                    container_id => $containerResult->id,
                                     analytic_id   => $rl2_material->id
                                 }
                               );
