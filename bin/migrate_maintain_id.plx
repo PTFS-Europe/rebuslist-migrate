@@ -1050,9 +1050,6 @@ sub mapCSL {
         $csl->{editor} = [];
         push @{ $csl->{editor} }, { literal => $material->{secondary_authors} }
           if exists( $material->{secondary_authors} );
-        if ( defined($secondary_title) ) {
-            $csl->{'collection-title'} = $materialResult->secondary_title;
-        }
     }
 
     # 12=Note
