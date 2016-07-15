@@ -1230,13 +1230,36 @@ sub cleanCSL {
 
     # Strings
     my @strings = (
-        qw/chapter-number citation-number collection-number number-of-pages number-of-volumes page page-first/
+        qw/chapter-number citation-number collection-number number-of-volumes page page-first/
     );
 
     # Force strings to strings
     for my $key (@strings) {
         if ( exists( $csl->{$key} ) ) {
             $csl->{$key} = $csl->{$key} . "";
+        }
+    }
+
+    # Numbers
+    my @to_number = ("number-of-pages");
+
+    # Force numbers to numbers
+    for my $num_prop (@to_number) {
+
+        # If it's defined
+        if ( defined( $csl->{$num_prop} ) ) {
+            chomp $csl->{$num_prop};
+
+            # If it looks like a number
+            if ( Scalar::Util::looks_like_number( $csl->{$num_prop} ) ) {
+
+                # Force it to a number
+                $csl->{$num_prop} = $csl->{$num_prop} + 0;
+            }
+            else {
+                # We can't turn this value into a number, so drop it
+                delete $csl->{$num_prop};
+            }
         }
     }
 
