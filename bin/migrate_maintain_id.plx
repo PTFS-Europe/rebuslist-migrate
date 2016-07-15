@@ -691,7 +691,7 @@ sub addMaterial {
                 }
             }
             my $issn = $metadata->{ISSN} if exists( $metadata->{ISSN} );
-            if ($isbn) {
+            if ($issn) {
                 my $issn_json = { ISSN => $issn };
                 my $json_issn = encode_json $issn_json;
                 my $found2 =
