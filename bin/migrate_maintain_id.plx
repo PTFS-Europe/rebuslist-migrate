@@ -837,26 +837,6 @@ sub mapCSL {
     # End Page
     $material->{epage} =~ s/pp\.//g if exists( $material->{epage} );
 
-    # End Page
-    my $epage;
-    if (   defined( $materialResult->epage )
-        && $materialResult->epage ne ''
-        && !( $materialResult->epage =~ /^\s*$/ ) )
-    {
-        $epage = $materialResult->epage;
-        $epage =~ s/pp\.//g;
-        $epage =~ s/\D+//g;
-    }
-
-    # Secondary Title
-    my $secondary_title;
-    if (   defined( $materialResult->secondary_title )
-        && $materialResult->secondary_title ne ''
-        && !( $materialResult->secondary_title =~ /^\s*$/ ) )
-    {
-        $secondary_title = $materialResult->secondary_title;
-    }
-
     # Types:
     # 1=Book
     if ( $materialResult->material_type_id == 1 ) {
@@ -901,6 +881,8 @@ sub mapCSL {
 
         # End Page
         $material->{epage} =~ s/\D+//g if exists( $material->{epage} );
+        delete $material->{epage}
+          if ( exists( $material->{epage} ) && $material->{epage} eq '' );
         $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
           if ( exists( $material->{epage} ) && exists( $material->{spage} ) );
 
@@ -944,6 +926,8 @@ sub mapCSL {
 
         # End Page
         $material->{epage} =~ s/\D+//g if exists( $material->{epage} );
+        delete $material->{epage}
+          if ( exists( $material->{epage} ) && $material->{epage} eq '' );
         $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
           if ( exists( $material->{epage} ) && exists( $material->{spage} ) );
 
@@ -970,6 +954,8 @@ sub mapCSL {
 
         # End Page
         $material->{epage} =~ s/\D+//g if exists( $material->{epage} );
+        delete $material->{epage}
+          if ( exists( $material->{epage} ) && $material->{epage} eq '' );
         $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
           if ( exists( $material->{epage} ) && exists( $material->{spage} ) );
 
@@ -1011,6 +997,8 @@ sub mapCSL {
 
         # End Page
         $material->{epage} =~ s/\D+//g if exists( $material->{epage} );
+        delete $material->{epage}
+          if ( exists( $material->{epage} ) && $material->{epage} eq '' );
         $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
           if ( exists( $material->{epage} ) && exists( $material->{spage} ) );
 
