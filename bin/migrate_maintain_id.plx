@@ -517,7 +517,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                         }
                         else {
                             my $metadata = {
-                                id    => $owner_uuid,
+                                id    => [$owner_uuid],
                                 type  => 'unknown',
                                 title => 'Skelital Container Record'
                             };
@@ -796,6 +796,7 @@ sub addMaterial {
       ->find( { owner => $owner, owner_uuid => $owner_uuid }, { rows => 1 } );
 
     if ( defined($materialResult) ) {
+        $metadata->{'id'} = [$owner_uuid];
         $materialResult->update( { metadata => $metadata } );
         return $materialResult;
     }
