@@ -51,9 +51,9 @@ $validator->schema(
 
 # Begin Migration
 say "Beggining migration...";
-my $dt    = DateTime->now;
+my $dt    = DateTime->now(time_zone = 'local');
 my $start = DateTime->new(
-    year   => 2016,
+    year   => 2014,
     month  => 9,
     day    => 1,
     hour   => 1,
@@ -61,7 +61,7 @@ my $start = DateTime->new(
     second => 1
 );
 my $end = DateTime->new(
-    year   => 2016,
+    year   => 2017,
     month  => 8,
     day    => 31,
     hour   => 23,
