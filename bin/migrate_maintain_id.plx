@@ -493,12 +493,14 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                         && !( $rl1_material->print_sysno =~ /^\s*$/ ) )
                     {
                         $owner_uuid = $rl1_material->print_sysno;
+                        $owner_uuid =~ s/^/,/g;
                     }
                     elsif (defined( $rl1_material->elec_sysno )
                         && $rl1_material->elec_sysno ne ''
                         && !( $rl1_material->elec_sysno =~ /^\s*$/ ) )
                     {
                         $owner_uuid = $rl1_material->elec_sysno;
+                        $owner_uuid =~ s/^/,/g;
                     }
                     if ( defined($owner_uuid) ) {
                         my $containerResult =
@@ -791,6 +793,7 @@ sub addMaterial {
     }
 
     # Remote Material
+    $owner_uuid =~ s/^/,/g;
     my $materialResult =
       $rebus2->resultset('Material')
       ->find( { owner => $owner, owner_uuid => $owner_uuid }, { rows => 1 } );
