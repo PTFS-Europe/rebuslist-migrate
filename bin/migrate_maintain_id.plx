@@ -51,7 +51,7 @@ $validator->schema(
 
 # Begin Migration
 say "Beggining migration...";
-my $dt    = DateTime->now(time_zone = 'local');
+my $dt = DateTime->now( time_zone = 'local' );
 my $start = DateTime->new(
     year   => 2014,
     month  => 9,
@@ -110,7 +110,8 @@ for my $rl1_list ( $rl1_listResults->all ) {
             validity_end =>
               $end->set_year( $rl1_list->year )->add( years => 1 ),
             inherited_validity_end =>
-              $end->set_year( $rl1_list->year )->add( years => 1 )
+              $end->set_year( $rl1_list->year )->add( years => 1 ),
+            type => 'list'
         },
         { key => 'primary' }
     );
@@ -181,7 +182,8 @@ sub recurse {
                         validity_start           => $start,
                         inherited_validity_start => $start,
                         validity_end             => $end,
-                        inherited_validity_end   => $end
+                        inherited_validity_end   => $end,
+                        type                     => 'unit'
                     }
                 );
 
@@ -215,8 +217,8 @@ sub recurse {
                         validity_start           => $start,
                         inherited_validity_start => $start,
                         validity_end             => $end,
-                        inherited_validity_end   => $end
-
+                        inherited_validity_end   => $end,
+                        type                     => 'unit'
                     }
                 );
 
