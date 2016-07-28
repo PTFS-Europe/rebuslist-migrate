@@ -115,7 +115,7 @@ for my $rl1_list ( $rl1_listResults->all ) {
               $end->set_year( $rl1_list->year )->add( years => 1 ),
             inherited_validity_end =>
               $end->set_year( $rl1_list->year )->add( years => 1 ),
-            type => 'list'
+            #type => 'list'
         },
         { key => 'primary' }
     );
@@ -187,7 +187,7 @@ sub recurse {
                         inherited_validity_start => $start,
                         validity_end             => $end,
                         inherited_validity_end   => $end,
-                        type                     => 'unit'
+                        #type                     => 'unit'
                     }
                 );
 
@@ -222,7 +222,7 @@ sub recurse {
                         inherited_validity_start => $start,
                         validity_end             => $end,
                         inherited_validity_end   => $end,
-                        type                     => 'unit'
+                        #type                     => 'unit'
                     }
                 );
 
