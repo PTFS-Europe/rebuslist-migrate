@@ -652,10 +652,20 @@ for my $rl1_uoup (@rl1_user_org_unit_permissionResults) {
             {
                 list_id => $unit_links->{ $rl1_uoup->org_unit_id },
                 user_id => $user_links->{ $rl1_uoup->user_id },
-                role_id => $rl2_editorID
+                role_id => $rl2_editorID,
+                inherited_from => $unit_links->{ $rl1_uoup->org_unit_id }
             },
             { key => 'primary' }
         );
+
+        my $listResult = $rebus2->resultset('List')->find($unit_links->{ $rl1_uoup->org_unit_id });
+        for my $descendantResult ( $listResult->descendants->all ) {
+            $descendantResult->find_or_create_related('list_user_roles', { 
+                user_id => $user_links->{ $rl1_uoup->user_id },
+                role_id => $rl2_editorID,
+                inherited_from => $unit_links->{ $rl1_uoup->org_unit_id }
+            });
+        }
     }
 }
 
@@ -676,10 +686,21 @@ for my $rl1_ulp (@rl1_user_list_permissionResults) {
             {
                 list_id => $list_links->{ $rl1_ulp->list_id },
                 user_id => $user_links->{ $rl1_ulp->user_id },
-                role_id => $rl2_editorID
+                role_id => $rl2_editorID,
+                inherited_from => $list_links->{ $rl1_ulp->list_id }
             },
             { key => 'primary' }
         );
+        
+        my $listResult = $rebus2->resultset('List')->find($list_links->{ $rl1_ulp->list_id });
+        for my $descendantResult ( $listResult->descendants->all ) {
+            $descendantResult->find_or_create_related('list_user_roles', { 
+                user_id => $user_links->{ $rl1_uoup->user_id },
+                role_id => $rl2_editorID,
+                inherited_from => $list_links->{ $rl1_ulp->list_id }
+            });
+        }
+
     }
 }
 
