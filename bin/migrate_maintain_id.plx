@@ -631,7 +631,7 @@ $next_update  = 0;
 $current_line = 0;
 
 my $rl2_editorID =
-  $rebus2->resultset('ListRole')->search( { name => 'editor' }, { rows => 1 } )
+  $rebus2->resultset('ListRole')->search( { name => 'librarian' }, { rows => 1 } )
   ->single->get_column('id');
 
 my @rl1_user_org_unit_permissionResults =
