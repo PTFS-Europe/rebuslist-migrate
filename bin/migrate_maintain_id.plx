@@ -250,7 +250,8 @@ for my $rl1_user (@rl1_userResults) {
       login       => $login,
       password    => $rl1_user->password,
       email       => $email,
-      active      => 1
+      active      => 1,
+      remote => 0
     }
   );
 
