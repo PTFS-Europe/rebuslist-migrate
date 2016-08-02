@@ -46,7 +46,7 @@ $validator->schema('/home/rebus/rebus-list/specification/definitions/csl-rebus.j
 
 # Begin Migration
 say "Beggining migration...";
-my $dt = DateTime->now(time_zone = 'local');
+my $dt = DateTime->now(time_zone => 'local');
 my $start = DateTime->new(year => 2014, month => 9, day => 1,  hour => 1,  minute => 1,  second => 1);
 my $end   = DateTime->new(year => 2017, month => 8, day => 31, hour => 23, minute => 59, second => 59);
 
