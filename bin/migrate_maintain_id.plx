@@ -567,7 +567,7 @@ for my $rl1_ulp (@rl1_user_list_permissionResults) {
       $descendantResult->find_or_create_related(
         'list_user_roles',
         {
-          user_id        => $user_links->{$rl1_uoup->user_id},
+          user_id        => $user_links->{$rl1_ulp->user_id},
           role_id        => $rl2_editorID,
           inherited_from => $list_links->{$rl1_ulp->list_id}
         }
