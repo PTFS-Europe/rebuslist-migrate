@@ -49,7 +49,7 @@ __PACKAGE__->table("lists");
 
 =head2 type
 
-  data_type: 'integer'
+  data_type: 'enum'
   is_nullable: 0
 
 =head2 root_id
@@ -203,7 +203,7 @@ __PACKAGE__->add_columns(
   "id",
   {data_type => "integer", is_auto_increment => 1, is_nullable => 0},
   "type",
-  {data_type => "integer", is_nullable => 1},
+  {data_type => "enum", is_nullable => 0, extra => {custom_type_name => 'list_type', list => [qw/unit list sublist/]}},
   "root_id",
   {data_type => "integer", is_nullable => 1},
   "lft",
@@ -355,7 +355,7 @@ Related object: L<Rebus2::Schema::Result::ListMaterial>
 
 __PACKAGE__->has_many(
   "list_materials", "Rebus2::Schema::Result::ListMaterial",
-  {"foreign.list_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
+  {"foreign.list_id" => "self.id"}, {cascade_copy => 1, cascade_delete => 0},
 );
 
 =head2 list_user_roles
@@ -384,6 +384,49 @@ __PACKAGE__->has_many(
   {"foreign.inherited_from" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
+=head2 list_user_roles_assigned
+
+Type: might_have
+
+Related object: L<Rebus2::Schema::Result::ListUserRole>
+
+=cut
+
+__PACKAGE__->has_many(
+  "list_user_roles_assigned",
+  "Rebus2::Schema::Result::ListUserRole",
+  {"foreign.list_id" => "self.id", "foreign.inherited_from" => "self.id"},
+  {cascade_copy      => 1,         cascade_delete           => 0},
+);
+
+=head2 list_user_roles_inherited
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::ListUserRole>
+
+=cut
+
+__PACKAGE__->has_many(
+  "list_user_roles_inherited",
+  "Rebus2::Schema::Result::ListUserRole",
+  sub {
+    my $args = shift;
+    return (
+      {
+        "$args->{'foreign_alias'}.list_id"        => {'-ident' => "$args->{'self_alias'}.id"},
+        "$args->{'foreign_alias'}.inherited_from" => {'!='     => {'-ident' => "$args->{'self_alias'}.id"}}
+      },
+      !$args->{self_result_object}
+      ? ()
+      : {
+        "$args->{foreign_alias}.list_id"        => $args->{self_result_object}->id,
+        "$args->{foreign_alias}.inherited_from" => {'!=', $args->{'self_result_object'}->id}
+      }
+    );
+  },
+  {cascade_copy => 0, cascade_delete => 0},
+);
 
 =head2 material_tags
 
@@ -395,7 +438,7 @@ Related object: L<Rebus2::Schema::Result::MaterialTag>
 
 __PACKAGE__->has_many(
   "material_tags", "Rebus2::Schema::Result::MaterialTag",
-  {"foreign.list_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
+  {"foreign.list_id" => "self.id"}, {cascade_copy => 1, cascade_delete => 0},
 );
 
 =head2 source
@@ -523,7 +566,7 @@ sub assign {
   my ($userID, $roleID) = @_;
 
   my $guard = $self->result_source->schema->txn_scope_guard;
-  $self->create_related('list_user_roles', {user_id => $userID, role_id => $roleID, inherited_from => 0});
+  $self->create_related('list_user_roles', {user_id => $userID, role_id => $roleID, inherited_from => $self->id});
   my @descendants = $self->descendants->search(undef, {columns => [qw(id)]})->all;
   for my $descendant (@descendants) {
     $descendant->find_or_create_related('list_user_roles',
@@ -546,7 +589,7 @@ sub divest {
   my ($userID, $roleID) = @_;
 
   my $guard = $self->result_source->schema->txn_scope_guard;
-  $self->delete_related('list_user_roles', {user_id => $userID, role_id => $roleID, inherited_from => 0});
+  $self->delete_related('list_user_roles', {user_id => $userID, role_id => $roleID, inherited_from => $self->id});
   my @descendants = $self->descendants->search(undef, {columns => [qw(id)]})->all;
   for my $descendant (@descendants) {
     $descendant->delete_related('list_user_roles',
@@ -555,6 +598,54 @@ sub divest {
   $guard->commit;
 
   return $self;
+}
+
+=head2 clone_branch
+
+Given a list node, clone it and all it's sublist nodes and fix role inheritance on the newly created branch.
+
+=cut
+
+sub clone_branch {
+  my $self = shift;
+
+  my $guard       = $self->result_source->schema->txn_scope_guard;
+  my $changes     = {created => DateTime->now(time_zone => 'local'), wip => 0, moderating => 0};
+  my $cloneResult = $self->take_clone($changes);
+  my $code        = $self->result_source->schema->resultset('Source')->find(1)->get_column('name');
+
+  # Fix role inheritance and source_uuid
+  my @nodeResults = $cloneResult->descendants->all;
+  unshift @nodeResults, $cloneResult;
+
+  for my $nodeResult (@nodeResults) {
+
+    # Fix source_uuid
+    if ($nodeResult->source_id == 1) {
+      $nodeResult->update({'source_uuid' => $code . "-" . $nodeResult->id});
+    }
+
+    # Fix role inheritance
+    my @list_user_roles = $nodeResult->list_user_roles_assigned->all;
+    for my $list_user_role (@list_user_roles) {
+      my @descendants = $nodeResult->descendants->all;
+      for my $descendant (@descendants) {
+        $descendant->create_related(
+          'list_user_roles',
+          {
+            user_id        => $list_user_role->user_id,
+            role_id        => $list_user_role->role_id,
+            inherited_from => $nodeResult->id
+          }
+        );
+      }
+    }
+  }
+
+  $guard->commit;
+
+  $cloneResult->discard_changes;
+  return $cloneResult;
 }
 
 1;

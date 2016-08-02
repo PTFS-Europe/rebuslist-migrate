@@ -39,6 +39,11 @@ __PACKAGE__->table("sources");
   is_auto_increment: 1
   is_nullable: 0
 
+=head2 code
+
+  data_type: 'text'
+  is_nullable: 0
+
 =head2 name
 
   data_type: 'text'
@@ -48,6 +53,7 @@ __PACKAGE__->table("sources");
 
 __PACKAGE__->add_columns(
   "id", {data_type => "integer", is_auto_increment => 1, is_nullable => 0,},
+  "code", {data_type => "text", is_nullable => 0},
   "name", {data_type => "text", is_nullable => 0},
 );
 
@@ -62,6 +68,18 @@ __PACKAGE__->add_columns(
 =cut
 
 __PACKAGE__->set_primary_key("id");
+
+=head1 UNIQUE CONSTRAINTS
+
+=over 4
+
+=item * L</code>
+
+=back
+
+=cut
+
+__PACKAGE__->add_unique_constraint("code", ["code"]);
 
 =head1 RELATIONS
 

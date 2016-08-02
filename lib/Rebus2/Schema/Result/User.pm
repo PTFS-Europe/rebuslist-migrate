@@ -57,6 +57,11 @@ __PACKAGE__->table("users");
   data_type: 'text'
   is_nullable: 1
 
+=head2 remote
+
+  data_type: 'tinyint'
+  is_nullable: 0
+
 =head2 password
 
   data_type: 'text'
@@ -93,6 +98,8 @@ __PACKAGE__->add_columns(
   {data_type => "integer", is_foreign_key => 1, is_nullable => 1,},
   "login",
   {data_type => "text", is_nullable => 1},
+  "remote",
+  {data_type => "tinyint", is_nullable => 0, default_value => 0},
   "password",
   {
     data_type               => "text",
@@ -231,6 +238,20 @@ Action: Boolean filter
 
 __PACKAGE__->filter_column(
   active => {
+    filter_to_storage => sub { $_[1] ? 1 : 0 },
+    filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
+  }
+);
+
+=head2 remote
+
+Type: filter_column
+Action: Boolean filter
+
+=cut
+
+__PACKAGE__->filter_column(
+  remote => {
     filter_to_storage => sub { $_[1] ? 1 : 0 },
     filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
   }

@@ -74,6 +74,39 @@ __PACKAGE__->table("materials");
   is_nullable: 0
   default_value: 0
 
+=head2 web_link
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 lms_link
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 status_link
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 fulltext_link
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 id_map
+
+  data_type: 'jsonb'
+  is_nullable: 1
+
+=head2 created
+
+  data_type: 'timestamp'
+  datetime_undef_if_invalid: 1
+  default_value: current_timestamp
+  is_nullable: 0
+  retrieve_on_insert: 1
+
 =head2 updated
 
   data_type: 'timestamp'
@@ -99,6 +132,24 @@ __PACKAGE__->add_columns(
   {data_type => "tinyint", is_nullable => 0, default_value => 0},
   "frbr_id",
   {data_type => "text", is_nullable => 1},
+  "web_link",
+  {data_type => "text", is_nullable => 1},
+  "lms_link",
+  {data_type => "text", is_nullable => 1},
+  "status_link",
+  {data_type => "text", is_nullable => 1},
+  "fulltext_link",
+  {data_type => "text", is_nullable => 1},
+  "id_map",
+  {data_type => "jsonb", is_nullable => 1, serializer_class => "JSON", serializer_options => {utf8 => 1}},
+  "created",
+  {
+    data_type                 => "timestamp",
+    datetime_undef_if_invalid => 1,
+    default_value             => \"current_timestamp",
+    is_nullable               => 0,
+    retrieve_on_insert        => 1
+  },
   "updated",
   {
     data_type                 => "timestamp",
@@ -297,6 +348,12 @@ sub as_hash {
     frbr_id    => $self->frbr_id,
     electronic => $self->electronic
   };
+
+  $material->{web_link}      = $self->web_link      if defined($self->web_link);
+  $material->{lms_link}      = $self->lms_link      if defined($self->lms_link);
+  $material->{status_link}   = $self->status_link   if defined($self->status_link);
+  $material->{fulltext_link} = $self->fulltext_link if defined($self->fulltext_link);
+  $material->{id_map}        = $self->id_map        if defined($self->id_map);
 
   return $material;
 }
