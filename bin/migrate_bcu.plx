@@ -51,22 +51,24 @@ $validator->schema(
 
 # Begin Migration
 say "Beggining migration...";
-my $dt = DateTime->now( time_zone = 'local' );
+my $dt = DateTime->now( time_zone => 'local' );
 my $start = DateTime->new(
-    year   => 2014,
-    month  => 9,
-    day    => 1,
-    hour   => 1,
-    minute => 1,
-    second => 1
+    year      => 2014,
+    month     => 9,
+    day       => 1,
+    hour      => 1,
+    minute    => 1,
+    second    => 1,
+    time_zone => 'local'
 );
 my $end = DateTime->new(
-    year   => 2017,
-    month  => 8,
-    day    => 31,
-    hour   => 23,
-    minute => 59,
-    second => 59
+    year      => 2017,
+    month     => 8,
+    day       => 31,
+    hour      => 23,
+    minute    => 59,
+    second    => 59,
+    time_zone => 'local'
 );
 
 # Find next root
@@ -229,6 +231,26 @@ $rebus2->storage->dbh_do(
             "SELECT SETVAL('lists_id_seq', COALESCE(MAX(id), 1) ) FROM lists;");
     }
 );
+
+print "Importing units...\n";
+my $unit_links;
+my @rl1_unitResults =
+  $rebus1->resultset('OrgUnit')->search( { name => { 'LIKE' => '% - %' } },
+    { order_by => { '-asc' => [qw/parent org_unit_id/] } } )->all;
+
+for my $rl1_unitResult (@rl1_unitResults) {
+    my $code =
+      substr( $rl1_unitResult->name, 0, index( $rl1_unitResult->name, ' ' ) );
+
+    my $rl2_list =
+      $rebus2->resultset('List')->search( { course_identifier => $code } );
+    if ( $rl2_list->count == 1 ) {
+        $unit_links->{ $rl1_unitResult->org_unit_id } = $rl2_list->id;
+    }
+    else {
+        next;
+    }
+}
 
 # User, UserType
 $total = $rebus1->resultset('User')->count;
