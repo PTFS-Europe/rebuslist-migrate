@@ -245,7 +245,7 @@ for my $rl1_unitResult (@rl1_unitResults) {
     my $rl2_list =
       $rebus2->resultset('List')->search( { course_identifier => $code } );
     if ( $rl2_list->count == 1 ) {
-        $unit_links->{ $rl1_unitResult->org_unit_id } = $rl2_list->id;
+        $unit_links->{ $rl1_unitResult->org_unit_id } = $rl2_list->first->id;
     }
     else {
         next;
