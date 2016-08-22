@@ -543,6 +543,9 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                     }
                 }
 
+                # Get list note
+                my $rl1_note = $rl1_material->note;
+
                 # Get rating
                 my $rl1_rating = $rebus1->resultset('MaterialRating')
                   ->find( { material_id => $rl1_sequence->material_id } );
@@ -559,6 +562,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                         ? $rl1_rating->not_likes
                         : 0,
                         likes => defined($rl1_rating) ? $rl1_rating->likes : 0,
+                        note => $rl1_note,
                         category_id => $erbo_links->{ $rl1_material->erbo_id },
                         source_id   => 1,
                         source_uuid => $config->{'code'} . '-'
