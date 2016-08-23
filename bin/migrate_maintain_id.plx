@@ -91,11 +91,13 @@ for my $rl1_list ( $rl1_listResults->all ) {
       if $current_line > $next_update;
 
     # Add child list
+    my $list_name = decode_entities( $rl1_list->list_name );
+    $list_name = 'BLANK' if $list_name eq '';
     my $rl2_list = $rebus2->resultset('List')->find_or_create(
         {
             id             => $rl1_list->list_id,
             root_id        => $rl1_list->list_id,
-            name           => decode_entities( $rl1_list->list_name ),
+            name           => $list_name,
             no_students    => $rl1_list->no_students,
             ratio_books    => $rl1_list->ratio_books,
             ratio_students => $rl1_list->ratio_students,
