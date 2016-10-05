@@ -146,23 +146,25 @@ for my $rl1_list ( $rl1_listResults->all ) {
 
     # Search for existing list
     my $rl2_list;
+    my $course_identifier =
+      uc( decode_entities( $rl1_list->course_identifier ) );
+    $course_identifier =~ s/^\s+|\s+$//g;
     my $rl2listResults = $rebus2->resultset('List')->search(
         {
-            course_identifier => decode_entities( $rl1_list->course_identifier )
+            course_identifier => $course_identifier
         }
     );
     if ( $rl2listResults->count == 0 ) {
         $rl2_list = $unmappedResult->create_rightmost_child(
             {
-                name           => decode_entities( $rl1_list->list_name ),
-                no_students    => $rl1_list->no_students,
-                ratio_books    => $rl1_list->ratio_books,
-                ratio_students => $rl1_list->ratio_students,
-                updated        => $dt,
-                created        => $dt,
-                source_id      => 1,
-                course_identifier =>
-                  decode_entities( $rl1_list->course_identifier ),
+                name                => decode_entities( $rl1_list->list_name ),
+                no_students         => $rl1_list->no_students,
+                ratio_books         => $rl1_list->ratio_books,
+                ratio_students      => $rl1_list->ratio_students,
+                updated             => $dt,
+                created             => $dt,
+                source_id           => 1,
+                course_identifier   => $course_identifier,
                 year                => $rl1_list->year,
                 published           => $rl1_list->published_yn eq 'y' ? 1 : 0,
                 inherited_published => $rl1_list->published_yn eq 'y' ? 1 : 0,
@@ -176,16 +178,14 @@ for my $rl1_list ( $rl1_listResults->all ) {
             }
         );
         $unmappedResult->discard_changes;
-        $courses{ decode_entities( $rl1_list->course_identifier ) } = 1;
+        $courses{$course_identifier} = 1;
     }
     elsif ( $rl2listResults->count == 1 ) {
-        if (
-            exists $courses{ decode_entities( $rl1_list->course_identifier ) } )
-        {
+        if ( exists $courses{$course_identifier} ) {
             $rl2_list = $dupesResult->create_rightmost_child(
                 {
                     name => "["
-                      . decode_entities( $rl1_list->course_identifier ) . "] "
+                      . $course_identifier . "] "
                       . decode_entities( $rl1_list->list_name ),
                     no_students       => $rl1_list->no_students,
                     ratio_books       => $rl1_list->ratio_books,
@@ -214,7 +214,7 @@ for my $rl1_list ( $rl1_listResults->all ) {
         else {
             $rl2_list = $rl2listResults->first;
         }
-        $courses{ decode_entities( $rl1_list->course_identifier ) } = 1;
+        $courses{$course_identifier} = 1;
     }
 
     $rl2_list->update(
@@ -282,7 +282,7 @@ for my $rl1_user (@rl1_userResults) {
       ? lc( $rl1_user->email_address )
       : 'not@myemail.com';
     my $login =
-      defined( $rl1_user->login ) ? $rl1_user->login : 'login' . $current_line;
+      defined( $rl1_user->login ) ? lc($rl1_user->login) : 'login' . $current_line;
 
     # Add user
     my $system_role =
