@@ -892,6 +892,7 @@ sub mapCSL {
 
     my $material = { $materialResult->get_columns };
     for my $field ( keys %{$material} ) {
+        decode_entities( $material->{$field} ) delete $material->{$field}
         delete $material->{$field}
           unless ( defined( $material->{$field} )
             && $material->{$field} ne ''
@@ -1022,6 +1023,15 @@ sub mapCSL {
         # Type
         $csl->{'type'} = 'article';
 
+        # Authors
+        if ( exists( $material->{secondary_authors} ) ) {
+            my @authors =
+              split( /;/, $material->{secondary_authors} );
+            for my $author (@authors) {
+                push @{ $csl->{author} }, { literal => $author };
+            }
+        }
+
         # Secondary Title
         $csl->{'container-title'} = $material->{secondary_title}
           if exists( $material->{secondary_title} );
@@ -1044,6 +1054,9 @@ sub mapCSL {
           if exists( $material->{elec_control_no} );
         $csl->{ISSN} = $material->{print_control_no}
           if exists( $material->{print_control_no} );
+          
+        # Issued
+        $csl->{issued} = $material->{year} if exists( $material->{year} );
     }
 
     # 5=Scan
