@@ -282,7 +282,9 @@ for my $rl1_user (@rl1_userResults) {
       ? lc( $rl1_user->email_address )
       : 'not@myemail.com';
     my $login =
-      defined( $rl1_user->login ) ? lc($rl1_user->login) : 'login' . $current_line;
+      defined( $rl1_user->login )
+      ? lc( $rl1_user->login )
+      : 'login' . $current_line;
 
     # Add user
     my $system_role =
@@ -884,7 +886,8 @@ sub mapCSL {
 
     my $material = { $materialResult->get_columns };
     for my $field ( keys %{$material} ) {
-        delete $material->{$field}
+        $material->{$field} =
+          decode_entities( $material->{$field} ) delete $material->{$field}
           unless ( defined( $material->{$field} )
             && $material->{$field} ne ''
             && $material->{$field} !~ /^\s*$/ );
@@ -1014,6 +1017,15 @@ sub mapCSL {
         # Type
         $csl->{'type'} = 'article';
 
+        # Authors
+        if ( exists( $material->{secondary_authors} ) ) {
+            my @authors =
+              split( /;/, $material->{secondary_authors} );
+            for my $author (@authors) {
+                push @{ $csl->{author} }, { literal => $author };
+            }
+        }
+
         # Secondary Title
         $csl->{'container-title'} = $material->{secondary_title}
           if exists( $material->{secondary_title} );
@@ -1036,6 +1048,9 @@ sub mapCSL {
           if exists( $material->{elec_control_no} );
         $csl->{ISSN} = $material->{print_control_no}
           if exists( $material->{print_control_no} );
+
+        # Issued
+        $csl->{issued} = $material->{year} if exists( $material->{year} );
     }
 
     # 5=Scan
