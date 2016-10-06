@@ -654,6 +654,20 @@ for my $rl2_listResult ( $rl2_listResults->all ) {
 }
 say "Counts updated...\n";
 
+# Clean up material titles
+say "Cleaning up material titles...\n";
+my $type_json          = { type => 'chapter' };
+my $json_type          = encode_json $type_json;
+my $rl2_chapterResults = $rebus2->resultset('Material')
+  ->search( { metadata => { '@>' => $json_type } } );
+for my $rl2_chapterResult ( $rl2_chapterResults->all ) {
+    my $metadata = $rl2_chapterResult->metadata;
+    if ( $metadata->{'title'} =~ m/\|(?:\d|[A-F]){8}\|/ ) {
+        $metadata->{'title'} =~ s/\|(?:\d|[A-F]){8}\|//g;
+        $rl2_chapterResult->update( { metadata => $metadata } );
+    }
+}
+
 # Permission, UserListPermission, UserOrgUnitPermission
 # 'Permission' handled in User import above
 $total = $rebus1->resultset('UserOrgUnitPermission')->count;
@@ -664,7 +678,8 @@ $permission_progress->minor(0);
 $next_update  = 0;
 $current_line = 0;
 
-my $rl2_editorID = $rebus2->resultset('ListRole')
+my $rl2_editorID =
+  $rebus2->resultset('ListRole')
   ->search( { name => 'librarian' }, { rows => 1 } )->single->get_column('id');
 
 my @rl1_user_org_unit_permissionResults =
@@ -706,7 +721,8 @@ for my $rl1_uoup (@rl1_user_org_unit_permissionResults) {
     }
 }
 
-my @rl1_user_list_permissionResults = $rebus1->resultset('UserListPermission')
+my @rl1_user_list_permissionResults =
+  $rebus1->resultset('UserListPermission')
   ->search( undef, { order_by => { -asc => [qw/list_id user_id/] } } )->all;
 
 for my $rl1_ulp (@rl1_user_list_permissionResults) {
@@ -760,7 +776,8 @@ my @rl1_owners =
   ->search( undef,
     { order_by => { -asc => [qw/list_id owner_id leader_yn/] } } )->all;
 
-my $roleResult = $rebus2->resultset('ListRole')->find( { name => 'leader' } );
+my $roleResult =
+  $rebus2->resultset('ListRole')->find( { name => 'leader' } );
 my $leaderID = $roleResult->id;
 $roleResult = $rebus2->resultset('ListRole')->find( { name => 'owner' } );
 my $ownerID = $roleResult->id;
@@ -867,7 +884,8 @@ sub addMaterial {
 
     # Remote Material
     $owner_uuid =~ s/\^/,/g;
-    my $materialResult = $rebus2->resultset('Material')
+    my $materialResult =
+      $rebus2->resultset('Material')
       ->find( { owner => $owner, owner_uuid => $owner_uuid }, { rows => 1 } );
 
     if ( defined($materialResult) ) {
@@ -918,7 +936,8 @@ sub addTag {
       $rebus2->resultset('Tag')->search( { text => $text } )->all;
 
     unless (@tagResults) {
-        my $new_tag = $rebus2->resultset('Tag')->create( { text => $text } );
+        my $new_tag =
+          $rebus2->resultset('Tag')->create( { text => $text } );
         return $new_tag;
     }
 
@@ -948,7 +967,8 @@ sub mapCSL {
       if exists( $material->{authors} );
 
     # Edition
-    $csl->{edition} = $material->{edition} if exists( $material->{edition} );
+    $csl->{edition} = $material->{edition}
+      if exists( $material->{edition} );
 
     # Volume
     $csl->{volume} = $material->{volume} if exists( $material->{volume} );
