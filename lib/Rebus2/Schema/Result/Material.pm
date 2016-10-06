@@ -94,6 +94,11 @@ __PACKAGE__->table("materials");
   data_type: 'text'
   is_nullable: 1
 
+=head2 delayed_link
+
+  data_type: 'text'
+  is_nullable: 1
+
 =head2 id_map
 
   data_type: 'jsonb'
@@ -139,6 +144,8 @@ __PACKAGE__->add_columns(
   "status_link",
   {data_type => "text", is_nullable => 1},
   "fulltext_link",
+  {data_type => "text", is_nullable => 1},
+  "delayed_link",
   {data_type => "text", is_nullable => 1},
   "id_map",
   {data_type => "jsonb", is_nullable => 1, serializer_class => "JSON", serializer_options => {utf8 => 1}},
@@ -246,19 +253,33 @@ __PACKAGE__->has_many(
   {cascade_copy          => 0, cascade_delete => 0},
 );
 
-=head2 scan_requests
+=head2 scans
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ScanRequest>
+Related object: L<Rebus2::Schema::Result::Scan>
 
 =cut
 
 __PACKAGE__->has_many(
-  "scan_requests",
-  "Rebus2::Schema::Result::ScanRequest",
+  "scans", "Rebus2::Schema::Result::Scan",
   {"foreign.material_id" => "self.id"},
-  {cascade_copy          => 0, cascade_delete => 0},
+  {cascade_copy          => 0, cascade_delete => 1},
+);
+
+=head2 purchases
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::Purchase>
+
+=cut
+
+__PACKAGE__->has_many(
+  "purchases",
+  "Rebus2::Schema::Result::Purchase",
+  {"foreign.material_id" => "self.id"},
+  {cascade_copy          => 0, cascade_delete => 1},
 );
 
 =head2 container
@@ -353,6 +374,7 @@ sub as_hash {
   $material->{lms_link}      = $self->lms_link      if defined($self->lms_link);
   $material->{status_link}   = $self->status_link   if defined($self->status_link);
   $material->{fulltext_link} = $self->fulltext_link if defined($self->fulltext_link);
+  $material->{delayed_link}  = $self->delayed_link  if defined($self->delayed_link); 
   $material->{id_map}        = $self->id_map        if defined($self->id_map);
 
   return $material;

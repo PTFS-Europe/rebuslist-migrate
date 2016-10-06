@@ -124,6 +124,18 @@ __PACKAGE__->table("lists");
   data_type: 'text'
   is_nullable: 1
 
+=head2 course_start
+
+  data_type: 'date'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
+=head2 course_end
+
+  data_type: 'date'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
 =head2 year
 
   data_type: 'integer'
@@ -242,6 +254,10 @@ __PACKAGE__->add_columns(
   {data_type => "text", is_nullable => 1},
   "course_identifier",
   {data_type => "text", is_nullable => 1},
+  "course_start",
+  {data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1},
+  "course_end",
+  {data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1},
   "year",
   {data_type => "integer", is_nullable => 1},
   "validity_start",
@@ -441,6 +457,21 @@ __PACKAGE__->has_many(
   {"foreign.list_id" => "self.id"}, {cascade_copy => 1, cascade_delete => 0},
 );
 
+=head2 requests
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::Request>
+
+=cut
+
+__PACKAGE__->has_many(
+  "requests",
+  "Rebus2::Schema::Result::Request",
+  {"foreign.list_id" => "self.id"},
+  {cascade_copy      => 0, cascade_delete => 1},
+);
+
 =head2 source
 
 Type: belongs_to
@@ -562,8 +593,7 @@ Given a user and a role, assign said user the given role on this list and ensure
 =cut
 
 sub assign {
-  my $self = shift;
-  my ($userID, $roleID) = @_;
+  my ($self, $userID, $roleID) = @_;
 
   my $guard = $self->result_source->schema->txn_scope_guard;
   $self->create_related('list_user_roles', {user_id => $userID, role_id => $roleID, inherited_from => $self->id});
@@ -585,8 +615,7 @@ Given a user and a role, divest said user the given role on this list and ensure
 
 # FIXME: I'm sure this could be done in one query as per List.pm _update_list routine?
 sub divest {
-  my $self = shift;
-  my ($userID, $roleID) = @_;
+  my ($self, $userID, $roleID) = @_;
 
   my $guard = $self->result_source->schema->txn_scope_guard;
   $self->delete_related('list_user_roles', {user_id => $userID, role_id => $roleID, inherited_from => $self->id});

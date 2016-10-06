@@ -199,17 +199,30 @@ Composing rels:  L</list_user_roles> -> list
 
 __PACKAGE__->many_to_many("lists" => "list_user_roles", "list");
 
-=head2 scan_requests
+=head2 requests
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ScanRequest>
+Related object: L<Rebus2::Schema::Result::Request>
 
 =cut
 
 __PACKAGE__->has_many(
-  "scan_requests", "Rebus2::Schema::Result::ScanRequest",
-  {"foreign.user_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
+  "requests", "Rebus2::Schema::Result::Request",
+  {"foreign.requester_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
+);
+
+=head2 assigned_requests
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::Request>
+
+=cut
+
+__PACKAGE__->has_many(
+  "assigned_requests", "Rebus2::Schema::Result::Request",
+  {"foreign.assignee_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
 =head2 system_role
