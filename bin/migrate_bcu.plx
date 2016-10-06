@@ -459,7 +459,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                     my @set = ( '0' .. '9', 'A' .. 'F' );
                     my $str = join '' => map $set[ rand @set ], 1 .. 8;
                     $csl->{title} =
-                      "Section from " . $csl->{title} . " " . $str;
+                      "Section from " . $csl->{title} . "|" . $str . "|";
                     $csl->{type} = 'chapter';
                     $owner       = $config->{'code'};
                     $owner_uuid  = '1-';

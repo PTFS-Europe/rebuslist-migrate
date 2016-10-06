@@ -486,6 +486,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                   : Mojo::JSON->false;
 
                 # Add Links
+                my ( $web, $lms, $full, $delayed ) = undef;
                 $lms = $config->{'opac_url'} . $rl1_material->print_sysno
                   if ( defined( $rl1_material->print_sysno )
                     && $rl1_material->print_sysno ne ''
@@ -922,8 +923,9 @@ sub mapCSL {
 
     my $material = { $materialResult->get_columns };
     for my $field ( keys %{$material} ) {
-        decode_entities( $material->{$field} ) delete $material->{$field}
-          delete $material->{$field}
+        $material->{$field} = decode_entities( $material->{$field} )
+          if defined( $material->{$field} );
+        delete $material->{$field}
           unless ( defined( $material->{$field} )
             && $material->{$field} ne ''
             && $material->{$field} !~ /^\s*$/ );
