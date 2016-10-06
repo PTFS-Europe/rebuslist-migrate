@@ -479,10 +479,27 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                   ? Mojo::JSON->true
                   : Mojo::JSON->false;
 
+                # Add Links
+                $lms = $config->{'opac_url'} . $rl1_material->print_sysno
+                  if ( defined( $rl1_material->print_sysno )
+                    && $rl1_material->print_sysno ne ''
+                    && !( $rl1_material->print_sysno =~ /^\s*$/ ) );
+
+                $lms = $config->{'opac_url'} . $rl1_material->elec_sysno
+                  if ( defined( $rl1_material->elec_sysno )
+                    && $rl1_material->elec_sysno ne ''
+                    && !( $rl1_material->elec_sysno =~ /^\s*$/ ) );
+
+                $web = $rl1_material->url
+                  if ( defined( $rl1_material->url )
+                    && $rl1_material->url ne ''
+                    && !( $rl1_material->url =~ /^\s*$/ ) );
+
                 # Add material
                 my $rl2_material =
                   addMaterial( $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
-                    $csl, $owner, $owner_uuid, $eBook );
+                    $csl, $owner, $owner_uuid, $eBook, $web, $lms, $full,
+                    $delayed );
 
                 # Add analytic link (if chapter or article)
                 if ( $csl->{type} eq 'article' || $csl->{type} eq 'chapter' ) {
@@ -757,7 +774,10 @@ for my $rl1_owner (@rl1_owners) {
 
 # Routines
 sub addMaterial {
-    my ( $in_stock, $metadata, $owner, $owner_uuid, $eBook ) = @_;
+    my (
+        $in_stock, $metadata, $owner, $owner_uuid, $eBook,
+        $web,      $lms,      $full,  $delayed
+    ) = @_;
 
     # Local Material
     if ( $owner_uuid eq '1-' ) {
@@ -801,11 +821,16 @@ sub addMaterial {
         $metadata->{'id'} = [$owner_uuid];
         my $new_material = $rebus2->resultset('Material')->create(
             {
-                in_stock   => $in_stock,
-                metadata   => $metadata,
-                owner      => $owner,
-                owner_uuid => undef,
-                electronic => $eBook
+                in_stock      => $in_stock,
+                metadata      => $metadata,
+                owner         => $owner,
+                owner_uuid    => undef,
+                electronic    => $eBook,
+                web_link      => $web,
+                lms_link      => $lms,
+                status_link   => undef,
+                fulltext_link => $full,
+                delayed_link  => $delayed
             }
         );
 
@@ -848,11 +873,16 @@ sub addMaterial {
 
         my $new_material = $rebus2->resultset('Material')->create(
             {
-                in_stock   => Mojo::JSON->true,
-                metadata   => $metadata,
-                owner      => $owner,
-                owner_uuid => $owner_uuid,
-                electronic => $eBook
+                in_stock      => Mojo::JSON->true,
+                metadata      => $metadata,
+                owner         => $owner,
+                owner_uuid    => $owner_uuid,
+                electronic    => $eBook,
+                web_link      => $web,
+                lms_link      => $lms,
+                status_link   => undef,
+                fulltext_link => $full,
+                delayed_link  => $delayed
             }
         );
 
