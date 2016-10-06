@@ -147,7 +147,9 @@ for my $rl1_list ( $rl1_listResults->all ) {
     # Search for existing list
     my $rl2_list;
     my $course_identifier =
-      uc( decode_entities( $rl1_list->course_identifier ) );
+      defined( $rl1_list->course_identifier )
+      ? uc( decode_entities( $rl1_list->course_identifier ) )
+      : '';
     $course_identifier =~ s/^\s+|\s+$//g;
     my $rl2listResults = $rebus2->resultset('List')->search(
         {
@@ -929,8 +931,8 @@ sub mapCSL {
 
     my $material = { $materialResult->get_columns };
     for my $field ( keys %{$material} ) {
-        $material->{$field} =
-          decode_entities( $material->{$field} );
+        $material->{$field} = decode_entities( $material->{$field} )
+          if defined( $material->{$field} );
         delete $material->{$field}
           unless ( defined( $material->{$field} )
             && $material->{$field} ne ''
