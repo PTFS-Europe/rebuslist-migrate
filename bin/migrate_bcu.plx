@@ -451,7 +451,19 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
                 # Identify RL1 Local, Article and Chapter Type Materials
                 my ( $owner, $owner_uuid );
-                if ( $csl->{type} eq 'article' || $csl->{type} eq 'chapter' ) {
+                if ( defined( $rl1_material->note )
+                    && $rl1_material->note =~ m/chapter|pp|page/i )
+                {
+                    my @set = ( '0' .. '9', 'A' .. 'F' );
+                    my $str = join '' => map $set[ rand @set ], 1 .. 8;
+                    $csl->{title} =
+                      "Section from " . $csl->{title} . " " . $str;
+                    $csl->{type} = 'chapter';
+                    $owner       = $config->{'code'};
+                    $owner_uuid  = '1-';
+                }
+                elsif ( $csl->{type} eq 'article' || $csl->{type} eq 'chapter' )
+                {
                     $owner      = $config->{'code'};
                     $owner_uuid = '1-';
                 }
