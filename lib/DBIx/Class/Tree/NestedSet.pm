@@ -9,146 +9,141 @@ use base 'DBIx::Class';
 our $VERSION = '0.10';
 $VERSION = eval $VERSION;
 
-__PACKAGE__->mk_classdata( _tree_columns => {} );
+__PACKAGE__->mk_classdata(_tree_columns => {});
 
 # specify the tree columns and define the relationships
 #
 sub tree_columns {
-    my ($class, $args) = @_;
+  my ($class, $args) = @_;
 
-    if (defined $args) {
+  if (defined $args) {
 
-        my ($root, $left, $right, $level) = map {
-            my $col = $args->{"${_}_column"};
-            croak("required param $_ not specified") if !defined $col;
-            $col;
-        } qw/root left right level/;
+    my ($root, $left, $right, $level) = map {
+      my $col = $args->{"${_}_column"};
+      croak("required param $_ not specified") if !defined $col;
+      $col;
+    } qw/root left right level/;
 
-        my $table        = $class->table;
+    my $table = $class->table;
 
-        $class->belongs_to(
-            'root' => $class,
-            { "foreign.$root" => "self.$root" },
-            {
-                is_foreign_key_constraint => 0,
-                where    => \"me.$left = 1",                              #"
-            },
+    $class->belongs_to(
+      'root' => $class,
+      {"foreign.$root" => "self.$root"},
+      {
+        is_foreign_key_constraint => 0,
+        where                     => \"me.$left = 1",    #"
+      },
+    );
+
+    $class->belongs_to(
+      'parent' => $class,
+      sub {
+        my $args = shift;
+        my $level_rhs
+          = $args->{self_resultsource}->schema->storage->sql_maker->_quote("$args->{self_alias}.$level") . " - 1";
+
+        return (
+          {
+            "$args->{self_alias}.$left"     => {'>', {-ident => "$args->{foreign_alias}.$left"}},
+            "$args->{self_alias}.$right"    => {'<', {-ident => "$args->{foreign_alias}.$right"}},
+            "$args->{foreign_alias}.$level" => {'='  => \$level_rhs},
+            "$args->{foreign_alias}.$root" => {-ident => "$args->{self_alias}.$root"}
+          },
+          !$args->{self_result_object}
+          ? ()
+          : {
+            "$args->{foreign_alias}.$left"  => {'<', $args->{self_result_object}->$left},
+            "$args->{foreign_alias}.$right" => {'>', $args->{self_result_object}->$right},
+            "$args->{foreign_alias}.$level" => $args->{self_result_object}->$level - 1,
+            "$args->{foreign_alias}.$root"  => $args->{self_result_object}->$root,
+          }
         );
+      },
+      {is_foreign_key_constraint => 0},
+    );
 
-        $class->belongs_to(
-            'parent' => $class,
-            sub {
-                my $args = shift;
-                my $level_rhs = $args->{self_resultsource}->schema->storage->sql_maker->_quote("$args->{self_alias}.$level") . " - 1";
-            
-                return (
-                    {
-                        "$args->{self_alias}.$left"     => { '>', { -ident => "$args->{foreign_alias}.$left" } },
-                        "$args->{self_alias}.$right"    => { '<', { -ident => "$args->{foreign_alias}.$right" } },
-                        "$args->{foreign_alias}.$level" => { '=' => \$level_rhs }, 
-                        "$args->{foreign_alias}.$root"  => { -ident => "$args->{self_alias}.$root" }
-                    },
-                    !$args->{self_result_object} ? () : {
-                        "$args->{foreign_alias}.$left" => { '<', $args->{self_result_object}->$left },
-                        "$args->{foreign_alias}.$right" => { '>', $args->{self_result_object}->$right },
-                        "$args->{foreign_alias}.$level" => $args->{self_result_object}->$level - 1,
-                        "$args->{foreign_alias}.$root"  => $args->{self_result_object}->$root,
-                    }
-                );
-            },
-            {
-                is_foreign_key_constraint => 0
-            },
+    $class->has_many(
+      'nodes' => $class,
+      {"foreign.$root" => "self.$root"}, {order_by => "me.$left", cascade_delete => 0, cascade_copy => 0}
+    );
+
+    $class->has_many(
+      'descendants' => $class,
+      sub {
+        my $args = shift;
+
+        return (
+          {
+            "$args->{foreign_alias}.$left"  => {'>', {-ident => "$args->{self_alias}.$left"}},
+            "$args->{foreign_alias}.$right" => {'<', {-ident => "$args->{self_alias}.$right"}},
+            "$args->{foreign_alias}.$root" => {-ident => "$args->{self_alias}.$root"}
+          },
+          !$args->{self_result_object}
+          ? ()
+          : {
+            "$args->{foreign_alias}.$left"  => {'>', $args->{self_result_object}->$left},
+            "$args->{foreign_alias}.$right" => {'<', $args->{self_result_object}->$right},
+            "$args->{foreign_alias}.$root"  => $args->{self_result_object}->$root
+          }
         );
+      },
+      {order_by => "me.$left", cascade_delete => 0, cascade_copy => 0}
+    );
 
-        $class->has_many(
-            'nodes' => $class,
-            { "foreign.$root" => "self.$root" },
-            {
-                order_by => "me.$left",
-                cascade_delete => 0,
-            }
+    $class->has_many(
+      'children' => $class,
+      sub {
+        my $args = shift;
+        my $level_rhs
+          = $args->{self_resultsource}->schema->storage->sql_maker->_quote("$args->{self_alias}.$level") . " + 1";
+
+        return (
+          {
+            "$args->{foreign_alias}.$left"  => {'>', {-ident => "$args->{self_alias}.$left"}},
+            "$args->{foreign_alias}.$right" => {'<', {-ident => "$args->{self_alias}.$right"}},
+            "$args->{foreign_alias}.$level" => {'=', \$level_rhs},
+            "$args->{foreign_alias}.$root" => {-ident => "$args->{self_alias}.$root"}
+          },
+          !$args->{self_result_object}
+          ? ()
+          : {
+            "$args->{foreign_alias}.$left"  => {'>', $args->{self_result_object}->$left},
+            "$args->{foreign_alias}.$right" => {'<', $args->{self_result_object}->$right},
+            "$args->{foreign_alias}.$level" => $args->{self_result_object}->$level + 1,
+            "$args->{foreign_alias}.$root"  => $args->{self_result_object}->$root
+          }
         );
+      },
+      {order_by => "me.$left", cascade_delete => 0, cascde_copy => 0}
+    );
 
-        $class->has_many(
-            'descendants' => $class,
-            sub {
-                my $args = shift;
+    $class->has_many(
+      'ancestors' => $class,
+      sub {
+        my $args = shift;
 
-                return (
-                    {
-                        "$args->{foreign_alias}.$left" => { '>', { -ident => "$args->{self_alias}.$left" } },
-                        "$args->{foreign_alias}.$right" => { '<', { -ident => "$args->{self_alias}.$right" } },
-                        "$args->{foreign_alias}.$root" => { -ident => "$args->{self_alias}.$root" }
-                    },
-                    !$args->{self_result_object} ? () : {
-                        "$args->{foreign_alias}.$left" => { '>', $args->{self_result_object}->$left },
-                        "$args->{foreign_alias}.$right" => { '<', $args->{self_result_object}->$right },
-                        "$args->{foreign_alias}.$root" => $args->{self_result_object}->$root
-                    }
-                );
-            },
-            {
-                order_by => "me.$left",
-                cascade_delete => 0,
-            }
+        return (
+          {
+            "$args->{self_alias}.$left"  => {'>', {-ident => "$args->{foreign_alias}.$left"}},
+            "$args->{self_alias}.$right" => {'<', {-ident => "$args->{foreign_alias}.$right"}},
+            "$args->{foreign_alias}.$root" => {-ident => "$args->{self_alias}.$root"}
+          },
+          !$args->{self_result_object}
+          ? ()
+          : {
+            "$args->{foreign_alias}.$left"  => {'<', $args->{self_result_object}->$left},
+            "$args->{foreign_alias}.$right" => {'>', $args->{self_result_object}->$right},
+            "$args->{foreign_alias}.$root"  => $args->{self_result_object}->$root
+          }
         );
+      },
+      {order_by => "me.$right", cascade_delete => 0, cascade_copy => 0}
+    );
 
-        $class->has_many(
-            'children' => $class,
-            sub {
-                my $args = shift;
-                my $level_rhs = $args->{self_resultsource}->schema->storage->sql_maker->_quote("$args->{self_alias}.$level") . " + 1";
+    $class->_tree_columns($args);
+  }
 
-                return (
-                    {
-                        "$args->{foreign_alias}.$left" => { '>', { -ident => "$args->{self_alias}.$left" } },
-                        "$args->{foreign_alias}.$right" => { '<', { -ident => "$args->{self_alias}.$right" } },
-                        "$args->{foreign_alias}.$level" => { '=', \$level_rhs }, 
-                        "$args->{foreign_alias}.$root" => { -ident => "$args->{self_alias}.$root" }
-                    },
-                    !$args->{self_result_object} ? () : {
-                        "$args->{foreign_alias}.$left" => { '>', $args->{self_result_object}->$left },
-                        "$args->{foreign_alias}.$right" => { '<', $args->{self_result_object}->$right },
-                        "$args->{foreign_alias}.$level" => $args->{self_result_object}->$level + 1,
-                        "$args->{foreign_alias}.$root" => $args->{self_result_object}->$root
-                    }
-                );
-            },
-            {
-                order_by => "me.$left",
-                cascade_delete => 0,
-            }
-        );
-
-        $class->has_many(
-            'ancestors' => $class,
-            sub {
-                my $args = shift;
-            
-                return (
-                    {
-                        "$args->{self_alias}.$left" => { '>', { -ident => "$args->{foreign_alias}.$left" } },
-                        "$args->{self_alias}.$right" => { '<', { -ident => "$args->{foreign_alias}.$right" } },
-                        "$args->{foreign_alias}.$root" => { -ident => "$args->{self_alias}.$root" }
-                    },
-                    !$args->{self_result_object} ? () : {
-                        "$args->{foreign_alias}.$left" => { '<', $args->{self_result_object}->$left },
-                        "$args->{foreign_alias}.$right" => { '>', $args->{self_result_object}->$right },
-                        "$args->{foreign_alias}.$root" => $args->{self_result_object}->$root
-                    }
-                );
-            },
-            {
-                order_by => "me.$right",
-                cascade_delete => 0,
-            }
-        );
-
-        $class->_tree_columns($args);
-    }
-
-    return $class->_tree_columns;
+  return $class->_tree_columns;
 }
 
 # Insert a new node.
@@ -157,147 +152,154 @@ sub tree_columns {
 # node.
 #
 sub insert {
-    my ($self, @args) = @_;
+  my ($self, @args) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    if (!$self->$right) {
-        $self->set_columns({
-            $left  => 1,
-            $right => 2,
-            $level => 0,
-        });
-    }
+  if (!$self->$right) {
+    $self->set_columns({$left => 1, $right => 2, $level => 0,});
+  }
 
-    my $row;
-    my $get_row = $self->next::can;
-    $self->result_source->schema->txn_do(sub {
-        $row = $get_row->($self, @args);
+  my $row;
+  my $get_row = $self->next::can;
+  $self->result_source->schema->txn_do(
+    sub {
+      $row = $get_row->($self, @args);
 
-        # If the root column is not defined, it uses the primary key so long as it is a
-        # single column primary key
-        if (!defined $row->$root) {
-            my @primary_columns = $row->result_source->primary_columns;
-            if (scalar @primary_columns > 1) {
-                croak('Only single column primary keys are supported for default root selection in nested set tree classes');
-            }
-
-            $row->update({
-                $root => \"$primary_columns[0]",            #"
-            });
-
-            $row->discard_changes;
+      # If the root column is not defined, it uses the primary key so long as it is a
+      # single column primary key
+      if (!defined $row->$root) {
+        my @primary_columns = $row->result_source->primary_columns;
+        if (scalar @primary_columns > 1) {
+          croak('Only single column primary keys are supported for default root selection in nested set tree classes');
         }
-    });
 
-    return $row;
+        $row->update(
+          {
+            $root => \"$primary_columns[0]",    #"
+          }
+        );
+
+        $row->discard_changes;
+      }
+    }
+  );
+
+  return $row;
 }
 
 # Delete the current node, and all sub-nodes.
 #
 sub delete {
-    my ($self) = shift;
+  my ($self) = shift;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    my $p_lft = $self->$left;
-    my $p_rgt = $self->$right;
+  my $p_lft = $self->$left;
+  my $p_rgt = $self->$right;
 
-    my $del_row = $self->next::can;
-    my $storage = $self->result_source->schema->storage;
-    my $left_q = $storage->sql_maker->_quote($left);
-    my $right_q = $storage->sql_maker->quote($right);
+  my $del_row = $self->next::can;
+  my $storage = $self->result_source->schema->storage;
+  my $left_q  = $storage->sql_maker->_quote($left);
+  my $right_q = $storage->sql_maker->_quote($right);
 
-    $self->result_source->schema->txn_do(sub {
-        $self->discard_changes;
+  $self->result_source->schema->txn_do(
+    sub {
+      $self->discard_changes;
 
-        my $descendants = $self->descendants;
-        while (my $descendant = $descendants->next) {
-            $del_row->($descendant);
+      my $descendants = $self->descendants;
+      while (my $descendant = $descendants->next) {
+        $del_row->($descendant);
+      }
+
+      my $diff = $p_rgt - $p_lft + 1;
+
+      $self->nodes_rs->update(
+        {
+          $left  => \"CASE WHEN $left_q  > $p_rgt THEN $left_q  - $diff ELSE $left_q  END",    #"
+          $right => \"CASE WHEN $right_q > $p_rgt THEN $right_q - $diff ELSE $right_q END",    #"
         }
-
-        my $diff = $p_rgt - $p_lft + 1;
-
-        $self->nodes_rs->update(
-            {
-                $left  => \"CASE WHEN $left_q  > $p_rgt THEN $left_q  - $diff ELSE $left_q  END",    #"
-                $right => \"CASE WHEN $right_q > $p_rgt THEN $right_q - $diff ELSE $right_q END",    #"
-            }
-        );
+      );
 
 
-        $del_row->($self);
-    });
+      $del_row->($self);
+    }
+  );
 }
 
 # Create a related node with special handling for relationships
 #
 sub create_related {
-    my ($self, $rel, $col_data) = @_;
+  my ($self, $rel, $col_data) = @_;
 
-    if (! grep {$rel eq $_} qw(descendants children nodes ancestors)) {
-        return $self->next::method($rel => $col_data);
-    }
+  if (!grep { $rel eq $_ } qw(descendants children nodes ancestors)) {
+    return $self->next::method($rel => $col_data);
+  }
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
-    my $storage = $self->result_source->schema->storage;
-    my $left_q = $storage->sql_maker->_quote($left);
-    my $right_q = $storage->sql_maker->_quote($right);
-    my $level_q = $storage->sql_maker->_quote($level);
+  my ($root, $left, $right, $level) = $self->_get_columns;
+  my $storage = $self->result_source->schema->storage;
+  my $left_q  = $storage->sql_maker->_quote($left);
+  my $right_q = $storage->sql_maker->_quote($right);
+  my $level_q = $storage->sql_maker->_quote($level);
 
-    my $row;
-    my $get_row = $self->next::can;
-    $self->result_source->schema->txn_do(sub {
+  my $row;
+  my $get_row = $self->next::can;
+  $self->result_source->schema->txn_do(
+    sub {
+      $self->discard_changes;
+
+      # With create related ancestor, make it a parent of this child
+      if ($rel eq 'ancestors') {
+        my $p_lft   = $self->$left;
+        my $p_rgt   = $self->$right;
+        my $p_level = $self->$level;
+
+        # Update all the nodes to the right of this sub-tree
+        $self->nodes_rs->update(
+          {
+            $left  => \"CASE WHEN $left_q  > $p_rgt THEN $left_q  + 2 ELSE $left_q  END",    #"
+            $right => \"CASE WHEN $right_q > $p_rgt THEN $right_q + 2 ELSE $right_q END",    #"
+          }
+        );
+
+        # Update all the nodes of this sub-tree
+        $self->nodes_rs->search({$left => {'>=', $p_lft}, $right => {'<=', $p_rgt}})->update(
+          {
+            $left  => \"$left_q + 1",                                                        #"
+            $right => \"$right_q + 1",                                                       #"
+            $level => \"$level_q + 1",                                                       #"
+          }
+        );
+
         $self->discard_changes;
+        $col_data->{$root}  = $self->$root;
+        $col_data->{$left}  = $p_lft;
+        $col_data->{$right} = $p_rgt + 2;
+        $col_data->{$level} = $p_level;
+      }
+      else {
+        # insert a descendant, node or a child as a right-most child
+        my $p_rgt = $self->$right;
 
-        # With create related ancestor, make it a parent of this child
-        if ($rel eq 'ancestors') {
-            my $p_lft   = $self->$left;
-            my $p_rgt   = $self->$right;
-            my $p_level = $self->$level;
+        # Update all the nodes to the right of this sub-tree
+        $self->nodes_rs->update(
+          {
+            $left  => \"CASE WHEN $left_q  >  $p_rgt THEN $left_q  + 2 ELSE $left_q  END",    #"
+            $right => \"CASE WHEN $right_q >= $p_rgt THEN $right_q + 2 ELSE $right_q END",    #"
+          }
+        );
+        $self->discard_changes;
+        $col_data->{$root}  = $self->$root;
+        $col_data->{$left}  = $p_rgt;
+        $col_data->{$right} = $p_rgt + 1;
+        $col_data->{$level} = $self->$level + 1;
 
-            # Update all the nodes to the right of this sub-tree
-            $self->nodes_rs->update({
-                $left  => \"CASE WHEN $left_q  > $p_rgt THEN $left_q  + 2 ELSE $left_q  END",     #"
-                $right => \"CASE WHEN $right_q > $p_rgt THEN $right_q + 2 ELSE $right_q END",     #"
-            });
+      }
+      $row = $get_row->($self, $rel => $col_data);
+    }
+  );
 
-            # Update all the nodes of this sub-tree
-            $self->nodes_rs->search({
-                $left   => { '>=', $p_lft },
-                $right  => { '<=', $p_rgt }
-                })->update({
-                $left   => \"$left_q + 1",                                                    #"
-                $right  => \"$right_q + 1",                                                   #"
-                $level  => \"$level_q + 1",                                                   #"
-            });
-
-            $self->discard_changes;
-            $col_data->{$root}  = $self->$root;
-            $col_data->{$left}  = $p_lft;
-            $col_data->{$right} = $p_rgt+2;
-            $col_data->{$level} = $p_level;
-        }
-        else {
-            # insert a descendant, node or a child as a right-most child
-            my $p_rgt = $self->$right;
-
-            # Update all the nodes to the right of this sub-tree
-            $self->nodes_rs->update({
-                $left  => \"CASE WHEN $left_q  >  $p_rgt THEN $left_q  + 2 ELSE $left_q  END",    #"
-                $right => \"CASE WHEN $right_q >= $p_rgt THEN $right_q + 2 ELSE $right_q END",    #"
-            });
-            $self->discard_changes;
-            $col_data->{$root}  = $self->$root;
-            $col_data->{$left}  = $p_rgt;
-            $col_data->{$right} = $p_rgt+1;
-            $col_data->{$level} = $self->$level+1;
-
-        }
-        $row = $get_row->($self, $rel => $col_data);
-    });
-
-    return $row;
+  return $row;
 }
 
 # Insert a node anywhere in the tree
@@ -307,45 +309,45 @@ sub create_related {
 #   other_args
 #
 sub _insert_node {
-    my ($self, $args) = @_;
-    my $rset   = $self->result_source->resultset;
-    my $schema = $self->result_source->schema;
+  my ($self, $args) = @_;
+  my $rset   = $self->result_source->resultset;
+  my $schema = $self->result_source->schema;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
-    my $storage = $self->result_source->schema->storage;
-    my $left_q = $storage->sql_maker->_quote($left);
-    my $right_q = $storage->sql_maker->_quote($right);
+  my ($root, $left, $right, $level) = $self->_get_columns;
+  my $storage = $self->result_source->schema->storage;
+  my $left_q  = $storage->sql_maker->_quote($left);
+  my $right_q = $storage->sql_maker->_quote($right);
 
-    # our special arguments
-    my $o_args = delete $args->{other_args};
-    my $pivot  = $args->{$left};
+  # our special arguments
+  my $o_args = delete $args->{other_args};
+  my $pivot  = $args->{$left};
 
-    # Use same level as self by default
-    $args->{$level}  = $self->$level unless defined $args->{$level};
-    $args->{$root}   = $self->$root unless defined $args->{$root};
+  # Use same level as self by default
+  $args->{$level} = $self->$level unless defined $args->{$level};
+  $args->{$root}  = $self->$root  unless defined $args->{$root};
 
-    # make room and create it
-    my $new_record;
-    $schema->txn_do(sub {
-        $self->discard_changes;
-        $rset->search({
-            "me.$right" => {'>=', $pivot},
-            $root       => $self->$root,
-        })->update({
-            $right => \"$right_q + 2",                                #"
-        });
+  # make room and create it
+  my $new_record;
+  $schema->txn_do(
+    sub {
+      $self->discard_changes;
+      $rset->search({"me.$right" => {'>=', $pivot}, $root => $self->$root,})->update(
+        {
+          $right => \"$right_q + 2",    #"
+        }
+      );
 
-        $rset->search({
-            "me.$left"  => {'>=', $pivot},
-            $root       => $self->$root,
-        })->update({
-            $left => \"$left_q + 2",                                  #"
-        });
-        $self->discard_changes;
+      $rset->search({"me.$left" => {'>=', $pivot}, $root => $self->$root,})->update(
+        {
+          $left => \"$left_q + 2",      #"
+        }
+      );
+      $self->discard_changes;
 
-        $new_record = $rset->create({%$o_args, %$args});
-    });
-    return $new_record;
+      $new_record = $rset->create({%$o_args, %$args});
+    }
+  );
+  return $new_record;
 }
 
 # Attach a node anywhere in the tree
@@ -355,37 +357,37 @@ sub _insert_node {
 #   level
 #
 sub _attach_node {
-    my ($self, $node, $args) = @_;
-    my $rset   = $self->result_source->resultset;
-    my $schema = $self->result_source->schema;
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($self, $node, $args) = @_;
+  my $rset   = $self->result_source->resultset;
+  my $schema = $self->result_source->schema;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    # $self cannot be a descendant of $node or $node itself
-    if ($self->$root == $node->$root && $self->$left >= $node->$left && $self->$right <= $node->$right) {
-        croak("Cannot _attach_node to it's own descendant ");
+  # $self cannot be a descendant of $node or $node itself
+  if ($self->$root == $node->$root && $self->$left >= $node->$left && $self->$right <= $node->$right) {
+    croak("Cannot _attach_node to it's own descendant ");
+  }
+
+  $schema->txn_do(
+    sub {
+      $self->discard_changes;
+      $node->discard_changes;
+
+      # Move the node to the end (right most child of root)
+      $node->_move_to_end;
+      $self->discard_changes;
+      $node->discard_changes;
+
+      # Graft the node to the specified location
+      my $left_val;
+      if (defined $args->{left_delta}) {
+        $left_val = $self->$left + $args->{left_delta};
+      }
+      else {
+        $left_val = $self->$right + $args->{right_delta};
+      }
+      $self->_graft_branch({node => $node, $left => $left_val, $level => $args->{$level}});
     }
-
-    $schema->txn_do(sub {
-        $self->discard_changes;
-        $node->discard_changes;
-        # Move the node to the end (right most child of root)
-        $node->_move_to_end;
-        $self->discard_changes;
-        $node->discard_changes;
-        # Graft the node to the specified location
-        my $left_val;
-        if (defined $args->{left_delta}) {
-            $left_val = $self->$left + $args->{left_delta};
-        }
-        else {
-            $left_val = $self->$right + $args->{right_delta};
-        }
-        $self->_graft_branch({
-            node    => $node,
-            $left   => $left_val,
-            $level  => $args->{$level}
-        });
-    });
+  );
 }
 
 
@@ -395,83 +397,81 @@ sub _attach_node {
 # this or another trees root (see _move_to_end)
 #
 sub _graft_branch {
-    my ($self, $args) = @_;
+  my ($self, $args) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
-    my $storage = $self->result_source->schema->storage;
-    my $left_q = $storage->sql_maker->_quote($left);
-    my $right_q = $storage->sql_maker->_quote($right);
-    my $level_q = $storage->sql_maker->_quote($level);
+  my ($root, $left, $right, $level) = $self->_get_columns;
+  my $storage = $self->result_source->schema->storage;
+  my $left_q  = $storage->sql_maker->_quote($left);
+  my $right_q = $storage->sql_maker->_quote($right);
+  my $level_q = $storage->sql_maker->_quote($level);
 
-    my $rset    = $self->result_source->resultset;
+  my $rset = $self->result_source->resultset;
 
-    my $node        = $args->{node};
-    my $arg_left    = $args->{$left};
-    my $arg_level   = $args->{$level};
-    my $node_is_root = $node->is_root;
-    my $node_root   = $node->root;
+  my $node         = $args->{node};
+  my $arg_left     = $args->{$left};
+  my $arg_level    = $args->{$level};
+  my $node_is_root = $node->is_root;
+  my $node_root    = $node->root;
 
-    if ($node_is_root) {
-        # Cannot graft our own root
-        croak "Cannot graft our own root node!" if $node->$root == $self->$root;
+  if ($node_is_root) {
+
+    # Cannot graft our own root
+    croak "Cannot graft our own root node!" if $node->$root == $self->$root;
+  }
+  else {
+    # Node must be rightmost child of it's root
+    croak "Can only graft rightmost child of root!" if $node->$right + 1 != $node_root->$right;
+  }
+
+  # If the position we are grafting to is the rightmost child of root then there is nothing to do
+  if ($self->$root == $node->$root && $self->is_root && $self->$left + $arg_left > $node_root->$right) {
+    return;
+  }
+
+  # Determine the size of the branch to add in.
+  my $offset = $node->$right + 1 - $node->$left;
+
+  # Make a hole in the tree to accept the graft
+  $self->discard_changes;
+  $rset->search({"me.$right" => {'>=', $arg_left}, $root => $self->$root,})->update(
+    {
+      $right => \"$right_q + $offset",    #"
     }
-    else {
-        # Node must be rightmost child of it's root
-        croak "Can only graft rightmost child of root!" if $node->$right + 1 != $node_root->$right;
+  );
+  $rset->search({"me.$left" => {'>=', $arg_left}, $root => $self->$root,})->update(
+    {
+      $left => \"$left_q + $offset",      #"
     }
+  );
 
-    # If the position we are grafting to is the rightmost child of root then there is nothing to do
-    if ($self->$root == $node->$root && $self->is_root && $self->$left + $arg_left > $node_root->$right) {
-        return;
+  # make the graft
+  $node->discard_changes;
+  my $node_left    = $node->$left;
+  my $node_right   = $node->$right;
+  my $level_offset = $arg_level - $node->$level;
+  my $graft_offset = $arg_left - $node->$left;
+
+  $self->discard_changes;
+  $rset->search({"me.$left" => {'>=', $node_left}, "me.$right" => {'<=', $node_right}, $root => $node->$root,})
+    ->update(
+    {
+      $left  => \"$left_q + $graft_offset",     #"
+      $right => \"$right_q + $graft_offset",    #"
+      $level => \"$level_q + $level_offset",    #"
+      $root  => $self->$root,
     }
+    );
 
-    # Determine the size of the branch to add in.
-    my $offset = $node->$right + 1 - $node->$left;
+  # adjust the right value of the root node to take into account the
+  # moved nodes
+  if (!$node_is_root) {
+    $node_root->discard_changes;
+    $node_root->$right($node_root->$right - $offset);
+    $node_root->update;
+  }
 
-    # Make a hole in the tree to accept the graft
-    $self->discard_changes;
-    $rset->search({
-        "me.$right" => {'>=', $arg_left},
-        $root       => $self->$root,
-    })->update({
-        $right      => \"$right_q + $offset",                         #"
-    });
-    $rset->search({
-        "me.$left"  => {'>=', $arg_left},
-        $root       => $self->$root,
-    })->update({
-        $left       => \"$left_q + $offset",                          #"
-    });
-
-    # make the graft
-    $node->discard_changes;
-    my $node_left   = $node->$left;
-    my $node_right  = $node->$right;
-    my $level_offset= $arg_level - $node->$level;
-    my $graft_offset= $arg_left - $node->$left;
-
-    $self->discard_changes;
-    $rset->search({
-        "me.$left"  => {'>=', $node_left},
-        "me.$right" => {'<=', $node_right},
-        $root       => $node->$root,
-    })->update({
-        $left       => \"$left_q + $graft_offset",                    #"
-        $right      => \"$right_q + $graft_offset",                   #"
-        $level      => \"$level_q + $level_offset",                   #"
-        $root       => $self->$root,
-    });
-
-    # adjust the right value of the root node to take into account the
-    # moved nodes
-    if (! $node_is_root) {
-        $node_root->discard_changes;
-        $node_root->$right($node_root->$right - $offset);
-        $node_root->update;
-    }
-
-    $self->discard_changes;
-    $node->discard_changes;
+  $self->discard_changes;
+  $node->discard_changes;
 }
 
 # Move nodes to end of tree
@@ -479,134 +479,121 @@ sub _graft_branch {
 # the tree since there will be nothing to the right of them
 #
 sub _move_to_end {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
-    my $storage = $self->result_source->schema->storage;
-    my $left_q = $storage->sql_maker->_quote($left);
-    my $right_q = $storage->sql_maker->_quote($right);
-    my $level_q = $storage->sql_maker->_quote($level);
+  my ($root, $left, $right, $level) = $self->_get_columns;
+  my $storage = $self->result_source->schema->storage;
+  my $left_q  = $storage->sql_maker->_quote($left);
+  my $right_q = $storage->sql_maker->_quote($right);
+  my $level_q = $storage->sql_maker->_quote($level);
 
-    my $rset    = $self->result_source->resultset;
+  my $rset = $self->result_source->resultset;
 
-    my $root_node   = $self->root;
-    my $old_left    = $self->$left;
-    my $old_right   = $self->$right;
-    my $offset      = $root_node->$right - $self->$left;
-    my $level_offset= $self->$level - 1;
+  my $root_node    = $self->root;
+  my $old_left     = $self->$left;
+  my $old_right    = $self->$right;
+  my $offset       = $root_node->$right - $self->$left;
+  my $level_offset = $self->$level - 1;
 
-    # If it is the root or already on the right, do nothing
-    if ($self->is_root || $old_right + 1 == $root_node->$right) {
-        return;
+  # If it is the root or already on the right, do nothing
+  if ($self->is_root || $old_right + 1 == $root_node->$right) {
+    return;
+  }
+
+  # Move all sub-nodes to the right (adjusting their level)
+  $self->discard_changes;
+  $rset->search({"me.$left" => {'>=', $old_left}, "me.$right" => {'<=', $old_right}, $root => $self->$root,})->update(
+    {
+      $left  => \"$left_q + $offset",           #"
+      $right => \"$right_q + $offset",          #"
+      $level => \"$level_q - $level_offset",    #"
     }
+  );
 
-    # Move all sub-nodes to the right (adjusting their level)
-    $self->discard_changes;
-    $rset->search({
-        "me.$left"  => {'>=', $old_left},
-        "me.$right" => {'<=', $old_right},
-        $root       => $self->$root,
-    })->update({
-        $left       => \"$left_q + $offset",                          #"
-        $right      => \"$right_q + $offset",                         #"
-        $level      => \"$level_q - $level_offset",                   #"
-    });
-
-    # Now move everything (except the root) back to fill in the gap
-    $offset = $self->$right + 1 - $self->$left;
-    $rset->search({
-        "me.$right" => {'>=', $old_right},
-        $left       => {'!=', 1},               # Root needs no adjustment
-        $root       => $self->$root,
-    })->update({
-        $right      => \"$right_q - $offset",                         #"
-    });
-    $rset->search({
-        "me.$left"  => {'>=', $old_right},
-        $root       => $self->$root,
-    })->update({
-        $left       => \"$left_q - $offset",                          #"
-    });
-    $self->discard_changes;
+  # Now move everything (except the root) back to fill in the gap
+  $offset = $self->$right + 1 - $self->$left;
+  $rset->search(
+    {
+      "me.$right" => {'>=', $old_right},
+      $left       => {'!=', 1},                 # Root needs no adjustment
+      $root       => $self->$root,
+    }
+    )->update(
+    {
+      $right => \"$right_q - $offset",          #"
+    }
+    );
+  $rset->search({"me.$left" => {'>=', $old_right}, $root => $self->$root,})->update(
+    {
+      $left => \"$left_q - $offset",            #"
+    }
+  );
+  $self->discard_changes;
 }
 
 # Convenience routine to get the names of the table columns
 #
 sub _get_columns {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my ($root, $left, $right, $level) = map {
-        $self->tree_columns->{"${_}_column"}
-    } qw/root left right level/;
+  my ($root, $left, $right, $level) = map { $self->tree_columns->{"${_}_column"} } qw/root left right level/;
 
-    return ($root, $left, $right, $level);
+  return ($root, $left, $right, $level);
 }
 
 # Attach a node as the rightmost child of the current node
 #
 sub attach_rightmost_child {
-    my $self = shift;
+  my $self = shift;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    foreach my $node (@_) {
-        $self->_attach_node($node, {
-            right_delta => 0,
-            $level      => $self->$level + 1,
-        });
-    }
-    return $self;
+  foreach my $node (@_) {
+    $self->_attach_node($node, {right_delta => 0, $level => $self->$level + 1,});
+  }
+  return $self;
 }
 *append_child = \&attach_rightmost_child;
 
 # Attach a node as the leftmost child of the current node
 #
 sub attach_leftmost_child {
-    my $self = shift;
+  my $self = shift;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    foreach my $node (@_) {
-        $self->_attach_node($node, {
-            left_delta  => 1,
-            $level      => $self->$level + 1,
-        });
-    }
-    return $self;
+  foreach my $node (@_) {
+    $self->_attach_node($node, {left_delta => 1, $level => $self->$level + 1,});
+  }
+  return $self;
 }
 *prepend_child = \&attach_leftmost_child;
 
 # Attach a node as a sibling to the right of self
 #
 sub attach_right_sibling {
-    my $self = shift;
+  my $self = shift;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    foreach my $node (@_) {
-        $self->_attach_node($node, {
-            right_delta => 1,
-            $level      => $self->$level,
-        });
-    }
-    return $self;
+  foreach my $node (@_) {
+    $self->_attach_node($node, {right_delta => 1, $level => $self->$level,});
+  }
+  return $self;
 }
 *attach_after = \&attach_right_sibling;
 
 # Attach a node as a sibling to the left of self
 #
 sub attach_left_sibling {
-    my $self = shift;
+  my $self = shift;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    foreach my $node (@_) {
-        $self->_attach_node($node, {
-            left_delta  => 0,
-            $level      => $self->$level,
-        });
-    }
-    return $self;
+  foreach my $node (@_) {
+    $self->_attach_node($node, {left_delta => 0, $level => $self->$level,});
+  }
+  return $self;
 }
 *attach_before = \&attach_left_sibling;
 
@@ -616,76 +603,132 @@ sub attach_left_sibling {
 # otherwise it comes from the primary key
 #
 sub take_cutting {
-    my $self = shift;
+  my ($self, $new_id) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
-    my $storage = $self->result_source->schema->storage;
-    my $left_q = $storage->sql_maker->_quote($left);
-    my $right_q = $storage->sql_maker->_quote($right);
-    my $level_q = $storage->sql_maker->_quote($level);
+  my ($root, $left, $right, $level) = $self->_get_columns;
+  my $storage = $self->result_source->schema->storage;
+  my $left_q  = $storage->sql_maker->_quote($left);
+  my $right_q = $storage->sql_maker->_quote($right);
+  my $level_q = $storage->sql_maker->_quote($level);
 
-    $self->result_source->schema->txn_do(sub {
-        my $p_lft = $self->$left;
-        my $p_rgt = $self->$right;
+  $self->result_source->schema->txn_do(
+    sub {
+      my $p_lft = $self->$left;
+      my $p_rgt = $self->$right;
 
-        my $pk = ($self->result_source->primary_columns)[0];
+      my $pk = ($self->result_source->primary_columns)[0];
 
-        $self->discard_changes;
-        my $root_id = $self->$root;
+      $self->discard_changes;
+      my $root_id = $self->$root;
 
-        my $p_diff = $p_rgt - $p_lft + 1;
-        my $l_diff = $self->$level;
-        my $new_id = $self->$pk;
-        # I'd love to use $self->descendants->update(...),
-        # but it dies with "_strip_cond_qualifiers() is unable to
-        # handle a condition reftype SCALAR".
-        # tough beans.
-        #
-        # Slice out the branch
-        $self->nodes_rs->search({
-            $root   => $root_id,
-            $left   => {'>=' => $p_lft },
-            $right  => {'<=' => $p_rgt },
-        })->update({
-            $left   => \"$left_q - $p_lft + 1",               #"
-            $right  => \"$right_q - $p_lft + 1",              #"
-            $root   => $new_id,
-            $level  => \"$level_q - $l_diff",                 #"
-        });
+      my $p_diff = $p_rgt - $p_lft + 1;
+      my $l_diff = $self->$level;
+      $new_id //= $self->$pk;
 
-        # Clean up the rest of the tree
-        # fix up parents
-        $self->nodes_rs->search({
-            $root  => $root_id,
-            $left  => { '<' => $p_lft },
-            $right => { '>' => $p_rgt },   
-        })->update({
-            $right => \"$right_q - $p_diff",              #"
-        });
+      # I'd love to use $self->descendants->update(...),
+      # but it dies with "_strip_cond_qualifiers() is unable to
+      # handle a condition reftype SCALAR".
+      # tough beans.
+      #
+      # Slice out the branch
+      $self->nodes_rs->search({$root => $root_id, $left => {'>=' => $p_lft}, $right => {'<=' => $p_rgt},})->update(
+        {
+          $left  => \"$left_q - $p_lft + 1",     #"
+          $right => \"$right_q - $p_lft + 1",    #"
+          $root  => $new_id,
+          $level => \"$level_q - $l_diff",       #"
+        }
+      );
 
-        # fix up the rest of the tree
-        $self->nodes_rs->search({
-            $root   => $root_id,
-            $left   => { '>=' => $p_rgt},
-        })->update({
-            $left   => \"$left_q  - $p_diff",                 #"
-            $right  => \"$right_q - $p_diff",                 #"
-        });
-    });
-    return $self;
+      # Clean up the rest of the tree
+      # fix up parents
+      $self->nodes_rs->search({$root => $root_id, $left => {'<' => $p_lft}, $right => {'>' => $p_rgt},})->update(
+        {
+          $right => \"$right_q - $p_diff",    #"
+        }
+      );
+
+      # fix up the rest of the tree
+      $self->nodes_rs->search({$root => $root_id, $left => {'>=' => $p_rgt},})->update(
+        {
+          $left  => \"$left_q  - $p_diff",    #"
+          $right => \"$right_q - $p_diff",    #"
+        }
+      );
+    }
+  );
+  return $self;
 }
 
 sub dissolve {
-    my $self = shift;
-    my ($root, $left, $right, $level) = $self->_get_columns;
-    my $pk = ($self->result_source->primary_columns)[0];
-    $self->nodes_rs->search({$root => $self->$root})->update({
-            $level  => 0,
-            $left   => 1,
-            $right  => 2,
-            $root   => \"$pk", #"
-    });
-    return $self;
+  my $self = shift;
+  my ($root, $left, $right, $level) = $self->_get_columns;
+  my $pk = ($self->result_source->primary_columns)[0];
+  $self->nodes_rs->search({$root => $self->$root})->update(
+    {
+      $level => 0,
+      $left  => 1,
+      $right => 2,
+      $root  => \"$pk",    #"
+    }
+  );
+  return $self;
+}
+
+# take_clone
+# Given a node, clone it from it's current tree and make the clone
+# the root of a new tree
+# NOTE2: The root ID must be specified for multi-key primary keys
+# otherwise it comes from the primary key
+#
+sub take_clone {
+  my ($self, $changes) = @_;
+  $changes ||= {};
+
+  my ($root, $left, $right, $level) = $self->_get_columns;
+  my $storage = $self->result_source->schema->storage;
+  my $left_q  = $storage->sql_maker->_quote($left);
+  my $right_q = $storage->sql_maker->_quote($right);
+  my $level_q = $storage->sql_maker->_quote($level);
+
+  my $copy;
+  $self->result_source->schema->txn_do(
+    sub {
+      my $p_lft = $self->$left;
+      my $p_rgt = $self->$right;
+
+      my $pk = ($self->result_source->primary_columns)[0];
+
+      $self->discard_changes;
+      my $root_id = $self->$root;
+
+      my $p_diff = $p_rgt - $p_lft + 1;
+      my $l_diff = $self->$level;
+
+      # Clone out the branch
+      my @nodes = $self->nodes_rs->search({$root => $root_id, $left => {'>=' => $p_lft}, $right => {'<=' => $p_rgt},});
+
+      for my $node (@nodes) {
+        my $special = {
+          $left  => $node->$left - $p_lft + 1,
+          $right => $node->$right - $p_lft + 1,
+          $root  => $changes->{$root},
+          $level => $node->$level - $l_diff
+        };
+        my $changed = {%$changes, %$special};
+        my $newNode = $node->copy($changed);
+
+        if (!defined($changes->{$root})) {
+          $changes->{$root} //= $newNode->$pk;
+          $newNode->update({$root => $changes->{$root}});
+        }
+
+        $copy = $newNode unless defined($copy);
+      }
+    }
+  );
+  $copy->discard_changes;
+  return $copy;
 }
 
 # Move a node to the left
@@ -693,14 +736,14 @@ sub dissolve {
 # returns the node it exchanged with on success, undef if it is already leftmost sibling
 #
 sub move_left {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my $previous = $self->left_sibling;
-    if (! $previous) {
-        return;
-    }
-    $previous->attach_left_sibling($self);
-    return $previous;
+  my $previous = $self->left_sibling;
+  if (!$previous) {
+    return;
+  }
+  $previous->attach_left_sibling($self);
+  return $previous;
 }
 *move_previous = \&move_left;
 
@@ -709,14 +752,14 @@ sub move_left {
 # returns the node it exchanged with on success, undef if it is already rightmost sibling
 #
 sub move_right {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my $next = $self->right_sibling;
-    if (! $next) {
-        return;
-    }
-    $next->attach_right_sibling($self);
-    return $next;
+  my $next = $self->right_sibling;
+  if (!$next) {
+    return;
+  }
+  $next->attach_right_sibling($self);
+  return $next;
 }
 *move_next = \&move_right;
 
@@ -724,28 +767,28 @@ sub move_right {
 # Make this node the leftmost sibling
 # returns the node it exchanged with on success, undef if it is already leftmost sibling
 sub move_leftmost {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my $first = $self->leftmost_sibling;
-    if (! $first) {
-        return;
-    }
-    $first->attach_left_sibling($self);
-    return $first;
+  my $first = $self->leftmost_sibling;
+  if (!$first) {
+    return;
+  }
+  $first->attach_left_sibling($self);
+  return $first;
 }
 *move_first = \&move_leftmost;
 
 # Make this node the rightmost sibling
 # returns 1 on success, 0 if it is already rightmost sibling
 sub move_rightmost {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my $last = $self->rightmost_sibling;
-    if (! $last) {
-        return;
-    }
-    $last->attach_right_sibling($self);
-    return $last;
+  my $last = $self->rightmost_sibling;
+  if (!$last) {
+    return;
+  }
+  $last->attach_right_sibling($self);
+  return $last;
 }
 *move_last = \&move_rightmost;
 
@@ -758,71 +801,62 @@ sub move_to {
 # Return a resultset of all siblings excluding the one called on
 #
 sub siblings {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    if ($self->is_root) {
-        # Root has no siblings
-        return;
-    }
-    if (wantarray()) {
-        my @siblings = $self->parent->children({
-            "me.$left" => {'!=', $self->$left },
-        });
-        return @siblings;
-    }
-    my $siblings_rs = $self->parent->children({
-        "me.$left" => {'!=', $self->$left },
-    });
-    return $siblings_rs;
+  if ($self->is_root) {
+
+    # Root has no siblings
+    return;
+  }
+  if (wantarray()) {
+    my @siblings = $self->parent->children({"me.$left" => {'!=', $self->$left},});
+    return @siblings;
+  }
+  my $siblings_rs = $self->parent->children({"me.$left" => {'!=', $self->$left},});
+  return $siblings_rs;
 }
 
 # Returns a resultset of all siblings to the left of this one
 #
 sub left_siblings {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    if ($self->is_root) {
-        # Root has no siblings
-        return;
-    }
-    if (wantarray()) {
-        my @siblings = $self->parent->children({
-            "me.$left" => {'<', $self->$left },
-        });
-        return @siblings;
-    }
-    my $siblings_rs = $self->parent->children({
-        "me.$left" => {'<', $self->$left },
-    });
-    return $siblings_rs;
+  if ($self->is_root) {
+
+    # Root has no siblings
+    return;
+  }
+  if (wantarray()) {
+    my @siblings = $self->parent->children({"me.$left" => {'<', $self->$left},});
+    return @siblings;
+  }
+  my $siblings_rs = $self->parent->children({"me.$left" => {'<', $self->$left},});
+  return $siblings_rs;
 }
 *previous_siblings = \&left_siblings;
 
 # Returns a resultset of all siblings to the right of this one
 #
 sub right_siblings {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    if ($self->is_root) {
-        # Root has no siblings
-        return;
-    }
-    if (wantarray()) {
-        my @siblings = $self->parent->children({
-            "me.$left" => {'>', $self->$left },
-        });
-        return @siblings;
-    }
-    my $siblings_rs = $self->parent->children({
-        "me.$left" => {'>', $self->$left },
-    });
-    return $siblings_rs;
+  if ($self->is_root) {
+
+    # Root has no siblings
+    return;
+  }
+  if (wantarray()) {
+    my @siblings = $self->parent->children({"me.$left" => {'>', $self->$left},});
+    return @siblings;
+  }
+  my $siblings_rs = $self->parent->children({"me.$left" => {'>', $self->$left},});
+  return $siblings_rs;
 }
 *next_siblings = \&right_siblings;
 
@@ -830,215 +864,191 @@ sub right_siblings {
 # return the sibling to the left of this one
 #
 sub left_sibling {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    if ($self->is_root) {
-        # Root has no siblings
-        return;
-    }
+  if ($self->is_root) {
 
-    my $sibling = $self->left_siblings->search({
-        "me.$right" => $self->$left - 1,
-        },{
-        rows        => 1,
-    })->first;
+    # Root has no siblings
+    return;
+  }
 
-    return $sibling;
+  my $sibling = $self->left_siblings->search({"me.$right" => $self->$left - 1,}, {rows => 1,})->first;
+
+  return $sibling;
 }
 *previous_sibling = \&left_sibling;
 
 # return the sibling to the right of this one
 #
 sub right_sibling {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    if ($self->is_root) {
-        # Root has no siblings
-        return;
-    }
+  if ($self->is_root) {
 
-    my $sibling = $self->right_siblings->search({
-        "me.$left" => $self->$right + 1,
-        },{
-        rows        => 1,
-    })->first;
+    # Root has no siblings
+    return;
+  }
 
-    return $sibling;
+  my $sibling = $self->right_siblings->search({"me.$left" => $self->$right + 1,}, {rows => 1,})->first;
+
+  return $sibling;
 }
 *next_sibling = \&right_sibling;
 
 # Returns the leftmost sibling or undef if this is the first sibling
 #
 sub leftmost_sibling {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    if ($self->is_root) {
-        # Root has no siblings
-        return;
-    }
+  if ($self->is_root) {
 
-    my $sibling = $self->left_siblings->search({},{
-        order_by    => "me.$left",
-        rows        => 1,
-    })->first;
+    # Root has no siblings
+    return;
+  }
 
-    return $sibling;
+  my $sibling = $self->left_siblings->search({}, {order_by => "me.$left", rows => 1,})->first;
+
+  return $sibling;
 }
 *first_sibling = \&leftmost_sibling;
 
 # Returns the rightmost sibling or undef if this is the rightmost sibling
 #
 sub rightmost_sibling {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    if ($self->is_root) {
-        # Root has no siblings
-        return;
-    }
+  if ($self->is_root) {
 
-    my $sibling = $self->right_siblings->search({},{
-        order_by    => "me.$left desc",
-        rows        => 1,
-    })->first;
+    # Root has no siblings
+    return;
+  }
 
-    return $sibling;
+  my $sibling = $self->right_siblings->search({}, {order_by => "me.$left desc", rows => 1,})->first;
+
+  return $sibling;
 }
 *last_sibling = \&rightmost_sibling;
 
 # Insert a sibling to the right of this one
 #
 sub create_right_sibling {
-    my ($self, $args) = @_;
+  my ($self, $args) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    return $self->_insert_node({
-        $left       => $self->$right + 1,
-        $right      => $self->$right + 2,
-        $level      => $self->$level,
-        other_args  => $args,
-    });
+  return $self->_insert_node(
+    {$left => $self->$right + 1, $right => $self->$right + 2, $level => $self->$level, other_args => $args,});
 }
 
 # Insert a sibling to the left of this one
 #
 sub create_left_sibling {
-    my ($self, $args) = @_;
+  my ($self, $args) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    return $self->_insert_node({
-        $left       => $self->$left,
-        $right      => $self->$left + 1,
-        $level      => $self->$level,
-        other_args  => $args,
-    });
+  return $self->_insert_node(
+    {$left => $self->$left, $right => $self->$left + 1, $level => $self->$level, other_args => $args,});
 }
 
 # Insert a rightmost child
 #
 sub create_rightmost_child {
-    my ($self, $args) = @_;
+  my ($self, $args) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    return $self->_insert_node({
-        $left       => $self->$right,
-        $right      => $self->$right + 1,
-        $level      => $self->$level + 1,
-        other_args  => $args,
-    });
+  return $self->_insert_node(
+    {$left => $self->$right, $right => $self->$right + 1, $level => $self->$level + 1, other_args => $args,});
 }
 
 # Insert a leftmost child
 #
 sub create_leftmost_child {
-    my ($self, $args) = @_;
+  my ($self, $args) = @_;
 
-    my ($root, $left, $right, $level) = $self->_get_columns;
+  my ($root, $left, $right, $level) = $self->_get_columns;
 
-    return $self->_insert_node({
-        $left       => $self->$left + 1,
-        $right      => $self->$left + 2,
-        $level      => $self->$level + 1,
-        other_args  => $args,
-    });
+  return $self->_insert_node(
+    {$left => $self->$left + 1, $right => $self->$left + 2, $level => $self->$level + 1, other_args => $args,});
 }
 
 # Given a primary key, determine if it is a descendant of
 # this object
 #
 sub has_descendant {
-    my ($self) = shift;
+  my ($self) = shift;
 
-    my $descendant = $self->result_source->resultset->find(@_);
-    if (! $descendant) {
-        return;
-    }
-
-    my ($root, $left, $right, $level) = $self->_get_columns;
-
-    if ($descendant->$left > $self->$left && $descendant->$right < $self->$right) {
-        return 1;
-    }
+  my $descendant = $self->result_source->resultset->find(@_);
+  if (!$descendant) {
     return;
+  }
+
+  my ($root, $left, $right, $level) = $self->_get_columns;
+
+  if ($descendant->$left > $self->$left && $descendant->$right < $self->$right) {
+    return 1;
+  }
+  return;
 }
 
 # Given a primary key, determine if it is an ancestor of
 # this object
 #
 sub has_ancestor {
-    my ($self) = shift;
+  my ($self) = shift;
 
-    my $ancestor = $self->result_source->resultset->find(@_);
-    if (! $ancestor) {
-        return;
-    }
-
-    my ($root, $left, $right, $level) = $self->_get_columns;
-
-    if ($self->$left > $ancestor->$left && $self->$right < $ancestor->$right) {
-        return 1;
-    }
+  my $ancestor = $self->result_source->resultset->find(@_);
+  if (!$ancestor) {
     return;
+  }
+
+  my ($root, $left, $right, $level) = $self->_get_columns;
+
+  if ($self->$left > $ancestor->$left && $self->$right < $ancestor->$right) {
+    return 1;
+  }
+  return;
 }
 
 # returns true if this node is a root node
 #
 sub is_root {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    if ($self->get_column( $self->tree_columns->{level_column} ) == 0) {
-        return 1;
-    }
-    return;
+  if ($self->get_column($self->tree_columns->{level_column}) == 0) {
+    return 1;
+  }
+  return;
 }
 
 # returns true if this node is a leaf node (no children)
 #
 sub is_leaf {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    if ($self->get_column( $self->tree_columns->{right_column}) - $self->get_column( $self->tree_columns->{left_column}) == 1) {
-        return 1;
-    }
-    return;
+  if ($self->get_column($self->tree_columns->{right_column}) - $self->get_column($self->tree_columns->{left_column})
+    == 1)
+  {
+    return 1;
+  }
+  return;
 }
 
 # returns true if this node is a branch (has children)
 #
 sub is_branch {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    return !$self->is_leaf;
+  return !$self->is_leaf;
 }
 
 1;
