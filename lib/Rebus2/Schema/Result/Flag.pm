@@ -71,17 +71,17 @@ __PACKAGE__->add_unique_constraint(name => [qw/name/]);
 
 =head1 RELATIONS
 
-=head2 list_roles
+=head2 roles
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ListRoleFlag>
+Related object: L<Rebus2::Schema::Result::RoleFlag>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_roles",
-  "Rebus2::Schema::Result::ListRoleFlag",
+  "roles",
+  "Rebus2::Schema::Result::RoleFlag",
   {"foreign.flag_id" => "self.id"},
   {cascade_copy      => 0, cascade_delete => 0},
 );

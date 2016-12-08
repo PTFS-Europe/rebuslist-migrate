@@ -106,13 +106,12 @@ __PACKAGE__->belongs_to(
 
 Type: belongs_to
 
-Related object: L<Rebus2::Schema::Result::ListRole>
+Related object: L<Rebus2::Schema::Result::Role>
 
 =cut
 
 __PACKAGE__->belongs_to(
-  "role",
-  "Rebus2::Schema::Result::ListRole",
+  "role", "Rebus2::Schema::Result::Role",
   {id            => "role_id"},
   {is_deferrable => 1, on_delete => "CASCADE"},
 );

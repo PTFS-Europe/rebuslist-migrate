@@ -21,12 +21,6 @@ __PACKAGE__->table("privileges");
 
 =head1 ACCESSORS
 
-=head2 id
-
-  data_type: 'integer'
-  is_auto_increment: 1
-  is_nullable: 0
-
 =head2 name
 
   data_type: 'text'
@@ -40,24 +34,11 @@ __PACKAGE__->table("privileges");
 =cut
 
 __PACKAGE__->add_columns(
-  "id", {data_type => "integer", is_auto_increment => 1, is_nullable => 0},
   "name",        {data_type => "text", is_nullable => 0},
   "description", {data_type => "text", is_nullable => 1},
 );
 
 =head1 PRIMARY KEY
-
-=over 4
-
-=item * L</id>
-
-=back
-
-=cut
-
-__PACKAGE__->set_primary_key("id");
-
-=head1 UNIQUE CONSTRAINTS
 
 =over 4
 
@@ -67,7 +48,7 @@ __PACKAGE__->set_primary_key("id");
 
 =cut
 
-__PACKAGE__->add_unique_constraint(name => [qw/name/]);
+__PACKAGE__->set_primary_key("name");
 
 =head1 RELATIONS
 
@@ -80,40 +61,91 @@ Related object: L<Rebus2::Schema::Result::UserPrivileges>
 =cut
 
 __PACKAGE__->has_many(
-  "users",
+  "user_privileges",
   "Rebus2::Schema::Result::UserPrivilege",
-  {"foreign.privilege_id" => "self.id"},
-  {cascade_copy           => 0, cascade_delete => 0},
+  {"foreign.privilege_name" => "self.name"},
+  {cascade_copy             => 0, cascade_delete => 0},
 );
 
-=head2 system_roles
+=head2 users
+
+Type: many_to_many
+
+Related object: L<Rebus2::Schema::Result::User>
+
+=cut
+
+__PACKAGE__->many_to_many("users" => "user_privileges", "user");
+
+=head2 usertype_privileges
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::SystemRolePrivilege>
+Related object: L<Rebus2::Schema::Result::UsertypePrivilege>
 
 =cut
 
 __PACKAGE__->has_many(
-  "system_roles",
-  "Rebus2::Schema::Result::SystemRolePrivilege",
-  {"foreign.privilege_id" => "self.id"},
-  {cascade_copy           => 0, cascade_delete => 0},
+  "usertype_privileges", "Rebus2::Schema::Result::UsertypePrivilege",
+  {"foreign.privilege_name" => "self.name"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
-=head2 list_roles
+=head2 usertypes
+
+Type: many_to_many
+
+Related object: L<Rebus2::Schema::Result::Usertype>
+
+=cut
+
+__PACKAGE__->many_to_many("usertypes" => "usertype_privileges", "usertype");
+
+=head2 responsibility_privileges
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ListRolePrivilege>
+Related object: L<Rebus2::Schema::Result::ResponsibilityPrivilege>
 
 =cut
 
 __PACKAGE__->has_many(
-  "list_roles",
-  "Rebus2::Schema::Result::ListRolePrivilege",
-  {"foreign.privilege_id" => "self.id"},
-  {cascade_copy           => 0, cascade_delete => 0},
+  "responsibility_privileges", "Rebus2::Schema::Result::ResponsibilityPrivilege",
+  {"foreign.privilege_name" => "self.name"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
-1
+=head2 responsibilities
+
+Type: many_to_many
+
+Related object: L<Rebus2::Schema::Result::Responsibility>
+
+=cut
+
+__PACKAGE__->many_to_many("responsibilities" => "responsibility_privileges", "responsibility");
+
+=head2 role_privilege
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::RolePrivilege>
+
+=cut
+
+__PACKAGE__->has_many(
+  "role_privileges",
+  "Rebus2::Schema::Result::RolePrivilege",
+  {"foreign.privilege_name" => "self.name"},
+  {cascade_copy             => 0, cascade_delete => 0},
+);
+
+=head2 roles
+
+Type: many_to_many
+
+Related object: L<Rebus2::Schema::Result::Role>
+
+=cut
+
+__PACKAGE__->many_to_many("roles" => "role_privileges", "role");
+
+1;

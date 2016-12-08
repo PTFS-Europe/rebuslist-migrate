@@ -1,12 +1,12 @@
 use utf8;
 
-package Rebus2::Schema::Result::ListRole;
+package Rebus2::Schema::Result::Role;
 
 use Mojo::JSON;
 
 =head1 NAME
 
-Rebus2::Schema::Result::ListRole
+Rebus2::Schema::Result::Role
 
 =cut
 
@@ -15,11 +15,11 @@ use warnings;
 
 use base 'DBIx::Class::Core';
 
-=head1 TABLE: C<list_role>
+=head1 TABLE: C<roles>
 
 =cut
 
-__PACKAGE__->table("list_roles");
+__PACKAGE__->table("roles");
 
 =head1 ACCESSORS
 
@@ -34,11 +34,17 @@ __PACKAGE__->table("list_roles");
   data_type: 'text'
   is_nullable: 0
 
+=head2 description
+
+  data_type: 'text'
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
   "id", {data_type => "integer", is_auto_increment => 1, is_nullable => 0,},
-  "name", {data_type => "text", is_nullable => 0},
+  "name",        {data_type => "text", is_nullable => 0},
+  "description", {data_type => "text", is_nullable => 1},
 );
 
 =head1 PRIMARY KEY
@@ -82,32 +88,52 @@ __PACKAGE__->has_many(
   {cascade_delete    => 1},
 );
 
-=head2 privileges
+=head2 role_privileges
 
 Type: has_many
 
-Related object: L<Rebus2::Schema::Result::ListRolePrivilege>
+Related object: L<Rebus2::Schema::Result::RolePrivilege>
 
 =cut
 
 __PACKAGE__->has_many(
-  "privileges", "Rebus2::Schema::Result::ListRolePrivilege",
+  "role_privileges", "Rebus2::Schema::Result::RolePrivilege",
   {"foreign.role_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
+);
+
+=head2 privileges
+
+Type: many_to_many
+
+Related object: L<Rebus2::Schema::Result::Privilege>
+
+=cut
+
+__PACKAGE__->many_to_many("privileges" => "role_privileges", "privilege");
+
+=head2 role_flags
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::RoleFlag>
+
+=cut
+
+__PACKAGE__->has_many(
+  "role_flags",
+  "Rebus2::Schema::Result::RoleFlag",
+  {"foreign.role_id" => "self.id"},
+  {cascade_copy      => 0, cascade_delete => 0},
 );
 
 =head2 flags
 
-Type: has_many
+Type: many_to_many
 
-Related object: L<Rebus2::Schema::Result::ListRoleFlag>
+Related object: L<Rebus2::Schema::Result::Flag>
 
 =cut
 
-__PACKAGE__->has_many(
-  "flags",
-  "Rebus2::Schema::Result::ListRoleFlag",
-  {"foreign.role_id" => "self.id"},
-  {cascade_copy      => 0, cascade_delete => 0},
-);
+__PACKAGE__->many_to_many("flags" => "role_flags", "flag");
 
 1;

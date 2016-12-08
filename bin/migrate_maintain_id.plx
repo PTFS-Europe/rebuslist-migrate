@@ -107,8 +107,8 @@ for my $rl1_list ( $rl1_listResults->all ) {
             course_identifier =>
               decode_entities( $rl1_list->course_identifier ),
             year                     => $rl1_list->year,
-            published                => $rl1_list->published_yn eq 'y' ? 1 : 0,
-            inherited_published      => $rl1_list->published_yn eq 'y' ? 1 : 0,
+            suppressed               => $rl1_list->published_yn eq 'y' ? 0 : 1,
+            inherited_suppressed     => $rl1_list->published_yn eq 'y' ? 0 : 1,
             validity_start           => $start->set_year( $rl1_list->year ),
             inherited_validity_start => $start->set_year( $rl1_list->year ),
             validity_end =>
@@ -178,10 +178,10 @@ sub recurse {
                 # Add new tree
                 $rl2_unit = $rebus2->resultset('List')->create(
                     {
-                        name      => decode_entities( $rl1_unit->name ),
-                        source_id => 1,
-                        published => 1,
-                        inherited_published      => 1,
+                        name       => decode_entities( $rl1_unit->name ),
+                        source_id  => 1,
+                        suppressed => 0,
+                        inherited_suppressed     => 0,
                         root_id                  => $rootID,
                         validity_start           => $start,
                         inherited_validity_start => $start,
@@ -214,10 +214,10 @@ sub recurse {
                 # Add rightmost child to existing node
                 $rl2_unit = $parentResult->create_rightmost_child(
                     {
-                        name      => decode_entities( $rl1_unit->name ),
-                        source_id => 1,
-                        published => 1,
-                        inherited_published      => 1,
+                        name       => decode_entities( $rl1_unit->name ),
+                        source_id  => 1,
+                        suppressed => 0,
+                        inherited_suppressed     => 0,
                         validity_start           => $start,
                         inherited_validity_start => $start,
                         validity_end             => $end,
@@ -300,14 +300,14 @@ for my $rl1_user (@rl1_userResults) {
       defined( $rl1_user->login ) ? $rl1_user->login : 'login' . $current_line;
 
     # Add user
-    my $system_role =
+    my $usertype_name =
       defined( $role_map->{ $rl1_user->type_id } )
       ? $role_map->{ $rl1_user->type_id }
       : 'public';
     my $rl2_user = $rebus2->resultset('User')->find_or_create(
         {
             name        => $rl1_user->name,
-            system_role => { name => $system_role },
+            usertype => { name => $usertype_name },
             login       => $login,
             password    => $rl1_user->password,
             email       => $email,
@@ -656,8 +656,9 @@ $permission_progress->minor(0);
 $next_update  = 0;
 $current_line = 0;
 
-my $rl2_editorID = $rebus2->resultset('ListRole')
-  ->search( { name => 'librarian' }, { rows => 1 } )->single->get_column('id');
+my $rl2_editorID =
+  $rebus2->resultset('Role')->search( { name => 'librarian' }, { rows => 1 } )
+  ->single->get_column('id');
 
 my @rl1_user_org_unit_permissionResults =
   $rebus1->resultset('UserOrgUnitPermission')
@@ -752,9 +753,9 @@ my @rl1_owners =
   ->search( undef,
     { order_by => { -asc => [qw/list_id owner_id leader_yn/] } } )->all;
 
-my $roleResult = $rebus2->resultset('ListRole')->find( { name => 'leader' } );
+my $roleResult = $rebus2->resultset('Role')->find( { name => 'leader' } );
 my $leaderID = $roleResult->id;
-$roleResult = $rebus2->resultset('ListRole')->find( { name => 'owner' } );
+$roleResult = $rebus2->resultset('Role')->find( { name => 'owner' } );
 my $ownerID = $roleResult->id;
 
 for my $rl1_owner (@rl1_owners) {

@@ -153,7 +153,7 @@ __PACKAGE__->table("lists");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
-=head2 published
+=head2 suppressed
 
   data_type: 'tinyint'
   default_value: 0
@@ -204,7 +204,7 @@ __PACKAGE__->table("lists");
   datetime_undef_if_invalid: 1
   is_nullable: 0
 
-=head2 inherited_published
+=head2 inherited_suppressed
 
   data_type: 'tinyint'
   is_nullable: 0
@@ -264,7 +264,7 @@ __PACKAGE__->add_columns(
   {data_type => "timestamp", datetime_undef_if_invalid => 1, is_nullable => 1},
   "validity_end",
   {data_type => "timestamp", datetime_undef_if_invalid => 1, is_nullable => 1},
-  "published",
+  "suppressed",
   {data_type => "tinyint", default_value => 0, is_nullable => 0},
   "wip",
   {data_type => "tinyint", default_value => 0, is_nullable => 0},
@@ -282,7 +282,7 @@ __PACKAGE__->add_columns(
   {data_type => "timestamp", datetime_undef_if_invalid => 1, is_nullable => 0},
   "inherited_validity_end",
   {data_type => "timestamp", datetime_undef_if_invalid => 1, is_nullable => 0},
-  "inherited_published",
+  "inherited_suppressed",
   {data_type => "tinyint", is_nullable => 0},
 );
 
@@ -335,14 +335,14 @@ __PACKAGE__->tree_columns(
 
 =item * L</validity_end>
 
-=item * L</published>
+=item * L</suppressed>
 
 =item * L</summary>
 
 =cut
 
 __PACKAGE__->inheritable_columns(parent =>
-    [qw/no_students ratio_books ratio_students course_identifier year validity_start validity_end published summary/]);
+    [qw/no_students ratio_books ratio_students course_identifier year validity_start validity_end suppressed summary/]);
 
 =head1 RELATIONS
 
@@ -487,6 +487,19 @@ __PACKAGE__->belongs_to(
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
 
+=head2 list_actions
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::ListAction>
+
+=cut
+
+__PACKAGE__->has_many(
+  "list_actions", "Rebus2::Schema::Result::ListAction",
+  {"foreign.list_id" => "self.id"}, {cascade_copy => 1, cascade_delete => 1},
+);
+
 =head1 CUSTOM ACCESSORS
 
 =head2 users
@@ -532,27 +545,27 @@ sub materials {
 
 =head1 FILTERED COLUMNS
 
-=head2 published
+=head2 suppressed
 
 Type: Boolean
 
 =cut
 
 __PACKAGE__->filter_column(
-  published => {
+  suppressed => {
     filter_to_storage => sub { $_[1] ? 1 : 0 },
     filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
   }
 );
 
-=head2 inherited_published
+=head2 inherited_suppressed
 
 Type: Boolean
 
 =cut
 
 __PACKAGE__->filter_column(
-  inherited_published => {
+  inherited_suppressed => {
     filter_to_storage => sub { $_[1] ? 1 : 0 },
     filter_from_storage => sub { $_[1] ? Mojo::JSON->true : Mojo::JSON->false }
   }

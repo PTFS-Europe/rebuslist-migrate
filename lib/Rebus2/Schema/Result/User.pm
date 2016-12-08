@@ -46,7 +46,7 @@ __PACKAGE__->table("users");
   data_type: 'text'
   is_nullable: 0
 
-=head2 system_role_id
+=head2 usertype_id
 
   data_type: 'integer'
   is_foreign_key: 1
@@ -94,7 +94,7 @@ __PACKAGE__->add_columns(
   {data_type => "integer", is_auto_increment => 1, is_nullable => 0,},
   "name",
   {data_type => "text", is_nullable => 0},
-  "system_role_id",
+  "usertype_id",
   {data_type => "integer", is_foreign_key => 1, is_nullable => 1,},
   "login",
   {data_type => "text", is_nullable => 1},
@@ -189,6 +189,68 @@ __PACKAGE__->has_many(
   {"foreign.user_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
 );
 
+=head2 explicit_list_user_roles
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::ListUserRole>
+
+=cut
+
+__PACKAGE__->has_many(
+  "explicit_list_user_roles",
+  "Rebus2::Schema::Result::ListUserRole",
+  sub {
+    my $args = shift;
+
+    return (
+      {
+        "$args->{foreign_alias}.user_id" => {'-ident' => "$args->{self_alias}.id"},
+        "$args->{foreign_alias}.list_id" => {'-ident' => "$args->{self_alias}.inherited_from"},
+      },
+      !$args->{self_result_object}
+      ? ()
+      : {
+        "$args->{foreign_alias}.user_id" => $args->{self_result_object}->id,
+        "$args->{foreign_alias}.list_id" => {'-ident' => "$args->{foreign_alias}.inherited_from"},
+      },
+      !$args->{foreign_values} ? () : {"$args->{self_alias}.id" => $args->{foreign_values}{user_id}}
+    );
+  },
+  {cascade_copy => 0, cascade_delete => 0},
+);
+
+=head2 implicit_list_user_roles
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::ListUserRole>
+
+=cut
+
+__PACKAGE__->has_many(
+  "implicit_list_user_roles",
+  "Rebus2::Schema::Result::ListUserRole",
+  sub {
+    my $args = shift;
+
+    return (
+      {
+        "$args->{foreign_alias}.user_id" => {-ident => "$args->{self_alias}.id"},
+        "$args->{foreign_alias}.list_id" => {'!=' => {'-ident' => "$args->{self_alias}.inherited_from"}},
+      },
+      !$args->{self_result_object}
+      ? ()
+      : {
+        "$args->{foreign_alias}.user_id" => $args->{self_result_object}->id,
+        "$args->{foreign_alias}.list_id" => {'!=' => {'-ident' => "$args->{foreign_alias}.inherited_from"}},
+      },
+      !$args->{foreign_values} ? () : {"$args->{self_alias}.id" => $args->{foreign_values}{user_id}}
+    );
+  },
+  {cascade_copy => 0, cascade_delete => 0},
+);
+
 =head2 lists
 
 Type: many_to_many
@@ -208,8 +270,10 @@ Related object: L<Rebus2::Schema::Result::Request>
 =cut
 
 __PACKAGE__->has_many(
-  "requests", "Rebus2::Schema::Result::Request",
-  {"foreign.requester_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
+  "requests",
+  "Rebus2::Schema::Result::Request",
+  {"foreign.requester_id" => "self.id"},
+  {cascade_copy           => 0, cascade_delete => 0},
 );
 
 =head2 assigned_requests
@@ -221,22 +285,24 @@ Related object: L<Rebus2::Schema::Result::Request>
 =cut
 
 __PACKAGE__->has_many(
-  "assigned_requests", "Rebus2::Schema::Result::Request",
-  {"foreign.assignee_id" => "self.id"}, {cascade_copy => 0, cascade_delete => 0},
+  "assigned_requests",
+  "Rebus2::Schema::Result::Request",
+  {"foreign.assignee_id" => "self.id"},
+  {cascade_copy          => 0, cascade_delete => 0},
 );
 
-=head2 system_role
+=head2 usertype
 
 Type: belongs_to
 
-Related object: L<Rebus2::Schema::Result::SystemRole>
+Related object: L<Rebus2::Schema::Result::Usertype>
 
 =cut
 
 __PACKAGE__->belongs_to(
-  "system_role",
-  "Rebus2::Schema::Result::SystemRole",
-  {id            => "system_role_id"},
+  "usertype",
+  "Rebus2::Schema::Result::Usertype",
+  {id            => "usertype_id"},
   {is_deferrable => 1, join_type => "LEFT", on_delete => "RESTRICT", on_update => "RESTRICT",},
 );
 

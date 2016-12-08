@@ -159,6 +159,36 @@ __PACKAGE__->belongs_to(
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
 
+=head2 buffermessages
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::Buffermessage>
+
+=cut
+
+__PACKAGE__->has_many(
+  "buffermessages",
+  "Rebus2::Schema::Result::Buffermessage",
+  {"foreign.buffer_id" => "self.list_id"},
+  {cascade_copy        => 0, cascade_delete => 0},
+);
+
+=head2 list_actions
+
+Type: has_many
+
+Related object: L<Rebus2::Schema::Result::ListAction>
+
+=cut
+
+__PACKAGE__->has_many(
+  "list_actions",
+  "Rebus2::Schema::Result::ListAction",
+  {"foreign.list_id" => "self.list_id"},
+  {cascade_copy      => 0, cascade_delete => 0},
+);
+
 =head2 list_user_roles
 
 Type: has_many

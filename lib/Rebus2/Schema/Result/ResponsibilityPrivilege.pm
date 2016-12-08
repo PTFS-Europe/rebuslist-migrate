@@ -1,10 +1,10 @@
 use utf8;
 
-package Rebus2::Schema::Result::UserPrivilege;
+package Rebus2::Schema::Result::ResponsibilityPrivilege;
 
 =head1 NAME
 
-Rebus2::Schema::Result::UserPrivilege
+Rebus2::Schema::Result::ResponsibilityPrivilege
 
 =cut
 
@@ -13,15 +13,15 @@ use warnings;
 
 use base 'DBIx::Class::Core';
 
-=head1 TABLE: C<user_privileges>
+=head1 TABLE: C<responsibility_privileges>
 
 =cut
 
-__PACKAGE__->table("user_privileges");
+__PACKAGE__->table("responsibility_privileges");
 
 =head1 ACCESSORS
 
-=head2 user_id
+=head2 responsibility_id
 
   data_type: 'integer'
   is_foreign_key: 1
@@ -36,15 +36,15 @@ __PACKAGE__->table("user_privileges");
 =cut
 
 __PACKAGE__->add_columns(
-  "user_id",        {data_type => "integer", is_foreign_key => 1, is_nullable => 0,},
-  "privilege_name", {data_type => "text",    is_foreign_key => 1, is_nullable => 0,},
+  "responsibility_id", {data_type => "integer", is_foreign_key => 1, is_nullable => 0,},
+  "privilege_name",    {data_type => "text",    is_foreign_key => 1, is_nullable => 0,},
 );
 
 =head1 PRIMARY KEY
 
 =over 4
 
-=item * L</user_id>
+=item * L</responsibility_id>
 
 =item * L</privilege_name>
 
@@ -52,21 +52,22 @@ __PACKAGE__->add_columns(
 
 =cut
 
-__PACKAGE__->set_primary_key("user_id", "privilege_name");
+__PACKAGE__->set_primary_key("responsibility_id", "privilege_name");
 
 =head1 RELATIONS
 
-=head2 user
+=head2 responsibility
 
 Type: belongs_to
 
-Related object: L<Rebus2::Schema::Result::User>
+Related object: L<Rebus2::Schema::Result::Responsibility>
 
 =cut
 
 __PACKAGE__->belongs_to(
-  "user", "Rebus2::Schema::Result::User",
-  {"foreign.id"  => "self.user_id"},
+  "responsibility",
+  "Rebus2::Schema::Result::Responsibility",
+  {"foreign.id"  => "self.responsibility_id"},
   {is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT"},
 );
 
