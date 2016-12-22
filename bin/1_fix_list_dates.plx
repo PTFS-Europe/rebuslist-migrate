@@ -26,19 +26,27 @@ my $listResults = $rebus->resultset('List')->search({level => 0, id => {'!=' => 
 
 for my $listResult ($listResults->all) {
   my $parent_validity_start = {$listResult->level => $listResult->validity_start};
+  my $parent_validity_end = {$listResult->level => $listResult->validity_end};
   for my $descendantResult ($listResult->descendants->all) {
 
     # Set Hash for next cycle
     $parent_validity_start->{$descendantResult->level} = $descendantResult->validity_start;
+    $parent_validity_end->{$descendantResult->level} = $descendantResult->validity_end;
 
     # Fix database value
     my $parent_level = $descendantResult->level - 1;
     if (DateTime->compare($descendantResult->validity_start, $parent_validity_start->{$parent_level}) == 0) {
-      print "Fixing " . $descendantResult->validity_start . " eq $parent_validity_start->{$parent_level}\n";
       $descendantResult->update({validity_start => undef});
     }
     elsif (DateTime->compare($descendantResult->validity_start, $parent_validity_start->{$parent_level}) == -1) {
-      print "Oh Noes! " . $descendantResult->validity_start . " lt $parent_validity_start->{$parent_level}\n";
+      print "Oh Noes! Start: " . $descendantResult->validity_start . " lt $parent_validity_start->{$parent_level}\n";
+    }
+    
+    if (DateTime->compare($descendantResult->validity_end, $parent_validity_end->{$parent_level}) == 0) {
+      $descendantResult->update({validity_end => undef});
+    }
+    elsif (DateTime->compare($descendantResult->validity_end, $parent_validity_end->{$parent_level}) == 1) {
+      print "Oh Noes! End: " . $descendantResult->validity_end . " gt $parent_validity_end->{$parent_level}\n";
     }
   }
 }
