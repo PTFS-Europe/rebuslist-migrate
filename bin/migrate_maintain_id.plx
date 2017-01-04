@@ -316,6 +316,8 @@ $current_line = 0;
 
 my @rl1_sequenceResults
   = $rebus1->resultset('Sequence')->search(undef, {order_by => {-asc => [qw/list_id rank/]}})->all;
+my $sublistID;
+my $lastListID;
 
 for my $rl1_sequence (@rl1_sequenceResults) {
 
@@ -323,6 +325,13 @@ for my $rl1_sequence (@rl1_sequenceResults) {
   $current_line++;
   $next_update = $material_progress->update($current_line) if $current_line > $next_update;
 
+  # Reset list tracking variables
+  if (!defined($lastListID) || ($lastListID != $rl1_sequence->list_id)) {
+    $sublistID = undef;
+  }
+  $lastListID = $rl1_sequence->list_id;
+
+  # Work on material if list exists in rl2
   if (exists($list_links->{$rl1_sequence->list_id})) {
 
     # Get material
@@ -333,19 +342,41 @@ for my $rl1_sequence (@rl1_sequenceResults) {
       # Handle Note/Private Note
       if ($rl1_material->material_type_id == 12) {
 
-        # Note
+        # Public Note
         my $listResult = $rebus2->resultset('List')->find({id => $list_links->{$rl1_sequence->list_id}});
-        if (defined($listResult->public_note)) {
-          $listResult->update({public_note => $listResult->public_note . "\n\n" . $rl1_material->title});
+        if (defined($config->{'split_on_notes'}) && $config->{'split_on_notes'}) {
+
+          # Add rightmost child sublist to list parent
+          my $rl2_sublistResult = $listResult->create_rightmost_child(
+            {
+              name                     => decode_entities($rl1_material->title),
+              source_id                => 1,
+              suppressed               => 0,
+              inherited_suppressed     => 0,
+              validity_start           => $start,
+              inherited_validity_start => $start,
+              validity_end             => $end,
+              inherited_validity_end   => $end,
+              type                     => 'sublist'
+            }
+          );
+          $rl2_sublistResult->update({'source_uuid' => $config->{'code'} . "-" . $rl2_unit->id});
+
+          $sublistID = $rl2_sublistResult->id;
         }
         else {
-          $listResult->update({public_note => $rl1_material->title});
+          my $listResult = $rebus2->resultset('List')->find({id => $list_links->{$rl1_sequence->list_id}});
+          if (defined($listResult->public_note)) {
+            $listResult->update({public_note => $listResult->public_note . "\n\n" . $rl1_material->title});
+          }
+          else {
+            $listResult->update({public_note => $rl1_material->title});
+          }
         }
       }
       elsif ($rl1_material->material_type_id == 13) {
 
         # Private Note
-        my $listResult = $rebus2->resultset('List')->find({id => $list_links->{$rl1_sequence->list_id}});
         if (defined($listResult->private_note)) {
           $listResult->update({private_note => $listResult->private_note . "\n\n" . $rl1_material->title});
         }
@@ -464,9 +495,9 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         # Link material to list
         my $rl2_sequence = $rebus2->resultset('ListMaterial')->find_or_create(
           {
-            list_id     => $list_links->{$rl1_sequence->list_id},
+            list_id => defined($sublistID) ? $sublistID : $list_links->{$rl1_sequence->list_id},
             material_id => $rl2_material->id,
-            rank        => $rl1_sequence->rank,                     #FIXME: We cannot rely on rl1 rank being correct!
+            rank        => $rl1_sequence->rank,    #FIXME: We cannot rely on rl1 rank being correct!
             dislikes => defined($rl1_rating) ? $rl1_rating->not_likes : 0,
             likes => defined($rl1_rating) ? $rl1_rating->likes : 0,
             note => $rl1_note,
@@ -494,7 +525,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
               {
                 material_id => $rl2_material->id,
                 tag_id      => $rl2_tag->id,
-                list_id     => $list_links->{$rl1_sequence->list_id}
+                list_id     => defined($sublistID) ? $sublistID : $list_links->{$rl1_sequence->list_id}
               },
               {key => 'primary'}
             );
