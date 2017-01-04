@@ -1,9 +1,12 @@
-#!/home/rebus/.plenv/versions/5.20.2/bin/perl5.20.2
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use feature qw( say );
 
-use local::lib ("/home/rebus/.plenv/versions/5.20.2", "/home/rebus/rebus-list/local");
-BEGIN { unshift @INC, "/home/rebus/rebus-list/lib" }
+use FindBin;
+BEGIN { unshift @INC, "$FindBin::Bin/../lib" }
 
-use Rebus::Schema;
+use Rebus2::Schema;
 use DateTime;
 use Getopt::Long;
 use YAML::XS qw/LoadFile/;
@@ -50,3 +53,5 @@ for my $listResult ($listResults->all) {
     }
   }
 }
+
+1;
