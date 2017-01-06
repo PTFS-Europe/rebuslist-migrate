@@ -443,7 +443,74 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         my $rl2_material = addMaterial($rl1_material->in_stock_yn eq 'y' ? 1 : 0,
           $csl, $owner, $owner_uuid, $eBook, $web, $lms, $full, $delayed);
 
-        # Add analytic link (if chapter or article)
+        # Get list note
+        my $rl1_note = $rl1_material->note;
+
+        # Get rating
+        my $rl1_rating = $rebus1->resultset('MaterialRating')->find({material_id => $rl1_sequence->material_id});
+
+        # Link material to list (ensuring no loses due to duplicate misidentification)
+        my $rl2_sequence = $rebus2->resultset('ListMaterial')->find(
+          {
+            list_id => defined($sublistID) ? $sublistID : $list_links->{$rl1_sequence->list_id},
+            material_id => $rl2_material->id
+          },
+          {key => 'primary'}
+        );
+
+        # If Exists, create new 'local' copy
+        if (defined($rl2_sequence)) {
+
+          # Add duplicate material as a manual entry :(
+          # If the material is a dupe it's most likely an analytic where the detail is in the note field,
+          # as such we should convert the material to 'chapter' and move the note into the title.
+          $csl->{'container-title'}       = $csl->{'title'};
+          $csl->{'title'}                 = $rl1_material->note;
+          $csl->{'container-title-short'} = $csl->{'title-short'};
+          $csl->{'title-short'}           = undef;
+          $csl->{'container-author'}      = $csl->{'author'} $csl->{'author'} = undef;
+          $csl->{'type'}                  = 'chapter';
+          $owner_uuid                     = '1-';
+
+          $rl2_material = addMaterial($rl1_material->in_stock_yn eq 'y' ? 1 : 0,
+            $csl, $owner, $owner_uuid, $eBook, $web, $lms, $full, $delayed);
+
+          $rl2_sequence = $rebus2->resultset('ListMaterial')->create(
+            {
+              list_id => defined($sublistID) ? $sublistID : $list_links->{$rl1_sequence->list_id},
+              material_id => $rl2_material->id,
+              rank        => $rl1_sequence->rank,    #FIXME: We cannot rely on rl1 rank being correct!
+              dislikes => defined($rl1_rating) ? $rl1_rating->not_likes : 0,
+              likes => defined($rl1_rating) ? $rl1_rating->likes : 0,
+              note => $rl1_note,
+              category_id => $erbo_links->{$rl1_material->erbo_id},
+              source_id   => 1,
+              source_uuid => $config->{'code'} . '-' . $rl2_material->id
+            },
+            {key => 'primary'}
+          );
+        }
+
+        # Else add to list as is
+        else {
+
+          $rl2_sequence = $rebus2->resultset('ListMaterial')->create(
+            {
+              list_id => defined($sublistID) ? $sublistID : $list_links->{$rl1_sequence->list_id},
+              material_id => $rl2_material->id,
+              rank        => $rl1_sequence->rank,    #FIXME: We cannot rely on rl1 rank being correct!
+              dislikes => defined($rl1_rating) ? $rl1_rating->not_likes : 0,
+              likes => defined($rl1_rating) ? $rl1_rating->likes : 0,
+              note => $rl1_note,
+              category_id => $erbo_links->{$rl1_material->erbo_id},
+              source_id   => 1,
+              source_uuid => $config->{'code'} . '-' . $rl2_material->id
+            },
+            {key => 'primary'}
+          );
+        }
+
+        # Add material analytic link (if chapter or article)
         if ($csl->{type} eq 'article' || $csl->{type} eq 'chapter') {
           $owner      = $config->{'connector'};
           $owner_uuid = undef;
@@ -484,114 +551,6 @@ for my $rl1_sequence (@rl1_sequenceResults) {
                 ->find_or_create({container_id => $containerResult->id, analytic_id => $rl2_material->id});
             }
           }
-        }
-
-        # Get list note
-        my $rl1_note = $rl1_material->note;
-
-        # Get rating
-        my $rl1_rating = $rebus1->resultset('MaterialRating')->find({material_id => $rl1_sequence->material_id});
-
-        # Link material to list (ensuring no loses due to duplicate misidentification)
-        my $rl2_sequence = $rebus2->resultset('ListMaterial')->find(
-          {
-            list_id => defined($sublistID) ? $sublistID : $list_links->{$rl1_sequence->list_id},
-            material_id => $rl2_material->id
-          },
-          {key => 'primary'}
-        );
-
-        # If Exists, create new 'local' copy
-        if (defined($rl2_sequence)) {
-
-          # Add duplicate material as a manual entry :(
-          # If the material is a dupe it's most likely an analytic where the detail is in the note field,
-          # as such we should convert the material to 'chapter' and move the note into the title.
-          $csl->{'container-title'}       = $csl->{'title'};
-          $csl->{'title'}                 = $rl1_material->note;
-          $csl->{'container-title-short'} = $csl->{'title-short'};
-          $csl->{'title-short'}           = undef;
-          $csl->{'container-author'}      = $csl->{'author'} $csl->{'author'} = undef;
-          $csl->{'type'}                  = 'chapter';
-          $owner_uuid                     = '1-';
-
-          $rl2_material = addMaterial($rl1_material->in_stock_yn eq 'y' ? 1 : 0,
-            $csl, $owner, $owner_uuid, $eBook, $web, $lms, $full, $delayed);
-
-          # Add analytic link (is chapter)
-          $owner      = $config->{'connector'};
-          $owner_uuid = undef;
-          if ( defined($rl1_material->print_sysno)
-            && $rl1_material->print_sysno ne ''
-            && !($rl1_material->print_sysno =~ /^\s*$/))
-          {
-            $owner_uuid = $rl1_material->print_sysno;
-            $owner_uuid =~ s/\^/,/g;
-          }
-          elsif (defined($rl1_material->elec_sysno)
-            && $rl1_material->elec_sysno ne ''
-            && !($rl1_material->elec_sysno =~ /^\s*$/))
-          {
-            $owner_uuid = $rl1_material->elec_sysno;
-            $owner_uuid =~ s/\^/,/g;
-          }
-          if (defined($owner_uuid)) {
-            my $containerResult = $rebus2->resultset('Material')->find({owner => $owner, owner_uuid => $owner_uuid});
-
-            if (defined($containerResult)) {
-              $rebus2->resultset('MaterialAnalytic')
-                ->find_or_create({container_id => $containerResult->id, analytic_id => $rl2_material->id});
-            }
-            else {
-              my $metadata = {id => [$owner_uuid], type => 'unknown', title => 'Skelital Container Record'};
-              $containerResult = $rebus2->resultset('Material')->create(
-                {
-                  in_stock   => Mojo::JSON->true,
-                  metadata   => $metadata,
-                  owner      => $owner,
-                  owner_uuid => $owner_uuid,
-                  electronic => Mojo::JSON->false
-                }
-              );
-
-              $rebus2->resultset('MaterialAnalytic')
-                ->find_or_create({container_id => $containerResult->id, analytic_id => $rl2_material->id});
-            }
-          }
-
-          $rl2_sequence = $rebus2->resultset('ListMaterial')->create(
-            {
-              list_id => defined($sublistID) ? $sublistID : $list_links->{$rl1_sequence->list_id},
-              material_id => $rl2_material->id,
-              rank        => $rl1_sequence->rank,    #FIXME: We cannot rely on rl1 rank being correct!
-              dislikes => defined($rl1_rating) ? $rl1_rating->not_likes : 0,
-              likes => defined($rl1_rating) ? $rl1_rating->likes : 0,
-              note => $rl1_note,
-              category_id => $erbo_links->{$rl1_material->erbo_id},
-              source_id   => 1,
-              source_uuid => $config->{'code'} . '-' . $rl2_material->id
-            },
-            {key => 'primary'}
-          );
-        }
-
-        # Else add to list as is
-        else {
-
-          $rl2_sequence = $rebus2->resultset('ListMaterial')->create(
-            {
-              list_id => defined($sublistID) ? $sublistID : $list_links->{$rl1_sequence->list_id},
-              material_id => $rl2_material->id,
-              rank        => $rl1_sequence->rank,    #FIXME: We cannot rely on rl1 rank being correct!
-              dislikes => defined($rl1_rating) ? $rl1_rating->not_likes : 0,
-              likes => defined($rl1_rating) ? $rl1_rating->likes : 0,
-              note => $rl1_note,
-              category_id => $erbo_links->{$rl1_material->erbo_id},
-              source_id   => 1,
-              source_uuid => $config->{'code'} . '-' . $rl2_material->id
-            },
-            {key => 'primary'}
-          );
         }
 
         # Get material tags
