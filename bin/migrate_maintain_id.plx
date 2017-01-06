@@ -926,6 +926,14 @@ sub mapCSL {
     # Secondary Title
     $csl->{'container-title'} = $material->{secondary_title} if exists($material->{secondary_title});
 
+    # Author
+    $csl->{'author'} = [];
+    push @{$csl->{author}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
+    
+    # Secondary Author
+    $csl->{'container-author'} = [];
+    push @{$csl->{'container-author'}}, {literal => $material->{authors}} if exists($material->{authors});
+
     # Start Page
     $csl->{'page-first'} = $material->{spage} if exists($material->{spage});
 
