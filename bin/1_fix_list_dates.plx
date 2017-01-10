@@ -6,6 +6,7 @@ use feature qw( say );
 use FindBin;
 BEGIN { unshift @INC, "$FindBin::Bin/../lib" }
 
+use Carp;
 use Rebus2::Schema;
 use DateTime;
 use Getopt::Long;
