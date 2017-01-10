@@ -360,7 +360,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
               type                     => 'sublist'
             }
           );
-          $rl2_sublistResult->update({'source_uuid' => $config->{'code'} . "-" . $rl2_unit->id});
+          $rl2_sublistResult->update({'source_uuid' => $config->{'code'} . "-" . $rl2_sublistResult->id});
 
           $sublistID = $rl2_sublistResult->id;
         }
@@ -377,6 +377,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
       elsif ($rl1_material->material_type_id == 13) {
 
         # Private Note
+        my $listResult = $rebus2->resultset('List')->find({id => $list_links->{$rl1_sequence->list_id}});
         if (defined($listResult->private_note)) {
           $listResult->update({private_note => $listResult->private_note . "\n\n" . $rl1_material->title});
         }
@@ -422,7 +423,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           $owner_uuid = '1-';
         }
 
-        my $eBook = ($rl1_material->material_type_id == 10) ? Mojo::JSON->true : Mojo::JSON->false;
+        my $eBook = ($rl1_material->material_type_id == 10) ? 1 : 0;
 
         # Add Links
         my ($web, $lms, $full, $delayed) = undef;
@@ -461,21 +462,26 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         # If Exists, create new 'local' copy
         if (defined($rl2_sequence)) {
 
+          my $original_materialID = $rl2_material->id;
+
           # Add duplicate material as a manual entry :(
-          # If the material is a dupe it's most likely an analytic where the detail is in the note field,
-          # as such we should convert the material to 'chapter' and move the note into the title.
-          $csl->{'container-title'}       = $csl->{'title'};
-          $csl->{'title'}                 = $rl1_material->note;
-          $csl->{'container-title-short'} = $csl->{'title-short'};
-          $csl->{'title-short'}           = undef;
-          $csl->{'container-author'}      = $csl->{'author'} $csl->{'author'} = undef;
-          $csl->{'type'}                  = 'chapter';
-          $owner_uuid                     = '1-';
+          # If the material is a dupe it's most likely an analytic where the detail is in the note field; As such we
+          # should convert the material to a 'chapter', moving the note into the title.
+          $csl->{'container-title'} = $csl->{'title'} if exists($csl->{'title'});
+          delete($csl->{'title'});
+          $csl->{'title'}                 = $rl1_material->note   if defined($rl1_material->note);
+          $csl->{'container-title-short'} = $csl->{'title-short'} if exists($csl->{'title-short'});
+          delete($csl->{'title-short'});
+          $csl->{'container-author'} = $csl->{'author'} if exists($csl->{'author'});
+          delete($csl->{'author'});
+          $csl->{'type'} = 'chapter';
+          $owner_uuid = '1-';
+          delete($csl->{'id'});
 
           $rl2_material = addMaterial($rl1_material->in_stock_yn eq 'y' ? 1 : 0,
             $csl, $owner, $owner_uuid, $eBook, $web, $lms, $full, $delayed);
 
-          $rl2_sequence = $rebus2->resultset('ListMaterial')->create(
+          $rl2_sequence = $rebus2->resultset('ListMaterial')->find_or_create(
             {
               list_id => defined($sublistID) ? $sublistID : $list_links->{$rl1_sequence->list_id},
               material_id => $rl2_material->id,
@@ -724,7 +730,7 @@ sub addMaterial {
     my $type       = $metadata->{'type'};
     my $title_json = {title => $title, type => $type};
     my $json_title = encode_json $title_json;
-    my $found      = $rebus2->resultset('Material')->search({metadata => {'@>' => $json_title}});
+    my $found      = $rebus2->resultset('Material')->search({metadata => {'@>' => $json_title}, electronic => $eBook});
     my ($isbn, $issn);
     if ($found->count == 1) {
       my $new_material = $found->next;
