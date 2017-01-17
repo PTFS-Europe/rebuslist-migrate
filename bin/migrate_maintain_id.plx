@@ -353,10 +353,10 @@ for my $rl1_sequence (@rl1_sequenceResults) {
               source_id                => 1,
               suppressed               => 0,
               inherited_suppressed     => 0,
-              validity_start           => $start,
-              inherited_validity_start => $start,
-              validity_end             => $end,
-              inherited_validity_end   => $end,
+              validity_start           => $listResult->validity_start,
+              inherited_validity_start => $listResult->inherited_validity_start,
+              validity_end             => $listResult->validity_end,
+              inherited_validity_end   => $listResult->inherited_validity_end,
               type                     => 'sublist'
             }
           );
