@@ -48,9 +48,9 @@ $validator->schema('/home/rebus/rebus-list/specification/definitions/csl-rebus.j
 say "Beggining migration...";
 my $dt = DateTime->now(time_zone => 'local');
 my $start
-  = DateTime->new(year => 2014, month => 9, day => 1, hour => 1, minute => 1, second => 1, time_zone => 'local');
+  = DateTime->new(year => 2010, month => 9, day => 1, hour => 1, minute => 1, second => 1, time_zone => 'local');
 my $end
-  = DateTime->new(year => 2017, month => 8, day => 31, hour => 23, minute => 59, second => 59, time_zone => 'local');
+  = DateTime->new(year => 2020, month => 8, day => 31, hour => 23, minute => 59, second => 59, time_zone => 'local');
 
 # Add lists
 my $total = $rebus1->resultset('List')->count;
@@ -71,6 +71,8 @@ for my $rl1_list ($rl1_listResults->all) {
   # Add child list
   my $list_name = decode_entities($rl1_list->list_name);
   $list_name = 'BLANK' if $list_name eq '';
+  my $start_clone = $start->clone;
+  my $end_clone = $end->clone;
   my $rl2_list = $rebus2->resultset('List')->find_or_create(
     {
       id                       => $rl1_list->list_id,
@@ -86,10 +88,10 @@ for my $rl1_list ($rl1_listResults->all) {
       year                     => $rl1_list->year,
       suppressed               => $rl1_list->published_yn eq 'y' ? 0 : 1,
       inherited_suppressed     => $rl1_list->published_yn eq 'y' ? 0 : 1,
-      validity_start           => $start->set_year($rl1_list->year),
-      inherited_validity_start => $start->set_year($rl1_list->year),
-      validity_end           => $end->set_year($rl1_list->year)->add(years => 1),
-      inherited_validity_end => $end->set_year($rl1_list->year)->add(years => 1),
+      validity_start           => $start_clone->set_year($rl1_list->year),
+      inherited_validity_start => $start_clone->set_year($rl1_list->year),
+      validity_end           => $end_clone->set_year($rl1_list->year)->add(years => 1),
+      inherited_validity_end => $end_clone->set_year($rl1_list->year)->add(years => 1),
       type                   => 'list'
     },
     {key => 'primary'}
@@ -110,8 +112,6 @@ $rebus2->storage->dbh_do(
 );
 
 # Add units
-$start = $dt->clone->subtract(years => 5);
-$end = $dt->clone->add(years => 5);
 print "Importing units...\n";
 my $current_level = 0;
 
@@ -149,6 +149,8 @@ sub recurse {
         $rl2_unit = $rebus2->resultset('List')->create(
           {
             name                     => decode_entities($rl1_unit->name),
+            updated                  => $dt,
+            created                  => $dt,
             source_id                => 1,
             suppressed               => 0,
             inherited_suppressed     => 0,
@@ -178,6 +180,8 @@ sub recurse {
         $rl2_unit = $parentResult->create_rightmost_child(
           {
             name                     => decode_entities($rl1_unit->name),
+            updated                  => $dt,
+            created                  => $dt,
             source_id                => 1,
             suppressed               => 0,
             inherited_suppressed     => 0,
@@ -935,7 +939,7 @@ sub mapCSL {
     # Author
     $csl->{'author'} = [];
     push @{$csl->{author}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
-    
+
     # Secondary Author
     $csl->{'container-author'} = [];
     push @{$csl->{'container-author'}}, {literal => $material->{authors}} if exists($material->{authors});
