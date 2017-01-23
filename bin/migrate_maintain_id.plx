@@ -72,8 +72,8 @@ for my $rl1_list ($rl1_listResults->all) {
   my $list_name = decode_entities($rl1_list->list_name);
   $list_name = 'BLANK' if $list_name eq '';
   my $start_clone = $start->clone;
-  my $end_clone = $end->clone;
-  my $rl2_list = $rebus2->resultset('List')->find_or_create(
+  my $end_clone   = $end->clone;
+  my $rl2_list    = $rebus2->resultset('List')->find_or_create(
     {
       id                       => $rl1_list->list_id,
       root_id                  => $rl1_list->list_id,
@@ -404,7 +404,8 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
         # Identify RL1 Local, Article and Chapter Type Materials
         my ($owner, $owner_uuid);
-        if ($csl->{type} eq 'article' || $csl->{type} eq 'chapter') {
+        if (($config->{'connector'} !~ m/.*_summon$|.*_eds/ && $csl->{type} eq 'article') || $csl->{type} eq 'chapter')
+        {
           $owner      = $config->{'code'};
           $owner_uuid = '1-';
         }
@@ -1213,7 +1214,7 @@ sub cleanCSL {
 
     # If it's defined
     if (defined($csl->{$date_prop})) {
-    
+
       # Strip Whitespace
       $csl->{$date_prop} =~ s/^\s+|\s+$//g;
 
