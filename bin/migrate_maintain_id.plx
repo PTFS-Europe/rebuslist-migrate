@@ -1213,6 +1213,9 @@ sub cleanCSL {
 
     # If it's defined
     if (defined($csl->{$date_prop})) {
+    
+      # Strip Whitespace
+      $csl->{$date_prop} =~ s/^\s+|\s+$//g;
 
       # Coerce to ISO
       if ($csl->{$date_prop} =~ /$yyyymmdd/) {
