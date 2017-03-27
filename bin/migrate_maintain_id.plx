@@ -33,7 +33,7 @@ my $config = LoadFile($configfile) || croak "Cannot load config file: " . $! . "
 
 my $rebus1
   = Rebus1::Schema->connect("dbi:mysql:database=$config->{'database'};host=$config->{'host'};port=$config->{'port'}",
-  "$config->{'username'}", "$config->{'password'}");
+  "$config->{'username'}", "$config->{'password'}", {mysql_enable_utf8 => 1});
 
 my $rebus2
   = Rebus2::Schema->connect("dbi:Pg:database=$config->{'database2'};host=$config->{'host2'};port=$config->{'port2'}",
