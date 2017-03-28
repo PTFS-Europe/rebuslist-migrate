@@ -7,7 +7,7 @@ use FindBin;
 BEGIN { unshift @INC, "$FindBin::Bin/../lib" }
 
 use Carp;
-use Encode qw/encode/;
+use Encode qw/decode/;
 use Rebus1::Schema;
 use Rebus2::Schema;
 use DBIx::Class::Tree::NestedSet;
@@ -870,9 +870,10 @@ sub mapCSL {
   my $materialResult = shift;
   my $csl;
 
-  my $material = {$materialResult->get_columns};
-  for my $field (keys %{$material}) {
-    $material->{$field} = decode('iso-8859-1', decode_entities($material->{$field})) if defined($material->{$field});
+  my $material;
+  my $material1 = {$materialResult->get_columns};
+  for my $field (keys %{$material1}) {
+    $material->{$field} = decode('iso-8859-1', decode_entities($material1->{$field})) if defined($material1->{$field});
     delete $material->{$field}
       unless (defined($material->{$field}) && $material->{$field} ne '' && $material->{$field} !~ /^\s*$/);
   }
