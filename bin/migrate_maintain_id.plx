@@ -2,12 +2,12 @@
 use strict;
 use warnings;
 use feature qw( say );
+use utf8;
 
 use FindBin;
 BEGIN { unshift @INC, "$FindBin::Bin/../lib" }
 
 use Carp;
-use Encode qw/decode/;
 use Rebus1::Schema;
 use Rebus2::Schema;
 use DBIx::Class::Tree::NestedSet;
@@ -21,6 +21,7 @@ use Term::ProgressBar 2.00;
 
 use Mojo::JSON qw(decode_json encode_json);
 use JSON::Validator;
+use Encoding::FixLatin qw(fix_latin);
 use Data::Printer colored => 1;
 
 use Getopt::Long;
@@ -70,7 +71,7 @@ for my $rl1_list ($rl1_listResults->all) {
   $next_update = $list_progress->update($current_line) if $current_line > $next_update;
 
   # Add child list
-  my $list_name = decode('iso-8859-1', decode_entities($rl1_list->list_name));
+  my $list_name = decode_entities($rl1_list->list_name);
   $list_name = 'BLANK' if $list_name eq '';
   my $start_clone = $start->clone;
   my $end_clone   = $end->clone;
@@ -85,7 +86,7 @@ for my $rl1_list ($rl1_listResults->all) {
       updated                  => $dt,
       created                  => $dt,
       source_id                => 1,
-      course_identifier        => decode('iso-8859-1', decode_entities($rl1_list->course_identifier)),
+      course_identifier        => decode_entities($rl1_list->course_identifier),
       year                     => $rl1_list->year,
       suppressed               => $rl1_list->published_yn eq 'y' ? 0 : 1,
       inherited_suppressed     => $rl1_list->published_yn eq 'y' ? 0 : 1,
@@ -149,7 +150,7 @@ sub recurse {
         # Add new tree
         $rl2_unit = $rebus2->resultset('List')->create(
           {
-            name                     => decode('iso-8859-1', decode_entities($rl1_unit->name)),
+            name                     => decode_entities($rl1_unit->name),
             updated                  => $dt,
             created                  => $dt,
             source_id                => 1,
@@ -180,7 +181,7 @@ sub recurse {
         # Add rightmost child to existing node
         $rl2_unit = $parentResult->create_rightmost_child(
           {
-            name                     => decode('iso-8859-1', decode_entities($rl1_unit->name)),
+            name                     => decode_entities($rl1_unit->name),
             updated                  => $dt,
             created                  => $dt,
             source_id                => 1,
@@ -247,14 +248,14 @@ for my $rl1_user (@rl1_userResults) {
     $rl1_user->password('38a4eae20c7e4de6560116e722229e50');
   }
 
-  my $email = defined($rl1_user->email_address) ? decode('iso-8859-1', $rl1_user->email_address) : 'me@myemail.com';
-  my $login = defined($rl1_user->login) ? decode('iso-8859-1', $rl1_user->login) : 'login' . $current_line;
+  my $email = defined($rl1_user->email_address) ? $rl1_user->email_address : 'me@myemail.com';
+  my $login = defined($rl1_user->login)         ? $rl1_user->login         : 'login' . $current_line;
 
   # Add user
   my $usertype_name = defined($role_map->{$rl1_user->type_id}) ? $role_map->{$rl1_user->type_id} : 'public';
   my $rl2_user = $rebus2->resultset('User')->find_or_create(
     {
-      name => decode('iso-8859-1', $rl1_user->name),
+      name     => $rl1_user->name,
       usertype => {name => $usertype_name},
       login    => $login,
       password => $rl1_user->password,
@@ -345,6 +346,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
     if (defined($rl1_material)) {
 
       # Handle Note/Private Note
+      my $name = fix_latin(decode_entities($rl1_material->title));
       if ($rl1_material->material_type_id == 12) {
 
         # Public Note
@@ -354,7 +356,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           # Add rightmost child sublist to list parent
           my $rl2_sublistResult = $listResult->create_rightmost_child(
             {
-              name                     => decode('iso-8859-1', decode_entities($rl1_material->title)),
+              name                     => $name,
               source_id                => 1,
               suppressed               => 0,
               inherited_suppressed     => 0,
@@ -372,15 +374,10 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         else {
           my $listResult = $rebus2->resultset('List')->find({id => $list_links->{$rl1_sequence->list_id}});
           if (defined($listResult->public_note)) {
-            $listResult->update(
-              {
-                public_note => decode('iso-8859-1', $listResult->public_note) . "\n\n"
-                  . decode('iso-8859-1', $rl1_material->title)
-              }
-            );
+            $listResult->update({public_note => $listResult->public_note . "\n\n" . $name});
           }
           else {
-            $listResult->update({public_note => decode('iso-8859-1', $rl1_material->title)});
+            $listResult->update({public_note => $name});
           }
         }
       }
@@ -389,15 +386,10 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         # Private Note
         my $listResult = $rebus2->resultset('List')->find({id => $list_links->{$rl1_sequence->list_id}});
         if (defined($listResult->private_note)) {
-          $listResult->update(
-            {
-              private_note => decode('iso-8859-1', $listResult->private_note) . "\n\n"
-                . decode('iso-8859-1', $rl1_material->title)
-            }
-          );
+          $listResult->update({private_note => $listResult->private_note . "\n\n" . $name});
         }
         else {
-          $listResult->update({private_note => decode('iso-8859-1', $rl1_material->title)});
+          $listResult->update({private_note => $name});
         }
       }
 
@@ -870,10 +862,9 @@ sub mapCSL {
   my $materialResult = shift;
   my $csl;
 
-  my $material;
-  my $material1 = {$materialResult->get_columns};
-  for my $field (keys %{$material1}) {
-    $material->{$field} = decode('iso-8859-1', decode_entities($material1->{$field})) if defined($material1->{$field});
+  my $material = {$materialResult->get_columns};
+  for my $field (keys %{$material}) {
+    $material->{$field} = fix_latin($material->{$field}) if defined($material->{$field});
     delete $material->{$field}
       unless (defined($material->{$field}) && $material->{$field} ne '' && $material->{$field} !~ /^\s*$/);
   }
