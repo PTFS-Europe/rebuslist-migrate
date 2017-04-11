@@ -426,6 +426,10 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           $owner      = $config->{'connector'};
           $owner_uuid = $rl1_material->elec_sysno;
         }
+        elsif (defined($rl1_material->url) && $rl1_material->url =~ m/.*&db=(.*)&AN=(.*)&.*/) {
+          $owner      = $config->{'connector'};
+          $owner_uuid = $1 . "," . $2;
+        }
         else {
           $owner      = $config->{'code'};
           $owner_uuid = '1-';
@@ -820,22 +824,36 @@ sub addMaterial {
       exit;
     }
 
-    my $new_material = $rebus2->resultset('Material')->create(
-      {
-        in_stock      => Mojo::JSON->true,
-        metadata      => $metadata,
-        owner         => $owner,
-        owner_uuid    => $owner_uuid,
-        electronic    => $eBook,
-        web_link      => $web,
-        lms_link      => $lms,
-        status_link   => undef,
-        fulltext_link => $full,
-        delayed_link  => $delayed
-      }
-    );
+    # Find Manual Materials for Update or Create a new Remote material
+    my $title      = $metadata->{'title'};
+    my $type       = $metadata->{'type'};
+    my $title_json = {title => $title, type => $type};
+    my $json_title = encode_json $title_json;
+    my $found      = $rebus2->resultset('Material')
+      ->search({metadata => {'@>' => $json_title}, electronic => $eBook, owner => $config->{'code'}});
+    if ($found->count == 1) {
+      my $new_material = $found->next;
+      $new_material->update({owner => $owner, owner_uuid => $owner_uuid});
+      return $new_material;
+    }
+    else {
+      my $new_material = $rebus2->resultset('Material')->create(
+        {
+          in_stock      => Mojo::JSON->true,
+          metadata      => $metadata,
+          owner         => $owner,
+          owner_uuid    => $owner_uuid,
+          electronic    => $eBook,
+          web_link      => $web,
+          lms_link      => $lms,
+          status_link   => undef,
+          fulltext_link => $full,
+          delayed_link  => $delayed
+        }
+      );
 
-    return $new_material;
+      return $new_material;
+    }
   }
 }
 
