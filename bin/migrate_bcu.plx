@@ -68,8 +68,8 @@ my $dupesResult = $rebus2->resultset('List')->create(
   {
     name                     => 'DUPLICATED LISTS',
     source_id                => 1,
-    published                => 1,
-    inherited_published      => 1,
+    suppressed               => 0,
+    inherited_suppressed     => 0,
     root_id                  => $rootID,
     validity_start           => $start,
     inherited_validity_start => $start,
@@ -87,8 +87,8 @@ my $unmappedResult = $rebus2->resultset('List')->create(
   {
     name                     => 'UNMAPPED LISTS',
     source_id                => 1,
-    published                => 1,
-    inherited_published      => 1,
+    suppressed               => 1,
+    inherited_suppressed     => 1,
     root_id                  => $rootID,
     validity_start           => $start,
     inherited_validity_start => $start,
@@ -135,8 +135,8 @@ for my $rl1_list ($rl1_listResults->all) {
         source_id                => 1,
         course_identifier        => $course_identifier,
         year                     => $rl1_list->year,
-        published                => $rl1_list->published_yn eq 'y' ? 1 : 0,
-        inherited_published      => $rl1_list->published_yn eq 'y' ? 1 : 0,
+        suppressed                => $rl1_list->published_yn eq 'y' ? 0 : 1,
+        inherited_suppressed      => $rl1_list->published_yn eq 'y' ? 0 : 1,
         validity_start           => $start->set_year($rl1_list->year),
         inherited_validity_start => $start->set_year($rl1_list->year),
         validity_end           => $end->set_year($rl1_list->year)->add(years => 1),
@@ -160,8 +160,8 @@ for my $rl1_list ($rl1_listResults->all) {
           source_id                => 1,
           course_identifier        => undef,
           year                     => $rl1_list->year,
-          published                => $rl1_list->published_yn eq 'y' ? 1 : 0,
-          inherited_published      => $rl1_list->published_yn eq 'y' ? 1 : 0,
+          suppressed                => $rl1_list->published_yn eq 'y' ? 0 : 1,
+          inherited_suppressed      => $rl1_list->published_yn eq 'y' ? 0 : 1,
           validity_start           => $start->set_year($rl1_list->year),
           inherited_validity_start => $start->set_year($rl1_list->year),
           validity_end           => $end->set_year($rl1_list->year)->add(years => 1),
@@ -1137,7 +1137,7 @@ sub cleanCSL {
 
     # If it's defined
     if (defined($csl->{$date_prop})) {
-      
+
       # Strip Whitespace
       $csl->{$date_prop} =~ s/^\s+|\s+$//g;
 
