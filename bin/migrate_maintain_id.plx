@@ -325,6 +325,7 @@ my @rl1_sequenceResults
 my $sublistID;
 my $lastListID;
 
+# Work through RL1 `sequence` table
 for my $rl1_sequence (@rl1_sequenceResults) {
 
   # Update Progress
@@ -337,59 +338,88 @@ for my $rl1_sequence (@rl1_sequenceResults) {
   }
   $lastListID = $rl1_sequence->list_id;
 
-  # Work on material if list exists in rl2
+  # Work on material if list exists in rl2 (sequence is not properly cleared down when a `list` is deleted in RL1)
   if (exists($list_links->{$rl1_sequence->list_id})) {
 
-    # Get material
+    # Get material from RL1
     my $rl1_material = $rebus1->resultset('Material')->find({material_id => $rl1_sequence->material_id});
 
+    # Check material exists (sequence is not properly cleared down when a `material` is deleted in RL1)
     if (defined($rl1_material)) {
 
       # Handle Note/Private Note
-      my $name = fix_latin(decode_entities($rl1_material->title));
-      if ($rl1_material->material_type_id == 12) {
+      if ($rl1_material->material_type_id == 12 || $rl1_material->material_type_id == 13) {
 
-        # Public Note
+        # Find list in RL2
         my $listResult = $rebus2->resultset('List')->find({id => $list_links->{$rl1_sequence->list_id}});
-        if (defined($config->{'split_on_notes'}) && $config->{'split_on_notes'}) {
 
-          # Add rightmost child sublist to list parent
-          my $rl2_sublistResult = $listResult->create_rightmost_child(
-            {
-              name                     => $name,
-              source_id                => 1,
-              suppressed               => 0,
-              inherited_suppressed     => 0,
-              validity_start           => $listResult->validity_start,
-              inherited_validity_start => $listResult->inherited_validity_start,
-              validity_end             => $listResult->validity_end,
-              inherited_validity_end   => $listResult->inherited_validity_end,
-              type                     => 'sublist'
-            }
-          );
-          $rl2_sublistResult->update({'source_uuid' => $config->{'code'} . "-" . $rl2_sublistResult->id});
+        # Fetch note content
+        my $note = fix_latin(decode_entities($rl1_material->title));
 
-          $sublistID = $rl2_sublistResult->id;
-        }
-        else {
-          my $listResult = $rebus2->resultset('List')->find({id => $list_links->{$rl1_sequence->list_id}});
-          if (defined($listResult->public_note)) {
-            $listResult->update({public_note => $listResult->public_note . "\n\n" . $name});
+        if ($rl1_material->material_type_id == 12) {
+
+          # Public Note
+          if (defined($config->{'split_on_notes'}) && $config->{'split_on_notes'}) {
+
+            # Add rightmost child sublist to list parent
+            my $rl2_sublistResult = $listResult->create_rightmost_child(
+              {
+                name                     => $note,
+                source_id                => 1,
+                suppressed               => 0,
+                inherited_suppressed     => 0,
+                validity_start           => $listResult->validity_start,
+                inherited_validity_start => $listResult->inherited_validity_start,
+                validity_end             => $listResult->validity_end,
+                inherited_validity_end   => $listResult->inherited_validity_end,
+                type                     => 'sublist'
+              }
+            );
+            $rl2_sublistResult->update({'source_uuid' => $config->{'code'} . "-" . $rl2_sublistResult->id});
+
+            $sublistID = $rl2_sublistResult->id;
+          }
+          elsif (defined($config->{'has_notes'}) && $config->{'has_notes'}) {
+
+            # Add `note` material
+            my $rl2_material = addMaterial(0, {title => $note}, $config->{'code'}, '1-', 0, undef, undef, undef, undef);
+
+            # Link to list in appropriate location
+            my $rl1_note = $rl1_material->note;    #believe it or not, in rl1 you could add a note to a note!
+            my $rl1_rating = $rebus1->resultset('MaterialRating')->find({material_id => $rl1_sequence->material_id});
+            $rebus2->resultset('ListMaterial')->create(
+              {
+                list_id     => $list_links->{$rl1_sequence->list_id},
+                material_id => $rl2_material->id,
+                rank        => $rl1_sequence->rank,                    #FIXME: We cannot rely on rl1 rank being correct!
+                dislikes => defined($rl1_rating) ? $rl1_rating->not_likes : 0,
+                likes => defined($rl1_rating) ? $rl1_rating->likes : 0,
+                note => $rl1_note,
+                category_id => $erbo_links->{$rl1_material->erbo_id},
+                source_id   => 1,
+                source_uuid => $config->{'code'} . '-' . $rl2_material->id
+              },
+              {key => 'primary'}
+            );
           }
           else {
-            $listResult->update({public_note => $name});
+            if (defined($listResult->public_note)) {
+              $listResult->update({public_note => $listResult->public_note . "\n\n" . $note});
+            }
+            else {
+              $listResult->update({public_note => $note});
+            }
           }
         }
-      }
-      elsif ($rl1_material->material_type_id == 13) {
-
-        # Private Note
-        my $listResult = $rebus2->resultset('List')->find({id => $list_links->{$rl1_sequence->list_id}});
-        if (defined($listResult->private_note)) {
-          $listResult->update({private_note => $listResult->private_note . "\n\n" . $name});
-        }
         else {
-          $listResult->update({private_note => $name});
+
+          # Private Note
+          if (defined($listResult->private_note)) {
+            $listResult->update({private_note => $listResult->private_note . "\n\n" . $note});
+          }
+          else {
+            $listResult->update({private_note => $note});
+          }
         }
       }
 
