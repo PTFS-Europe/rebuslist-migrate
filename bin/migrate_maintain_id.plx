@@ -437,12 +437,16 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
         # Identify RL1 Local, Article and Chapter Type Materials
         my ($owner, $owner_uuid);
+
+        # Article/Chapter (Local unless Summon/EDS)
         if ( ($config->{'connector'} !~ m/.*_summon|.*_eds/ && $csl->{type} eq 'article')
           || ($config->{'connector'} !~ m/|.*_eds/ && $csl->{type} eq 'chapter'))
         {
           $owner      = $config->{'code'};
           $owner_uuid = '1-';
         }
+
+        # Remote from print_sysno
         elsif (defined($rl1_material->print_sysno)
           && $rl1_material->print_sysno ne ''
           && !($rl1_material->print_sysno =~ /^\s*$/))
@@ -450,6 +454,8 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           $owner      = $config->{'connector'};
           $owner_uuid = $rl1_material->print_sysno;
         }
+
+        # Remote from elec_sysno
         elsif (defined($rl1_material->elec_sysno)
           && $rl1_material->elec_sysno ne ''
           && !($rl1_material->elec_sysno =~ /^\s*$/))
@@ -457,6 +463,8 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           $owner      = $config->{'connector'};
           $owner_uuid = $rl1_material->elec_sysno;
         }
+
+        # Remote from _eds URL
         elsif ($config->{'connector'} =~ m/|.*_eds/
           && defined($rl1_material->url)
           && $rl1_material->url =~ m/^.*&db=(.*)&AN=(.*)&.*$/)
@@ -464,11 +472,14 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           $owner      = $config->{'connector'};
           $owner_uuid = $1 . "," . $2;
         }
+
+        # Local
         else {
           $owner      = $config->{'code'};
           $owner_uuid = '1-';
         }
 
+        # eBook?
         my $eBook = ($rl1_material->material_type_id == 10) ? Mojo::JSON->true : Mojo::JSON->false;
 
         # Add Links
@@ -515,17 +526,16 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           # should convert the material to a 'chapter', moving the note into the title.
           $csl->{'container-title'} = $csl->{'title'} if exists($csl->{'title'});
           delete($csl->{'title'});
-          $csl->{'title'}                 = $rl1_material->note   if defined($rl1_material->note);
+          $csl->{'title'} = $rl1_material->note //= "Analytic version of: $csl->{'title'}";
           $csl->{'container-title-short'} = $csl->{'title-short'} if exists($csl->{'title-short'});
           delete($csl->{'title-short'});
           $csl->{'container-author'} = $csl->{'author'} if exists($csl->{'author'});
           delete($csl->{'author'});
           $csl->{'type'} = 'chapter';
-          $owner_uuid = '1-';
           delete($csl->{'id'});
 
           $rl2_material = addMaterial($rl1_material->in_stock_yn eq 'y' ? 1 : 0,
-            $csl, $owner, $owner_uuid, $eBook, $web, $lms, $full, $delayed);
+            $csl, $config->{'code'}, '1-', $eBook, $web, $lms, $full, $delayed);
 
           $rl2_sequence = $rebus2->resultset('ListMaterial')->find_or_create(
             {
@@ -571,14 +581,16 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             && !($rl1_material->print_sysno =~ /^\s*$/))
           {
             $owner_uuid = $rl1_material->print_sysno;
-            $owner_uuid =~ s/\^/,/g;
+            $owner_uuid =~ s/\^/,/g;    # Convert `^` to `,` for EDS records
+
           }
           elsif (defined($rl1_material->elec_sysno)
             && $rl1_material->elec_sysno ne ''
             && !($rl1_material->elec_sysno =~ /^\s*$/))
           {
             $owner_uuid = $rl1_material->elec_sysno;
-            $owner_uuid =~ s/\^/,/g;
+            $owner_uuid =~ s/\^/,/g;    # Convert `^` to `,` for EDS records
+
           }
           if (defined($owner_uuid)) {
             my $containerResult = $rebus2->resultset('Material')->find({owner => $owner, owner_uuid => $owner_uuid});
@@ -589,14 +601,15 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             }
             else {
               my $metadata = {id => [$owner_uuid], type => 'unknown', title => 'Skelital Container Record'};
-              $containerResult = $rebus2->resultset('Material')->create(
+              $containerResult = $rebus2->resultset('Material')->find_or_create(
                 {
                   in_stock   => Mojo::JSON->true,
                   metadata   => $metadata,
                   owner      => $owner,
                   owner_uuid => $owner_uuid,
                   electronic => Mojo::JSON->false
-                }
+                },
+                {key => 'owner'}
               );
 
               $rebus2->resultset('MaterialAnalytic')
@@ -839,7 +852,7 @@ sub addMaterial {
   }
 
   # Remote Material
-  $owner_uuid =~ s/\^/,/g;
+  $owner_uuid =~ s/\^/,/g;    # Convert `^` to `,` for EDS records
   my $materialResult = $rebus2->resultset('Material')->find({owner => $owner, owner_uuid => $owner_uuid}, {rows => 1});
 
   if (defined($materialResult)) {
