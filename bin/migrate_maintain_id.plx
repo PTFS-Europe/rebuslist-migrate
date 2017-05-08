@@ -86,7 +86,7 @@ for my $rl1_list ($rl1_listResults->all) {
       updated                  => $dt,
       created                  => $dt,
       source_id                => 1,
-      course_identifier        => decode_entities($rl1_list->course_identifier),
+      course_identifier        => fix_latin(decode_entities($rl1_list->course_identifier)),
       year                     => $rl1_list->year,
       suppressed               => $rl1_list->published_yn eq 'y' ? 0 : 1,
       inherited_suppressed     => $rl1_list->published_yn eq 'y' ? 0 : 1,
@@ -150,7 +150,7 @@ sub recurse {
         # Add new tree
         $rl2_unit = $rebus2->resultset('List')->create(
           {
-            name                     => decode_entities($rl1_unit->name),
+            name                     => fix_latin(decode_entities($rl1_unit->name)),
             updated                  => $dt,
             created                  => $dt,
             source_id                => 1,
@@ -181,7 +181,7 @@ sub recurse {
         # Add rightmost child to existing node
         $rl2_unit = $parentResult->create_rightmost_child(
           {
-            name                     => decode_entities($rl1_unit->name),
+            name                     => fix_latin(decode_entities($rl1_unit->name)),
             updated                  => $dt,
             created                  => $dt,
             source_id                => 1,
@@ -886,7 +886,7 @@ sub mapCSL {
 
   my $material = {$materialResult->get_columns};
   for my $field (keys %{$material}) {
-    $material->{$field} = fix_latin($material->{$field}) if defined($material->{$field});
+    $material->{$field} = fix_latin(decode_entities($material->{$field})) if defined($material->{$field});
     delete $material->{$field}
       unless (defined($material->{$field}) && $material->{$field} ne '' && $material->{$field} !~ /^\s*$/);
   }
