@@ -459,7 +459,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         }
         elsif ($config->{'connector'} =~ m/|.*_eds/
           && defined($rl1_material->url)
-          && $rl1_material->url =~ m/.*&db=(.*)&AN=(.*)&.*/)
+          && $rl1_material->url =~ m/^.*&db=(.*)&AN=(.*)&.*$/)
         {
           $owner      = $config->{'connector'};
           $owner_uuid = $1 . "," . $2;
