@@ -77,16 +77,18 @@ for my $rl1_list ($rl1_listResults->all) {
   my $end_clone   = $end->clone;
   my $rl2_list    = $rebus2->resultset('List')->find_or_create(
     {
-      id                       => $rl1_list->list_id,
-      root_id                  => $rl1_list->list_id,
-      name                     => $list_name,
-      no_students              => $rl1_list->no_students,
-      ratio_books              => $rl1_list->ratio_books,
-      ratio_students           => $rl1_list->ratio_students,
-      updated                  => $dt,
-      created                  => $dt,
-      source_id                => 1,
-      course_identifier        => fix_latin(decode_entities($rl1_list->course_identifier)),
+      id                => $rl1_list->list_id,
+      root_id           => $rl1_list->list_id,
+      name              => $list_name,
+      no_students       => $rl1_list->no_students,
+      ratio_books       => $rl1_list->ratio_books,
+      ratio_students    => $rl1_list->ratio_students,
+      updated           => $dt,
+      created           => $dt,
+      source_id         => 1,
+      course_identifier => defined($rl1_list->course_identifier)
+      ? fix_latin(decode_entities($rl1_list->course_identifier))
+      : undef,
       year                     => $rl1_list->year,
       suppressed               => $rl1_list->published_yn eq 'y' ? 0 : 1,
       inherited_suppressed     => $rl1_list->published_yn eq 'y' ? 0 : 1,
@@ -382,7 +384,9 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           elsif (defined($config->{'has_notes'}) && $config->{'has_notes'}) {
 
             # Add `note` material
-            my $rl2_material = addMaterial(0, {title => $note}, $config->{'code'}, '1-', 0, undef, undef, undef, undef);
+            my $rl2_material
+              = addMaterial(0, {type => 'note', title => $note}, $config->{'code'}, '1-', 0, undef, undef, undef,
+              undef);
 
             # Link to list in appropriate location
             my $rl1_note = $rl1_material->note;    #believe it or not, in rl1 you could add a note to a note!
@@ -480,7 +484,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         }
 
         # eBook?
-        my $eBook = ($rl1_material->material_type_id == 10) ? Mojo::JSON->true : Mojo::JSON->false;
+        my $eBook = ($rl1_material->material_type_id == 10) ? 1 : 0;
 
         # Add Links
         my ($web, $lms, $full, $delayed) = undef;
@@ -526,7 +530,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           # should convert the material to a 'chapter', moving the note into the title.
           $csl->{'container-title'} = $csl->{'title'} if exists($csl->{'title'});
           delete($csl->{'title'});
-          $csl->{'title'} = $rl1_material->note //= "Analytic version of: $csl->{'title'}";
+          $csl->{'title'} = defined($rl1_material->note) ? $rl1_material->note : "Analytic Placeholder";
           $csl->{'container-title-short'} = $csl->{'title-short'} if exists($csl->{'title-short'});
           delete($csl->{'title-short'});
           $csl->{'container-author'} = $csl->{'author'} if exists($csl->{'author'});
@@ -601,16 +605,11 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             }
             else {
               my $metadata = {id => [$owner_uuid], type => 'unknown', title => 'Skelital Container Record'};
-              $containerResult = $rebus2->resultset('Material')->find_or_create(
-                {
-                  in_stock   => Mojo::JSON->true,
-                  metadata   => $metadata,
-                  owner      => $owner,
-                  owner_uuid => $owner_uuid,
-                  electronic => Mojo::JSON->false
-                },
-                {key => 'owner'}
-              );
+              $containerResult
+                = $rebus2->resultset('Material')
+                ->find_or_create(
+                {in_stock => 1, metadata => $metadata, owner => $owner, owner_uuid => $owner_uuid, electronic => 0},
+                {key => 'owner'});
 
               $rebus2->resultset('MaterialAnalytic')
                 ->find_or_create({container_id => $containerResult->id, analytic_id => $rl2_material->id});
@@ -785,35 +784,37 @@ sub addMaterial {
 
   # Local Material
   if ($owner_uuid eq '1-') {
-    my $title      = $metadata->{'title'};
-    my $type       = $metadata->{'type'};
-    my $title_json = {title => $title, type => $type};
-    my $json_title = encode_json $title_json;
-    my $found      = $rebus2->resultset('Material')->search({metadata => {'@>' => $json_title}, electronic => $eBook});
-    my ($isbn, $issn);
-    if ($found->count == 1) {
-      my $new_material = $found->next;
-      return $new_material;
-    }
-    elsif ($found->count >= 1) {
-      $isbn = $metadata->{ISBN} if exists($metadata->{ISBN});
-      if ($isbn) {
-        my $isbn_json = {ISBN => $isbn};
-        my $json_isbn = encode_json $isbn_json;
-        my $found2    = $found->search({metadata => {'@>' => $json_isbn}});
-        if ($found2->count == 1) {
-          my $new_material = $found2->next;
-          return $new_material;
-        }
+    if ($metadata->{'type'} ne 'note') {
+      my $title      = $metadata->{'title'};
+      my $type       = $metadata->{'type'};
+      my $title_json = {title => $title, type => $type};
+      my $json_title = encode_json $title_json;
+      my $found = $rebus2->resultset('Material')->search({metadata => {'@>' => $json_title}, electronic => $eBook});
+      my ($isbn, $issn);
+      if ($found->count == 1) {
+        my $new_material = $found->next;
+        return $new_material;
       }
-      $issn = $metadata->{ISSN} if exists($metadata->{ISSN});
-      if ($issn) {
-        my $issn_json = {ISSN => $issn};
-        my $json_issn = encode_json $issn_json;
-        my $found2    = $found->search({metadata => {'@>' => $json_issn}});
-        if ($found2->count == 1) {
-          my $new_material = $found2->next;
-          return $new_material;
+      elsif ($found->count >= 1) {
+        $isbn = $metadata->{ISBN} if exists($metadata->{ISBN});
+        if ($isbn) {
+          my $isbn_json = {ISBN => $isbn};
+          my $json_isbn = encode_json $isbn_json;
+          my $found2    = $found->search({metadata => {'@>' => $json_isbn}});
+          if ($found2->count == 1) {
+            my $new_material = $found2->next;
+            return $new_material;
+          }
+        }
+        $issn = $metadata->{ISSN} if exists($metadata->{ISSN});
+        if ($issn) {
+          my $issn_json = {ISSN => $issn};
+          my $json_issn = encode_json $issn_json;
+          my $found2    = $found->search({metadata => {'@>' => $json_issn}});
+          if ($found2->count == 1) {
+            my $new_material = $found2->next;
+            return $new_material;
+          }
         }
       }
     }
@@ -886,7 +887,7 @@ sub addMaterial {
     else {
       my $new_material = $rebus2->resultset('Material')->create(
         {
-          in_stock      => Mojo::JSON->true,
+          in_stock      => 1,
           metadata      => $metadata,
           owner         => $owner,
           owner_uuid    => $owner_uuid,
