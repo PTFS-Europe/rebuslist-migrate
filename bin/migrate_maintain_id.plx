@@ -34,7 +34,7 @@ my $config = LoadFile($configfile) || croak "Cannot load config file: " . $! . "
 
 my $rebus1
   = Rebus1::Schema->connect("dbi:mysql:database=$config->{'database'};host=$config->{'host'};port=$config->{'port'}",
-  "$config->{'username'}", "$config->{'password'}");
+  "$config->{'username'}", "$config->{'password'}", {});
 
 my $rebus2
   = Rebus2::Schema->connect("dbi:Pg:database=$config->{'database2'};host=$config->{'host2'};port=$config->{'port2'}",
@@ -439,7 +439,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           $owner_uuid = '1-';
         }
 
-        my $eBook = ($rl1_material->material_type_id == 10) ? 1 : 0;
+        my $eBook = ($rl1_material->material_type_id == 10) ? Mojo::JSON->true : Mojo::JSON->false;
 
         # Add Links
         my ($web, $lms, $full, $delayed) = undef;
