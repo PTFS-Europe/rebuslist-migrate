@@ -407,7 +407,8 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
         # Identify RL1 Local, Article and Chapter Type Materials
         my ($owner, $owner_uuid);
-        if (($config->{'connector'} !~ m/.*_summon$|.*_eds/ && $csl->{type} eq 'article') || $csl->{type} eq 'chapter')
+        if ( ($config->{'connector'} !~ m/.*_summon|.*_eds/ && $csl->{type} eq 'article')
+          || ($config->{'connector'} !~ m/|.*_eds/ && $csl->{type} eq 'chapter'))
         {
           $owner      = $config->{'code'};
           $owner_uuid = '1-';
@@ -426,7 +427,10 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           $owner      = $config->{'connector'};
           $owner_uuid = $rl1_material->elec_sysno;
         }
-        elsif (defined($rl1_material->url) && $rl1_material->url =~ m/.*&db=(.*)&AN=(.*)&.*/) {
+        elsif ($config->{'connector'} =~ m/|.*_eds/
+          && defined($rl1_material->url)
+          && $rl1_material->url =~ m/.*&db=(.*)&AN=(.*)&.*/)
+        {
           $owner      = $config->{'connector'};
           $owner_uuid = $1 . "," . $2;
         }
