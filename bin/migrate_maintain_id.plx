@@ -354,7 +354,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         my $listResult = $rebus2->resultset('List')->find({id => $list_links->{$rl1_sequence->list_id}});
 
         # Fetch note content
-        my $note = fix_latin(decode_entities($rl1_material->title));
+        my $note = defined($rl1_material->title) ? fix_latin(decode_entities($rl1_material->title)) : '';
 
         if ($rl1_material->material_type_id == 12) {
 
