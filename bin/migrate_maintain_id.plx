@@ -525,12 +525,19 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
           my $original_materialID = $rl2_material->id;
 
+          my @set = ('0' .. '9', 'A' .. 'F');
+          my $str = join '' => map $set[rand @set], 1 .. 8;
+
           # Add duplicate material as a manual entry :(
           # If the material is a dupe it's most likely an analytic where the detail is in the note field; As such we
           # should convert the material to a 'chapter', moving the note into the title.
+
           $csl->{'container-title'} = $csl->{'title'} if exists($csl->{'title'});
           delete($csl->{'title'});
-          $csl->{'title'} = defined($rl1_material->note) ? $rl1_material->note : "Analytic Placeholder";
+          $csl->{'title'}
+            = defined($rl1_material->note)
+            ? $rl1_material->note . "|" . $str . "|"
+            : "Analytic Placeholder|" . $str . "|";
           $csl->{'container-title-short'} = $csl->{'title-short'} if exists($csl->{'title-short'});
           delete($csl->{'title-short'});
           $csl->{'container-author'} = $csl->{'author'} if exists($csl->{'author'});
@@ -660,6 +667,19 @@ for my $rl2_listResult ($rl2_listResults->all) {
   $rl2_listResult->update({material_count => $rl2_listResult->get_column('counted')});
 }
 say "Counts updated...\n";
+
+# Clean up material titles
+say "Cleaning up material titles...\n";
+my $type_json          = {type => 'chapter'};
+my $json_type          = encode_json $type_json;
+my $rl2_chapterResults = $rebus2->resultset('Material')->search({metadata => {'@>' => $json_type}});
+for my $rl2_chapterResult ($rl2_chapterResults->all) {
+  my $metadata = $rl2_chapterResult->metadata;
+  if (defined($metadata->{'title'}) && ($metadata->{'title'} =~ m/\|(?:\d|[A-F]){8}\|/)) {
+    $metadata->{'title'} =~ s/\|(?:\d|[A-F]){8}\|//g;
+    $rl2_chapterResult->update({metadata => $metadata});
+  }
+}
 
 # Permission, UserListPermission, UserOrgUnitPermission
 # 'Permission' handled in User import above
