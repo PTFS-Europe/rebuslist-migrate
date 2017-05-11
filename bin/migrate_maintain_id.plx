@@ -928,7 +928,7 @@ sub addMaterial {
 sub addTag {
   my $text = shift;
 
-  $text =~ s/^\s+|\s+$//g;
+  $text = trim($text);
 
   unless (length $text) {
     return;
@@ -1305,7 +1305,7 @@ sub cleanCSL {
     if (defined($csl->{$date_prop})) {
 
       # Strip Whitespace
-      $csl->{$date_prop} =~ s/^\s+|\s+$//g;
+      $csl->{$date_prop} = trim($csl->{$date_prop});
 
       # Coerce to ISO
       if ($csl->{$date_prop} =~ /$yyyymmdd/) {
@@ -1387,4 +1387,11 @@ sub cleanCSL {
   }
 
   return $csl;
+}
+
+sub trim {
+  my $string = shift;
+  $string =~ s/^\s+//;
+  $string =~ s/\s+$//;
+  return $string;
 }
