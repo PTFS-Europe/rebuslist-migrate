@@ -124,6 +124,10 @@ for my $rl1_list ($rl1_listResults->all) {
   my $course_identifier
     = defined($rl1_list->course_identifier) ? uc(fix_latin((decode_entities($rl1_list->course_identifier)))) : '';
   $course_identifier =~ s/^\s+|\s+$//g;
+  if ($course_identifier eq '' && defined($rl1_list->list_name)) {
+    my $extract = fix_latin(decode_entities($rl1_list->list_name));
+    $course_identifier = $1 if $extract =~ /^([A-Z]{3}\d{4}).*/;
+  }
   my $rl2listResults = $rebus2->resultset('List')->search({course_identifier => $course_identifier});
   if ($rl2listResults->count == 0) {
     $rl2_list = $unmappedResult->create_rightmost_child(
