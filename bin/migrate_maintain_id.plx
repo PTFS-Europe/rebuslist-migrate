@@ -647,270 +647,238 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             );
           }
         }
+
+        # Add alternatives when found
+        if (
+          (
+               defined($rl1_material->print_sysno)
+            && $rl1_material->print_sysno ne ''
+            && !($rl1_material->print_sysno =~ /^\s*$/)
+          )
+          && ( defined($rl1_material->elec_sysno)
+            && $rl1_material->elec_sysno ne ''
+            && !($rl1_material->elec_sysno =~ /^\s*$/))
+          && ($rl1_material->print_sysno ne $rl1_material->elec_sysno)
+          )
+        {
+          $owner      = $config->{'connector'};
+          $owner_uuid = $rl1_material->elec_sysno;
+          $lms        = $config->{'opac_url'} . $rl1_material->elec_sysno;
+
+          # Add material
+          my $rl2_alt_material = addMaterial($rl1_material->in_stock_yn eq 'y' ? 1 : 0,
+            $csl, $owner, $owner_uuid, $eBook, $web, $lms, $full, $delayed);
+
+          # Link material as alternative
+          my $rl2_sequence = $rebus2->resultset('ListMaterialAlternative')->create(
+            {
+              list_id => defined($sublistID) ? $sublistID : $list_links->{$rl1_sequence->list_id},
+              material_id    => $rl2_material->id,
+              alternative_id => $rl2_alt_material->id
+            },
+            {key => 'primary'}
+          );
+        }
       }
     }
   }
-}
 
-# Update counts
-say "Updating material counts...\n";
-my $rl2_listResults = $rebus2->resultset('List')->search(
-  undef,
-  {
-    '+select' => [{count => 'list_materials.list_id'}],
-    '+as'     => ['counted'],
-    group_by  => 'me.id',
-    join      => 'list_materials'
+  # Update counts
+  say "Updating material counts...\n";
+  my $rl2_listResults = $rebus2->resultset('List')->search(
+    undef,
+    {
+      '+select' => [{count => 'list_materials.list_id'}],
+      '+as'     => ['counted'],
+      group_by  => 'me.id',
+      join      => 'list_materials'
+    }
+  );
+  for my $rl2_listResult ($rl2_listResults->all) {
+    $rl2_listResult->update({material_count => $rl2_listResult->get_column('counted')});
   }
-);
-for my $rl2_listResult ($rl2_listResults->all) {
-  $rl2_listResult->update({material_count => $rl2_listResult->get_column('counted')});
-}
-say "Counts updated...\n";
+  say "Counts updated...\n";
 
-# Clean up material titles
-say "Cleaning up material titles...\n";
-my $type_json          = {type => 'chapter'};
-my $json_type          = encode_json $type_json;
-my $rl2_chapterResults = $rebus2->resultset('Material')->search({metadata => {'@>' => $json_type}});
-for my $rl2_chapterResult ($rl2_chapterResults->all) {
-  my $metadata = $rl2_chapterResult->metadata;
-  if (defined($metadata->{'title'}) && ($metadata->{'title'} =~ m/\|(?:\d|[A-F]){8}\|/)) {
-    $metadata->{'title'} =~ s/\|(?:\d|[A-F]){8}\|//g;
-    $rl2_chapterResult->update({metadata => $metadata});
+  # Clean up material titles
+  say "Cleaning up material titles...\n";
+  my $type_json          = {type => 'chapter'};
+  my $json_type          = encode_json $type_json;
+  my $rl2_chapterResults = $rebus2->resultset('Material')->search({metadata => {'@>' => $json_type}});
+  for my $rl2_chapterResult ($rl2_chapterResults->all) {
+    my $metadata = $rl2_chapterResult->metadata;
+    if (defined($metadata->{'title'}) && ($metadata->{'title'} =~ m/\|(?:\d|[A-F]){8}\|/)) {
+      $metadata->{'title'} =~ s/\|(?:\d|[A-F]){8}\|//g;
+      $rl2_chapterResult->update({metadata => $metadata});
+    }
   }
-}
 
-# Permission, UserListPermission, UserOrgUnitPermission
-# 'Permission' handled in User import above
-$total = $rebus1->resultset('UserOrgUnitPermission')->count;
-$total = $total + $rebus1->resultset('UserListPermission')->count;
-my $permission_progress = Term::ProgressBar->new({name => "Importing Permissions", count => $total});
-$permission_progress->minor(0);
-$next_update  = 0;
-$current_line = 0;
+  # Permission, UserListPermission, UserOrgUnitPermission
+  # 'Permission' handled in User import above
+  $total = $rebus1->resultset('UserOrgUnitPermission')->count;
+  $total = $total + $rebus1->resultset('UserListPermission')->count;
+  my $permission_progress = Term::ProgressBar->new({name => "Importing Permissions", count => $total});
+  $permission_progress->minor(0);
+  $next_update  = 0;
+  $current_line = 0;
 
-my $default_role = exists($config->{'list_role'}) ? $config->{'list_role'} : 'author';
-my $rl2_editorID = $rebus2->resultset('Role')->search({name => $default_role}, {rows => 1})->single->get_column('id');
+  my $default_role = exists($config->{'list_role'}) ? $config->{'list_role'} : 'author';
+  my $rl2_editorID = $rebus2->resultset('Role')->search({name => $default_role}, {rows => 1})->single->get_column('id');
 
-my @rl1_user_org_unit_permissionResults
-  = $rebus1->resultset('UserOrgUnitPermission')->search(undef, {order_by => {-asc => [qw/org_unit_id user_id/]}})->all;
+  my @rl1_user_org_unit_permissionResults
+    = $rebus1->resultset('UserOrgUnitPermission')->search(undef, {order_by => {-asc => [qw/org_unit_id user_id/]}})
+    ->all;
 
-for my $rl1_uoup (@rl1_user_org_unit_permissionResults) {
+  for my $rl1_uoup (@rl1_user_org_unit_permissionResults) {
 
-  # Update Progress
-  $current_line++;
-  $next_update = $permission_progress->update($current_line) if $current_line > $next_update;
+    # Update Progress
+    $current_line++;
+    $next_update = $permission_progress->update($current_line) if $current_line > $next_update;
 
-  if (exists($unit_links->{$rl1_uoup->org_unit_id}) && exists($user_links->{$rl1_uoup->user_id})) {
-    $rebus2->resultset('ListUserRole')->find_or_create(
-      {
-        list_id        => $unit_links->{$rl1_uoup->org_unit_id},
-        user_id        => $user_links->{$rl1_uoup->user_id},
-        role_id        => $rl2_editorID,
-        inherited_from => $unit_links->{$rl1_uoup->org_unit_id}
-      },
-      {key => 'primary'}
-    );
-
-    my $listResult = $rebus2->resultset('List')->find($unit_links->{$rl1_uoup->org_unit_id});
-    for my $descendantResult ($listResult->descendants->all) {
-      $descendantResult->find_or_create_related(
-        'list_user_roles',
+    if (exists($unit_links->{$rl1_uoup->org_unit_id}) && exists($user_links->{$rl1_uoup->user_id})) {
+      $rebus2->resultset('ListUserRole')->find_or_create(
         {
+          list_id        => $unit_links->{$rl1_uoup->org_unit_id},
           user_id        => $user_links->{$rl1_uoup->user_id},
           role_id        => $rl2_editorID,
           inherited_from => $unit_links->{$rl1_uoup->org_unit_id}
-        }
+        },
+        {key => 'primary'}
       );
+
+      my $listResult = $rebus2->resultset('List')->find($unit_links->{$rl1_uoup->org_unit_id});
+      for my $descendantResult ($listResult->descendants->all) {
+        $descendantResult->find_or_create_related(
+          'list_user_roles',
+          {
+            user_id        => $user_links->{$rl1_uoup->user_id},
+            role_id        => $rl2_editorID,
+            inherited_from => $unit_links->{$rl1_uoup->org_unit_id}
+          }
+        );
+      }
     }
   }
-}
 
-my @rl1_user_list_permissionResults
-  = $rebus1->resultset('UserListPermission')->search(undef, {order_by => {-asc => [qw/list_id user_id/]}})->all;
+  my @rl1_user_list_permissionResults
+    = $rebus1->resultset('UserListPermission')->search(undef, {order_by => {-asc => [qw/list_id user_id/]}})->all;
 
-for my $rl1_ulp (@rl1_user_list_permissionResults) {
+  for my $rl1_ulp (@rl1_user_list_permissionResults) {
 
-  # Update Progress
-  $current_line++;
-  $next_update = $permission_progress->update($current_line) if $current_line > $next_update;
+    # Update Progress
+    $current_line++;
+    $next_update = $permission_progress->update($current_line) if $current_line > $next_update;
 
-  if (exists($list_links->{$rl1_ulp->list_id}) && exists($user_links->{$rl1_ulp->user_id})) {
-    $rebus2->resultset('ListUserRole')->find_or_create(
-      {
-        list_id        => $list_links->{$rl1_ulp->list_id},
-        user_id        => $user_links->{$rl1_ulp->user_id},
-        role_id        => $rl2_editorID,
-        inherited_from => $list_links->{$rl1_ulp->list_id}
-      },
-      {key => 'primary'}
-    );
-
-    my $listResult = $rebus2->resultset('List')->find($list_links->{$rl1_ulp->list_id});
-    for my $descendantResult ($listResult->descendants->all) {
-      $descendantResult->find_or_create_related(
-        'list_user_roles',
+    if (exists($list_links->{$rl1_ulp->list_id}) && exists($user_links->{$rl1_ulp->user_id})) {
+      $rebus2->resultset('ListUserRole')->find_or_create(
         {
+          list_id        => $list_links->{$rl1_ulp->list_id},
           user_id        => $user_links->{$rl1_ulp->user_id},
           role_id        => $rl2_editorID,
           inherited_from => $list_links->{$rl1_ulp->list_id}
-        }
+        },
+        {key => 'primary'}
       );
+
+      my $listResult = $rebus2->resultset('List')->find($list_links->{$rl1_ulp->list_id});
+      for my $descendantResult ($listResult->descendants->all) {
+        $descendantResult->find_or_create_related(
+          'list_user_roles',
+          {
+            user_id        => $user_links->{$rl1_ulp->user_id},
+            role_id        => $rl2_editorID,
+            inherited_from => $list_links->{$rl1_ulp->list_id}
+          }
+        );
+      }
+
     }
-
   }
-}
 
-say "Permissions loaded...\n";
+  say "Permissions loaded...\n";
 
 # OwnersLink
-$total = $rebus1->resultset('OwnersLink')->count;
-my $owners_progress = Term::ProgressBar->new({name => "Importing Owners", count => $total});
-$owners_progress->minor(0);
-$next_update  = 0;
-$current_line = 0;
+  $total = $rebus1->resultset('OwnersLink')->count;
+  my $owners_progress = Term::ProgressBar->new({name => "Importing Owners", count => $total});
+  $owners_progress->minor(0);
+  $next_update  = 0;
+  $current_line = 0;
 
-my @rl1_owners
-  = $rebus1->resultset('OwnersLink')->search(undef, {order_by => {-asc => [qw/list_id owner_id leader_yn/]}})->all;
+  my @rl1_owners
+    = $rebus1->resultset('OwnersLink')->search(undef, {order_by => {-asc => [qw/list_id owner_id leader_yn/]}})->all;
 
-my $roleResult = $rebus2->resultset('Role')->find({name => 'leader'});
-my $leaderID = $roleResult->id;
-$roleResult = $rebus2->resultset('Role')->find({name => 'owner'});
-my $ownerID = $roleResult->id;
+  my $roleResult = $rebus2->resultset('Role')->find({name => 'leader'});
+  my $leaderID = $roleResult->id;
+  $roleResult = $rebus2->resultset('Role')->find({name => 'owner'});
+  my $ownerID = $roleResult->id;
 
-for my $rl1_owner (@rl1_owners) {
+  for my $rl1_owner (@rl1_owners) {
 
-  # Update Progress
-  $current_line++;
-  $next_update = $owners_progress->update($current_line) if $current_line > $next_update;
+    # Update Progress
+    $current_line++;
+    $next_update = $owners_progress->update($current_line) if $current_line > $next_update;
 
-  if (exists($list_links->{$rl1_owner->list_id}) && exists($user_links->{$rl1_owner->owner_id})) {
-    my $roleID = $rl1_owner->leader_yn eq 'y' ? $leaderID : $ownerID;
-    $rebus2->resultset('ListUserRole')->find_or_create(
-      {
-        list_id => $list_links->{$rl1_owner->list_id},
-        user_id => $user_links->{$rl1_owner->owner_id},
-        role_id => $roleID
-      },
-      {key => 'primary'}
-    );
+    if (exists($list_links->{$rl1_owner->list_id}) && exists($user_links->{$rl1_owner->owner_id})) {
+      my $roleID = $rl1_owner->leader_yn eq 'y' ? $leaderID : $ownerID;
+      $rebus2->resultset('ListUserRole')->find_or_create(
+        {
+          list_id => $list_links->{$rl1_owner->list_id},
+          user_id => $user_links->{$rl1_owner->owner_id},
+          role_id => $roleID
+        },
+        {key => 'primary'}
+      );
+    }
   }
-}
 
 # Routines
-sub addMaterial {
-  my ($in_stock, $metadata, $owner, $owner_uuid, $eBook, $web, $lms, $full, $delayed) = @_;
+  sub addMaterial {
+    my ($in_stock, $metadata, $owner, $owner_uuid, $eBook, $web, $lms, $full, $delayed) = @_;
 
-  # Local Material
-  if ($owner_uuid eq '1-') {
-    if ($metadata->{'type'} ne 'note') {
-      my $title      = $metadata->{'title'};
-      my $type       = $metadata->{'type'};
-      my $title_json = {title => $title, type => $type};
-      my $json_title = encode_json $title_json;
-      my $found = $rebus2->resultset('Material')->search({metadata => {'@>' => $json_title}, electronic => $eBook});
-      my ($isbn, $issn);
-      if ($found->count == 1) {
-        my $new_material = $found->next;
-        return $new_material;
-      }
-      elsif ($found->count >= 1) {
-        $isbn = $metadata->{ISBN} if exists($metadata->{ISBN});
-        if ($isbn) {
-          my $isbn_json = {ISBN => $isbn};
-          my $json_isbn = encode_json $isbn_json;
-          my $found2    = $found->search({metadata => {'@>' => $json_isbn}});
-          if ($found2->count == 1) {
-            my $new_material = $found2->next;
-            return $new_material;
+    # Local Material
+    if ($owner_uuid eq '1-') {
+      if ($metadata->{'type'} ne 'note') {
+        my $title      = $metadata->{'title'};
+        my $type       = $metadata->{'type'};
+        my $title_json = {title => $title, type => $type};
+        my $json_title = encode_json $title_json;
+        my $found = $rebus2->resultset('Material')->search({metadata => {'@>' => $json_title}, electronic => $eBook});
+        my ($isbn, $issn);
+        if ($found->count == 1) {
+          my $new_material = $found->next;
+          return $new_material;
+        }
+        elsif ($found->count >= 1) {
+          $isbn = $metadata->{ISBN} if exists($metadata->{ISBN});
+          if ($isbn) {
+            my $isbn_json = {ISBN => $isbn};
+            my $json_isbn = encode_json $isbn_json;
+            my $found2    = $found->search({metadata => {'@>' => $json_isbn}});
+            if ($found2->count == 1) {
+              my $new_material = $found2->next;
+              return $new_material;
+            }
+          }
+          $issn = $metadata->{ISSN} if exists($metadata->{ISSN});
+          if ($issn) {
+            my $issn_json = {ISSN => $issn};
+            my $json_issn = encode_json $issn_json;
+            my $found2    = $found->search({metadata => {'@>' => $json_issn}});
+            if ($found2->count == 1) {
+              my $new_material = $found2->next;
+              return $new_material;
+            }
           }
         }
-        $issn = $metadata->{ISSN} if exists($metadata->{ISSN});
-        if ($issn) {
-          my $issn_json = {ISSN => $issn};
-          my $json_issn = encode_json $issn_json;
-          my $found2    = $found->search({metadata => {'@>' => $json_issn}});
-          if ($found2->count == 1) {
-            my $new_material = $found2->next;
-            return $new_material;
-          }
-        }
       }
-    }
 
-    # Not Found
-    $metadata->{'id'} = [$owner_uuid];
-    my $new_material = $rebus2->resultset('Material')->create(
-      {
-        in_stock      => $in_stock,
-        metadata      => $metadata,
-        owner         => $owner,
-        owner_uuid    => undef,
-        electronic    => $eBook,
-        web_link      => $web,
-        lms_link      => $lms,
-        status_link   => undef,
-        fulltext_link => $full,
-        delayed_link  => $delayed
-      }
-    );
-
-    my $metadata = $new_material->metadata;
-    my $id       = '1-' . $new_material->id;
-    $metadata->{'id'} = [$id];
-    $new_material->update({metadata => $metadata, owner_uuid => $id});
-
-    # Validate metadata
-    my @errors = $validator->validate($metadata);
-    if (@errors) {
-      use Data::Dumper;
-      warn "Errors: " . Dumper(@errors) . "\n";
-      exit;
-    }
-
-    return $new_material;
-  }
-
-  # Remote Material
-  $owner_uuid =~ s/\^/,/g;    # Convert `^` to `,` for EDS records
-  my $materialResult = $rebus2->resultset('Material')->find({owner => $owner, owner_uuid => $owner_uuid}, {rows => 1});
-
-  if (defined($materialResult)) {
-    $metadata->{'id'} = [$owner_uuid];
-    $materialResult->update({metadata => $metadata});
-    return $materialResult;
-  }
-  else {
-    $metadata->{'id'} = [$owner_uuid];
-
-    # Validate metadata
-    my @errors = $validator->validate($metadata);
-    if (@errors) {
-      use Data::Dumper;
-      warn "Errors: " . Dumper(@errors) . "\n";
-      exit;
-    }
-
-    # Find Manual Materials for Update or Create a new Remote material
-    my $title      = $metadata->{'title'};
-    my $type       = $metadata->{'type'};
-    my $title_json = {title => $title, type => $type};
-    my $json_title = encode_json $title_json;
-    my $found      = $rebus2->resultset('Material')
-      ->search({metadata => {'@>' => $json_title}, electronic => $eBook, owner => $config->{'code'}});
-    if ($found->count == 1) {
-      my $new_material = $found->next;
-      $new_material->update({owner => $owner, owner_uuid => $owner_uuid});
-      return $new_material;
-    }
-    else {
+      # Not Found
+      $metadata->{'id'} = [$owner_uuid];
       my $new_material = $rebus2->resultset('Material')->create(
         {
-          in_stock      => 1,
+          in_stock      => $in_stock,
           metadata      => $metadata,
           owner         => $owner,
-          owner_uuid    => $owner_uuid,
+          owner_uuid    => undef,
           electronic    => $eBook,
           web_link      => $web,
           lms_link      => $lms,
@@ -920,478 +888,543 @@ sub addMaterial {
         }
       );
 
+      my $metadata = $new_material->metadata;
+      my $id       = '1-' . $new_material->id;
+      $metadata->{'id'} = [$id];
+      $new_material->update({metadata => $metadata, owner_uuid => $id});
+
+      # Validate metadata
+      my @errors = $validator->validate($metadata);
+      if (@errors) {
+        use Data::Dumper;
+        warn "Errors: " . Dumper(@errors) . "\n";
+        exit;
+      }
+
       return $new_material;
     }
-  }
-}
 
-sub addTag {
-  my $text = shift;
+    # Remote Material
+    $owner_uuid =~ s/\^/,/g;    # Convert `^` to `,` for EDS records
+    my $materialResult
+      = $rebus2->resultset('Material')->find({owner => $owner, owner_uuid => $owner_uuid}, {rows => 1});
 
-  $text = trim($text);
+    if (defined($materialResult)) {
+      $metadata->{'id'} = [$owner_uuid];
+      $materialResult->update({metadata => $metadata});
+      return $materialResult;
+    }
+    else {
+      $metadata->{'id'} = [$owner_uuid];
 
-  unless (length $text) {
-    return;
-  }
+      # Validate metadata
+      my @errors = $validator->validate($metadata);
+      if (@errors) {
+        use Data::Dumper;
+        warn "Errors: " . Dumper(@errors) . "\n";
+        exit;
+      }
 
-  my @tagResults = $rebus2->resultset('Tag')->search({text => $text})->all;
+      # Find Manual Materials for Update or Create a new Remote material
+      my $title      = $metadata->{'title'};
+      my $type       = $metadata->{'type'};
+      my $title_json = {title => $title, type => $type};
+      my $json_title = encode_json $title_json;
+      my $found      = $rebus2->resultset('Material')
+        ->search({metadata => {'@>' => $json_title}, electronic => $eBook, owner => $config->{'code'}});
+      if ($found->count == 1) {
+        my $new_material = $found->next;
+        $new_material->update({owner => $owner, owner_uuid => $owner_uuid});
+        return $new_material;
+      }
+      else {
+        my $new_material = $rebus2->resultset('Material')->create(
+          {
+            in_stock      => 1,
+            metadata      => $metadata,
+            owner         => $owner,
+            owner_uuid    => $owner_uuid,
+            electronic    => $eBook,
+            web_link      => $web,
+            lms_link      => $lms,
+            status_link   => undef,
+            fulltext_link => $full,
+            delayed_link  => $delayed
+          }
+        );
 
-  unless (@tagResults) {
-    my $new_tag = $rebus2->resultset('Tag')->create({text => $text});
-    return $new_tag;
-  }
-
-  return $tagResults[0];
-}
-
-sub mapCSL {
-  my $materialResult = shift;
-  my $csl;
-
-  my $material = {$materialResult->get_columns};
-  for my $field (keys %{$material}) {
-    $material->{$field} = fix_latin(decode_entities($material->{$field})) if defined($material->{$field});
-    delete $material->{$field}
-      unless (defined($material->{$field}) && $material->{$field} ne '' && $material->{$field} !~ /^\s*$/);
-  }
-
-  # Title
-  $csl->{title} = $material->{title} if exists($material->{title});
-
-  # Authors
-  $csl->{author} = [];
-  push @{$csl->{author}}, {literal => $material->{authors}} if exists($material->{authors});
-
-  # Edition
-  $csl->{edition} = $material->{edition} if exists($material->{edition});
-
-  # Volume
-  $csl->{volume} = $material->{volume} if exists($material->{volume});
-
-  # Issue
-  $csl->{issue} = $material->{issue} if exists($material->{issue});
-
-  # Publisher
-  $csl->{publisher} = $material->{publisher} if exists($material->{publisher});
-
-  # Publication Date
-  $csl->{issued} = $material->{publication_date} if exists($material->{publication_date});
-
-  # Publication Place
-  $csl->{'publisher-place'} = $material->{publication_place} if exists($material->{publication_place});
-
-  # Public Note
-  $csl->{'note'} = $material->{note} if exists($material->{note});
-
-  # URL
-  $csl->{'URL'} = $material->{url} if exists($material->{url});
-
-  # Per Type Mappings
-
-  # Start Page
-  $material->{spage} =~ s/pp\.//g if exists($material->{spage});
-
-  # End Page
-  $material->{epage} =~ s/pp\.//g if exists($material->{epage});
-
-  # Types:
-  # 1=Book
-  if ($materialResult->material_type_id == 1) {
-
-    # Type
-    $csl->{'type'} = 'book';
-
-    # Secondary Title
-    $csl->{'collection-title'} = $material->{secondary_title} if exists($material->{secondary_title});
-
-    # Secondary Authors
-    $csl->{editor} = [];
-    push @{$csl->{editor}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
-
-    # Start Page -> Number of Pages
-    $material->{spage} =~ s/\D+//g if exists($material->{spage});
-    $csl->{'number-of-pages'} = $material->{spage} if exists($material->{spage});
-
-    # ISBN
-    $csl->{ISBN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
-    $csl->{ISBN} = $material->{print_control_no} if exists($material->{print_control_no});
+        return $new_material;
+      }
+    }
   }
 
-  # 2=Chapter
-  elsif ($materialResult->material_type_id == 2) {
+  sub addTag {
+    my $text = shift;
 
-    # Type
-    $csl->{'type'} = 'chapter';
+    $text = trim($text);
 
-    # Secondary Title
-    $csl->{'container-title'} = $material->{secondary_title} if exists($material->{secondary_title});
+    unless (length $text) {
+      return;
+    }
 
-    # Author
-    $csl->{'author'} = [];
-    push @{$csl->{author}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
+    my @tagResults = $rebus2->resultset('Tag')->search({text => $text})->all;
 
-    # Secondary Author
-    $csl->{'container-author'} = [];
-    push @{$csl->{'container-author'}}, {literal => $material->{authors}} if exists($material->{authors});
+    unless (@tagResults) {
+      my $new_tag = $rebus2->resultset('Tag')->create({text => $text});
+      return $new_tag;
+    }
 
-    # Start Page
-    $csl->{'page-first'} = $material->{spage} if exists($material->{spage});
-
-    # End Page
-    $material->{epage} =~ s/\D+//g if exists($material->{epage});
-    delete $material->{epage} if (exists($material->{epage}) && $material->{epage} eq '');
-    $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
-      if (exists($material->{epage}) && exists($material->{spage}) && looks_like_number($material->{spage}));
-
-    # ISBN
-    $csl->{ISBN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
-    $csl->{ISBN} = $material->{print_control_no} if exists($material->{print_control_no});
+    return $tagResults[0];
   }
 
-  # 3=Journal
-  elsif ($materialResult->material_type_id == 3) {
+  sub mapCSL {
+    my $materialResult = shift;
+    my $csl;
 
-    # Type
-    $csl->{'type'} = 'journal';
+    my $material = {$materialResult->get_columns};
+    for my $field (keys %{$material}) {
+      $material->{$field} = fix_latin(decode_entities($material->{$field})) if defined($material->{$field});
+      delete $material->{$field}
+        unless (defined($material->{$field}) && $material->{$field} ne '' && $material->{$field} !~ /^\s*$/);
+    }
 
-    # Secondary Authors
-    push @{$csl->{author}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
-
-    # ISSN
-    $csl->{ISSN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
-    $csl->{ISSN} = $material->{print_control_no} if exists($material->{print_control_no});
-  }
-
-  # 4=Article
-  elsif ($materialResult->material_type_id == 4) {
-
-    # Type
-    $csl->{'type'} = 'article';
+    # Title
+    $csl->{title} = $material->{title} if exists($material->{title});
 
     # Authors
-    if (exists($material->{secondary_authors})) {
-      my @authors = split(/;/, $material->{secondary_authors});
-      for my $author (@authors) {
-        push @{$csl->{author}}, {literal => $author};
-      }
+    $csl->{author} = [];
+    push @{$csl->{author}}, {literal => $material->{authors}} if exists($material->{authors});
+
+    # Edition
+    $csl->{edition} = $material->{edition} if exists($material->{edition});
+
+    # Volume
+    $csl->{volume} = $material->{volume} if exists($material->{volume});
+
+    # Issue
+    $csl->{issue} = $material->{issue} if exists($material->{issue});
+
+    # Publisher
+    $csl->{publisher} = $material->{publisher} if exists($material->{publisher});
+
+    # Publication Date
+    $csl->{issued} = $material->{publication_date} if exists($material->{publication_date});
+
+    # Publication Place
+    $csl->{'publisher-place'} = $material->{publication_place} if exists($material->{publication_place});
+
+    # Public Note
+    $csl->{'note'} = $material->{note} if exists($material->{note});
+
+    # URL
+    $csl->{'URL'} = $material->{url} if exists($material->{url});
+
+    # Per Type Mappings
+
+    # Start Page
+    $material->{spage} =~ s/pp\.//g if exists($material->{spage});
+
+    # End Page
+    $material->{epage} =~ s/pp\.//g if exists($material->{epage});
+
+    # Types:
+    # 1=Book
+    if ($materialResult->material_type_id == 1) {
+
+      # Type
+      $csl->{'type'} = 'book';
+
+      # Secondary Title
+      $csl->{'collection-title'} = $material->{secondary_title} if exists($material->{secondary_title});
+
+      # Secondary Authors
+      $csl->{editor} = [];
+      push @{$csl->{editor}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
+
+      # Start Page -> Number of Pages
+      $material->{spage} =~ s/\D+//g if exists($material->{spage});
+      $csl->{'number-of-pages'} = $material->{spage} if exists($material->{spage});
+
+      # ISBN
+      $csl->{ISBN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
+      $csl->{ISBN} = $material->{print_control_no} if exists($material->{print_control_no});
     }
 
-    # Secondary Title
-    $csl->{'container-title'} = $material->{secondary_title} if exists($material->{secondary_title});
+    # 2=Chapter
+    elsif ($materialResult->material_type_id == 2) {
 
-    # Start Page
-    $csl->{'page-first'} = $material->{spage} if exists($material->{spage});
+      # Type
+      $csl->{'type'} = 'chapter';
 
-    # End Page
-    $material->{epage} =~ s/\D+//g if exists($material->{epage});
-    delete $material->{epage} if (exists($material->{epage}) && $material->{epage} eq '');
-    $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
-      if (exists($material->{epage}) && exists($material->{spage}) && looks_like_number($material->{spage}));
+      # Secondary Title
+      $csl->{'container-title'} = $material->{secondary_title} if exists($material->{secondary_title});
 
-    # ISSN
-    $csl->{ISSN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
-    $csl->{ISSN} = $material->{print_control_no} if exists($material->{print_control_no});
+      # Author
+      $csl->{'author'} = [];
+      push @{$csl->{author}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
 
-    # Issued
-    $csl->{issued} = $material->{year} if exists($material->{year});
-  }
+      # Secondary Author
+      $csl->{'container-author'} = [];
+      push @{$csl->{'container-author'}}, {literal => $material->{authors}} if exists($material->{authors});
 
-  # 5=Scan
-  elsif ($materialResult->material_type_id == 5) {
+      # Start Page
+      $csl->{'page-first'} = $material->{spage} if exists($material->{spage});
 
-    # Type
-    $csl->{'type'} = 'entry';
+      # End Page
+      $material->{epage} =~ s/\D+//g if exists($material->{epage});
+      delete $material->{epage} if (exists($material->{epage}) && $material->{epage} eq '');
+      $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
+        if (exists($material->{epage}) && exists($material->{spage}) && looks_like_number($material->{spage}));
 
-    # Secondary Title
-    $csl->{'container-title'} = $material->{secondary_title} if exists($material->{secondary_title});
+      # ISBN
+      $csl->{ISBN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
+      $csl->{ISBN} = $material->{print_control_no} if exists($material->{print_control_no});
+    }
 
-    # Start Page
-    $csl->{'page-first'} = $material->{spage} if exists($material->{spage});
+    # 3=Journal
+    elsif ($materialResult->material_type_id == 3) {
 
-    # End Page
-    $material->{epage} =~ s/\D+//g if exists($material->{epage});
-    delete $material->{epage} if (exists($material->{epage}) && $material->{epage} eq '');
-    $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
-      if (exists($material->{epage}) && exists($material->{spage}) && looks_like_number($material->{spage}));
+      # Type
+      $csl->{'type'} = 'journal';
 
-    # ISBN
-    $csl->{ISBN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
-    $csl->{ISBN} = $material->{print_control_no} if exists($material->{print_control_no});
-  }
+      # Secondary Authors
+      push @{$csl->{author}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
 
-  # 7=Link
-  elsif ($materialResult->material_type_id == 7) {
+      # ISSN
+      $csl->{ISSN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
+      $csl->{ISSN} = $material->{print_control_no} if exists($material->{print_control_no});
+    }
 
-    # Type
-    $csl->{'type'} = 'webpage';
+    # 4=Article
+    elsif ($materialResult->material_type_id == 4) {
 
-    # Secondary Title
-    $csl->{'container-title'} = $material->{secondary_title} if exists($material->{secondary_title});
+      # Type
+      $csl->{'type'} = 'article';
 
-    # Secondary Authors
-    push @{$csl->{author}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
-  }
-
-  # 9=Other
-  elsif ($materialResult->material_type_id == 9) {
-
-    # Type
-    $csl->{'type'} = 'entry';
-
-    # Secondary Title
-    $csl->{'container-title'} = $material->{secondary_title} if exists($material->{secondary_title});
-
-    # Start Page
-    $csl->{'page-first'} = $material->{spage} if exists($material->{spage});
-
-    # End Page
-    $material->{epage} =~ s/\D+//g if exists($material->{epage});
-    delete $material->{epage} if (exists($material->{epage}) && $material->{epage} eq '');
-    $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
-      if (exists($material->{epage}) && exists($material->{spage}) && looks_like_number($material->{spage}));
-
-    # ISBN
-    $csl->{ISBN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
-    $csl->{ISBN} = $material->{print_control_no} if exists($material->{print_control_no});
-  }
-
-  # 10=eBook
-  elsif ($materialResult->material_type_id == 10) {
-
-    # Type
-    $csl->{'type'} = 'book';
-
-    # Secondary Title
-    $csl->{'collection-title'} = $material->{secondary_title} if exists($material->{secondary_title});
-
-    # Secondary Authors
-    $csl->{editor} = [];
-    push @{$csl->{editor}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
-
-    # Start Page -> Number of Pages
-    $material->{spage} =~ s/\D+//g if exists($material->{spage});
-    $csl->{'number-of-pages'} = $material->{spage} if exists($material->{spage});
-
-    # ISBN
-    $csl->{ISBN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
-    $csl->{ISBN} = $material->{print_control_no} if exists($material->{print_control_no});
-  }
-
-  # 11=AV
-  elsif ($materialResult->material_type_id == 11) {
-
-    # Type
-    $csl->{'type'} = 'broadcast';
-
-    # Secondary Title
-    $csl->{'collection-title'} = $material->{secondary_title} if exists($material->{secondary_title});
-
-    # Secondary Authors
-    $csl->{editor} = [];
-    push @{$csl->{editor}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
-  }
-
-  # 12=Note
-  # 13=Private Note
-  # NONE
-  else {
-    # Type
-    $csl->{'type'} = 'book';
-
-    # Secondary Title
-    $csl->{'collection-title'} = $material->{secondary_title} if exists($material->{secondary_title});
-
-    # Secondary Authors
-    $csl->{editor} = [];
-    push @{$csl->{editor}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
-
-    # Start Page -> Number of Pages
-    $material->{spage} =~ s/\D+//g if exists($material->{spage});
-    $csl->{'number-of-pages'} = $material->{spage} if exists($material->{spage});
-
-    # ISBN
-    $csl->{ISBN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
-    $csl->{ISBN} = $material->{print_control_no} if exists($material->{print_control_no});
-  }
-
-  # 12=Note and 13=Private Note are handled prior to this
-
-  return $csl;
-}
-
-sub arrayCSL {
-  my $csl = shift;
-
-  # CSL properties that we need to turn into an array of
-  # strings
-  my @array_me = ("id", "language", "genre", "ISBN", "ISSN", "medium", "note", "references", "URL");
-
-  # CSL properties that are having their type changed to number
-  my @to_number = ("number-of-pages");
-
-  # CSL properties that are having their type changed to string
-  my @to_string = ("edition", "issue", "volume");
-
-  # Iterate each property that we need to array-ify
-  for my $arr_prop (@array_me) {
-
-    # If it's defined
-    if (defined($csl->{$arr_prop})) {
-
-      # If it's not already an array
-      if (ref($csl->{$arr_prop}) ne "ARRAY") {
-
-        # Turn it into a string
-        $csl->{$arr_prop} = $csl->{$arr_prop} . "";
-
-        # Convert to an arrayref
-        $csl->{$arr_prop} = [$csl->{$arr_prop}];
+      # Authors
+      if (exists($material->{secondary_authors})) {
+        my @authors = split(/;/, $material->{secondary_authors});
+        for my $author (@authors) {
+          push @{$csl->{author}}, {literal => $author};
+        }
       }
-      else {
-        # It is an array, ensure it's an array of strings
-        for my $arr_ele (@{$csl->{$arr_prop}}) {
-          $arr_ele = $arr_ele . "";
+
+      # Secondary Title
+      $csl->{'container-title'} = $material->{secondary_title} if exists($material->{secondary_title});
+
+      # Start Page
+      $csl->{'page-first'} = $material->{spage} if exists($material->{spage});
+
+      # End Page
+      $material->{epage} =~ s/\D+//g if exists($material->{epage});
+      delete $material->{epage} if (exists($material->{epage}) && $material->{epage} eq '');
+      $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
+        if (exists($material->{epage}) && exists($material->{spage}) && looks_like_number($material->{spage}));
+
+      # ISSN
+      $csl->{ISSN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
+      $csl->{ISSN} = $material->{print_control_no} if exists($material->{print_control_no});
+
+      # Issued
+      $csl->{issued} = $material->{year} if exists($material->{year});
+    }
+
+    # 5=Scan
+    elsif ($materialResult->material_type_id == 5) {
+
+      # Type
+      $csl->{'type'} = 'entry';
+
+      # Secondary Title
+      $csl->{'container-title'} = $material->{secondary_title} if exists($material->{secondary_title});
+
+      # Start Page
+      $csl->{'page-first'} = $material->{spage} if exists($material->{spage});
+
+      # End Page
+      $material->{epage} =~ s/\D+//g if exists($material->{epage});
+      delete $material->{epage} if (exists($material->{epage}) && $material->{epage} eq '');
+      $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
+        if (exists($material->{epage}) && exists($material->{spage}) && looks_like_number($material->{spage}));
+
+      # ISBN
+      $csl->{ISBN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
+      $csl->{ISBN} = $material->{print_control_no} if exists($material->{print_control_no});
+    }
+
+    # 7=Link
+    elsif ($materialResult->material_type_id == 7) {
+
+      # Type
+      $csl->{'type'} = 'webpage';
+
+      # Secondary Title
+      $csl->{'container-title'} = $material->{secondary_title} if exists($material->{secondary_title});
+
+      # Secondary Authors
+      push @{$csl->{author}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
+    }
+
+    # 9=Other
+    elsif ($materialResult->material_type_id == 9) {
+
+      # Type
+      $csl->{'type'} = 'entry';
+
+      # Secondary Title
+      $csl->{'container-title'} = $material->{secondary_title} if exists($material->{secondary_title});
+
+      # Start Page
+      $csl->{'page-first'} = $material->{spage} if exists($material->{spage});
+
+      # End Page
+      $material->{epage} =~ s/\D+//g if exists($material->{epage});
+      delete $material->{epage} if (exists($material->{epage}) && $material->{epage} eq '');
+      $csl->{'number-of-pages'} = $material->{epage} - $material->{spage}
+        if (exists($material->{epage}) && exists($material->{spage}) && looks_like_number($material->{spage}));
+
+      # ISBN
+      $csl->{ISBN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
+      $csl->{ISBN} = $material->{print_control_no} if exists($material->{print_control_no});
+    }
+
+    # 10=eBook
+    elsif ($materialResult->material_type_id == 10) {
+
+      # Type
+      $csl->{'type'} = 'book';
+
+      # Secondary Title
+      $csl->{'collection-title'} = $material->{secondary_title} if exists($material->{secondary_title});
+
+      # Secondary Authors
+      $csl->{editor} = [];
+      push @{$csl->{editor}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
+
+      # Start Page -> Number of Pages
+      $material->{spage} =~ s/\D+//g if exists($material->{spage});
+      $csl->{'number-of-pages'} = $material->{spage} if exists($material->{spage});
+
+      # ISBN
+      $csl->{ISBN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
+      $csl->{ISBN} = $material->{print_control_no} if exists($material->{print_control_no});
+    }
+
+    # 11=AV
+    elsif ($materialResult->material_type_id == 11) {
+
+      # Type
+      $csl->{'type'} = 'broadcast';
+
+      # Secondary Title
+      $csl->{'collection-title'} = $material->{secondary_title} if exists($material->{secondary_title});
+
+      # Secondary Authors
+      $csl->{editor} = [];
+      push @{$csl->{editor}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
+    }
+
+    # 12=Note
+    # 13=Private Note
+    # NONE
+    else {
+      # Type
+      $csl->{'type'} = 'book';
+
+      # Secondary Title
+      $csl->{'collection-title'} = $material->{secondary_title} if exists($material->{secondary_title});
+
+      # Secondary Authors
+      $csl->{editor} = [];
+      push @{$csl->{editor}}, {literal => $material->{secondary_authors}} if exists($material->{secondary_authors});
+
+      # Start Page -> Number of Pages
+      $material->{spage} =~ s/\D+//g if exists($material->{spage});
+      $csl->{'number-of-pages'} = $material->{spage} if exists($material->{spage});
+
+      # ISBN
+      $csl->{ISBN} = $material->{elec_control_no}  if exists($material->{elec_control_no});
+      $csl->{ISBN} = $material->{print_control_no} if exists($material->{print_control_no});
+    }
+
+    # 12=Note and 13=Private Note are handled prior to this
+
+    return $csl;
+  }
+
+  sub arrayCSL {
+    my $csl = shift;
+
+    # CSL properties that we need to turn into an array of
+    # strings
+    my @array_me = ("id", "language", "genre", "ISBN", "ISSN", "medium", "note", "references", "URL");
+
+    # CSL properties that are having their type changed to number
+    my @to_number = ("number-of-pages");
+
+    # CSL properties that are having their type changed to string
+    my @to_string = ("edition", "issue", "volume");
+
+    # Iterate each property that we need to array-ify
+    for my $arr_prop (@array_me) {
+
+      # If it's defined
+      if (defined($csl->{$arr_prop})) {
+
+        # If it's not already an array
+        if (ref($csl->{$arr_prop}) ne "ARRAY") {
+
+          # Turn it into a string
+          $csl->{$arr_prop} = $csl->{$arr_prop} . "";
+
+          # Convert to an arrayref
+          $csl->{$arr_prop} = [$csl->{$arr_prop}];
+        }
+        else {
+          # It is an array, ensure it's an array of strings
+          for my $arr_ele (@{$csl->{$arr_prop}}) {
+            $arr_ele = $arr_ele . "";
+          }
         }
       }
     }
-  }
 
-  # Iterate each property that we're changing to a number
-  for my $num_prop (@to_number) {
+    # Iterate each property that we're changing to a number
+    for my $num_prop (@to_number) {
 
-    # If it's defined
-    if (defined($csl->{$num_prop})) {
-      chomp $csl->{$num_prop};
+      # If it's defined
+      if (defined($csl->{$num_prop})) {
+        chomp $csl->{$num_prop};
 
-      # If it looks like a number
-      if (Scalar::Util::looks_like_number($csl->{$num_prop})) {
+        # If it looks like a number
+        if (Scalar::Util::looks_like_number($csl->{$num_prop})) {
 
-        # Force it to a number
-        $csl->{$num_prop} = $csl->{$num_prop} + 0;
-      }
-      else {
-        # We can't turn this value into a number, so drop it
-        delete $csl->{$num_prop};
-      }
-    }
-  }
-
-  # Iterate each property that we're changing to a string
-  for my $str_prop (@to_string) {
-
-    # If it's defined
-    if (defined($csl->{$str_prop})) {
-      $csl->{$str_prop} = $csl->{$str_prop} . "";
-    }
-  }
-
-  return $csl;
-}
-
-sub cleanCSL {
-  my $csl = shift;
-
-  # Dates
-  my @dateFields = qw/accessed container event-date issued original-date submitted/;
-  my $yyyy       = qr{^(\\d{4})$};
-  my $yyyymm     = qr{^(\\d{4})-(\\d{2})$};
-  my $yyyymmdd   = qr{^(\\d{4})-(\\d{2})-(\\d{2})$};
-  my $isodate    = qr{^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$};
-
-  # Iterate each property that we need to date-ify
-  for my $date_prop (@dateFields) {
-
-    # If it's defined
-    if (defined($csl->{$date_prop})) {
-
-      # Strip Whitespace
-      $csl->{$date_prop} = trim($csl->{$date_prop});
-
-      # Coerce to ISO
-      if ($csl->{$date_prop} =~ /$yyyymmdd/) {
-        $csl->{$date_prop} = "$1-$2-$3T00:00:01Z";
-      }
-      elsif ($csl->{$date_prop} =~ /$yyyymm/) {
-        $csl->{$date_prop} = "$1-$2-01T00:00:01Z";
-      }
-      elsif ($csl->{$date_prop} =~ /$yyyy/) {
-        $csl->{$date_prop} = "$1-01-01T00:00:01Z";
-      }
-      elsif (!($csl->{$date_prop} =~ /$isodate/)) {
-
-        # Remove unrecognised format
-        delete $csl->{$date_prop};
+          # Force it to a number
+          $csl->{$num_prop} = $csl->{$num_prop} + 0;
+        }
+        else {
+          # We can't turn this value into a number, so drop it
+          delete $csl->{$num_prop};
+        }
       }
     }
+
+    # Iterate each property that we're changing to a string
+    for my $str_prop (@to_string) {
+
+      # If it's defined
+      if (defined($csl->{$str_prop})) {
+        $csl->{$str_prop} = $csl->{$str_prop} . "";
+      }
+    }
+
+    return $csl;
   }
 
-  # Language
-  my @langFields = qw/language/;
-  my $isolang    = qr{^[a-z]{2}-[A-Z]{2}$};
+  sub cleanCSL {
+    my $csl = shift;
 
-  # Iterate each property we need to language-ify
-  for my $lang_prop (@langFields) {
+    # Dates
+    my @dateFields = qw/accessed container event-date issued original-date submitted/;
+    my $yyyy       = qr{^(\\d{4})$};
+    my $yyyymm     = qr{^(\\d{4})-(\\d{2})$};
+    my $yyyymmdd   = qr{^(\\d{4})-(\\d{2})-(\\d{2})$};
+    my $isodate    = qr{^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$};
 
-    # If it's defined
-    if (defined($csl->{$lang_prop})) {
+    # Iterate each property that we need to date-ify
+    for my $date_prop (@dateFields) {
 
-      # Remove unrecognised format
-      for (my $i = $#{$csl->{$lang_prop}}; --$i >= 0;) {
-        if (!($csl->{$lang_prop}[$i] =~ /$isolang/)) {
+      # If it's defined
+      if (defined($csl->{$date_prop})) {
+
+        # Strip Whitespace
+        $csl->{$date_prop} = trim($csl->{$date_prop});
+
+        # Coerce to ISO
+        if ($csl->{$date_prop} =~ /$yyyymmdd/) {
+          $csl->{$date_prop} = "$1-$2-$3T00:00:01Z";
+        }
+        elsif ($csl->{$date_prop} =~ /$yyyymm/) {
+          $csl->{$date_prop} = "$1-$2-01T00:00:01Z";
+        }
+        elsif ($csl->{$date_prop} =~ /$yyyy/) {
+          $csl->{$date_prop} = "$1-01-01T00:00:01Z";
+        }
+        elsif (!($csl->{$date_prop} =~ /$isodate/)) {
 
           # Remove unrecognised format
-          delete $csl->{$lang_prop}[$i];
+          delete $csl->{$date_prop};
         }
       }
     }
-  }
 
-  # Strings
-  my @strings = (qw/chapter-number citation-number collection-number number-of-volumes page page-first/);
+    # Language
+    my @langFields = qw/language/;
+    my $isolang    = qr{^[a-z]{2}-[A-Z]{2}$};
 
-  # Force strings to strings
-  for my $key (@strings) {
-    if (exists($csl->{$key})) {
-      $csl->{$key} = $csl->{$key} . "";
-    }
-  }
+    # Iterate each property we need to language-ify
+    for my $lang_prop (@langFields) {
 
-  # Numbers
-  my @to_number = ("number-of-pages");
+      # If it's defined
+      if (defined($csl->{$lang_prop})) {
 
-  # Force numbers to numbers
-  for my $num_prop (@to_number) {
+        # Remove unrecognised format
+        for (my $i = $#{$csl->{$lang_prop}}; --$i >= 0;) {
+          if (!($csl->{$lang_prop}[$i] =~ /$isolang/)) {
 
-    # If it's defined
-    if (defined($csl->{$num_prop})) {
-      chomp $csl->{$num_prop};
-
-      # If it looks like a number
-      if (Scalar::Util::looks_like_number($csl->{$num_prop})) {
-
-        # Force it to a number
-        $csl->{$num_prop} = $csl->{$num_prop} + 0;
-      }
-      else {
-        # We can't turn this value into a number, so drop it
-        delete $csl->{$num_prop};
+            # Remove unrecognised format
+            delete $csl->{$lang_prop}[$i];
+          }
+        }
       }
     }
-  }
 
-  # Remove any empty/undefined fields
-  for my $key (keys %{$csl}) {
-    if (ref $csl->{$key} eq 'ARRAY' && !@{$csl->{$key}} || !defined($csl->{$key})) {
-      delete $csl->{$key};
+    # Strings
+    my @strings = (qw/chapter-number citation-number collection-number number-of-volumes page page-first/);
+
+    # Force strings to strings
+    for my $key (@strings) {
+      if (exists($csl->{$key})) {
+        $csl->{$key} = $csl->{$key} . "";
+      }
     }
+
+    # Numbers
+    my @to_number = ("number-of-pages");
+
+    # Force numbers to numbers
+    for my $num_prop (@to_number) {
+
+      # If it's defined
+      if (defined($csl->{$num_prop})) {
+        chomp $csl->{$num_prop};
+
+        # If it looks like a number
+        if (Scalar::Util::looks_like_number($csl->{$num_prop})) {
+
+          # Force it to a number
+          $csl->{$num_prop} = $csl->{$num_prop} + 0;
+        }
+        else {
+          # We can't turn this value into a number, so drop it
+          delete $csl->{$num_prop};
+        }
+      }
+    }
+
+    # Remove any empty/undefined fields
+    for my $key (keys %{$csl}) {
+      if (ref $csl->{$key} eq 'ARRAY' && !@{$csl->{$key}} || !defined($csl->{$key})) {
+        delete $csl->{$key};
+      }
+    }
+
+    return $csl;
   }
 
-  return $csl;
-}
-
-sub trim {
-  my $string = shift;
-  $string =~ s/^\s+//;
-  $string =~ s/\s+$//;
-  return $string;
-}
+  sub trim {
+    my $string = shift;
+    $string =~ s/^\s+//;
+    $string =~ s/\s+$//;
+    return $string;
+  }
