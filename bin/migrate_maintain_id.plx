@@ -593,7 +593,6 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           {
             $owner_uuid = $rl1_material->print_sysno;
             $owner_uuid =~ s/\^/,/g;    # Convert `^` to `,` for EDS records
-
           }
           elsif (defined($rl1_material->elec_sysno)
             && $rl1_material->elec_sysno ne ''
@@ -601,7 +600,6 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           {
             $owner_uuid = $rl1_material->elec_sysno;
             $owner_uuid =~ s/\^/,/g;    # Convert `^` to `,` for EDS records
-
           }
           if (defined($owner_uuid)) {
             my $containerResult = $rebus2->resultset('Material')->find({owner => $owner, owner_uuid => $owner_uuid});
