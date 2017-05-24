@@ -444,7 +444,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
         # Article/Chapter (Local unless Summon/EDS)
         if ( ($config->{'connector'} !~ m/.*_summon|.*_eds/ && $csl->{type} eq 'article')
-          || ($config->{'connector'} !~ m/|.*_eds/ && $csl->{type} eq 'chapter'))
+          || ($config->{'connector'} !~ m/.*_eds/ && $csl->{type} eq 'chapter'))
         {
           $owner      = $config->{'code'};
           $owner_uuid = '1-';
