@@ -446,6 +446,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         if ( ($config->{'connector'} !~ m/.*_summon|.*_eds/ && $csl->{type} eq 'article')
           || ($config->{'connector'} !~ m/.*_eds/ && $csl->{type} eq 'chapter'))
         {
+          print "Found article/chapter\n";
           $owner      = $config->{'code'};
           $owner_uuid = '1-';
         }
@@ -469,9 +470,12 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         }
 
         # Remote from _eds URL
-        elsif ($config->{'connector'} =~ m/|.*_eds/
+        elsif (
+             $config->{'connector'} =~ m/|.*_eds/
           && defined($rl1_material->url)
-          && $rl1_material->url =~ m/^.*&db=(.*)&AN=(.*)&.*$/)
+          && ( $rl1_material->url =~ m/^.*&db=(.*)&AN=(.*)&.*$/
+            || $rl1_material->url =~ m/^.*&amp;db=(.*)&amp;AN=(.*)&amp;*$/)
+          )
         {
           $owner      = $config->{'connector'};
           $owner_uuid = $1 . "," . $2;
