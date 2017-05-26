@@ -900,8 +900,9 @@ sub addMaterial {
   my $delayed    = $materialRecord->{delayed_link};
 
   # If container_uuid, add first and link
+  my $containerResult;
   if (defined($container_uuid)) {
-    my $containerResult
+    $containerResult
       = $rebus2->resultset('Material')->find({owner => $config->{connector}, owner_uuid => $container_uuid});
     unless (defined($containerResult)) {
       my $metadata = {id => [$container_uuid], type => 'unknown', title => 'Skelital Container Record'};
