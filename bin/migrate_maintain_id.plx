@@ -927,7 +927,7 @@ sub addMaterial {
         my $new_material = $found->next;
         my $linked
           = $rebus2->resultset('MaterialAnalytic')
-          ->find({container_id = $containerResult->id, analytic_id => $new_material->id})
+          ->find({container_id => $containerResult->id, analytic_id => $new_material->id})
           if (defined($containerResult));
         return $new_material if (!defined($containerResult) || defined($linked));
       }
@@ -941,7 +941,7 @@ sub addMaterial {
             my $new_material = $found2->next;
             my $linked
               = $rebus2->resultset('MaterialAnalytic')
-              ->find({container_id = $containerResult->id, analytic_id => $new_material->id})
+              ->find({container_id => $containerResult->id, analytic_id => $new_material->id})
               if (defined($containerResult));
             return $new_material if (!defined($containerResult) || defined($linked));
           }
@@ -955,7 +955,7 @@ sub addMaterial {
             my $new_material = $found2->next;
             my $linked
               = $rebus2->resultset('MaterialAnalytic')
-              ->find({container_id = $containerResult->id, analytic_id => $new_material->id})
+              ->find({container_id => $containerResult->id, analytic_id => $new_material->id})
               if (defined($containerResult));
             return $new_material if (!defined($containerResult) || defined($linked));
           }
