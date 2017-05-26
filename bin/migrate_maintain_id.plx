@@ -383,10 +383,21 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           }
           elsif (defined($config->{'has_notes'}) && $config->{'has_notes'}) {
 
+            my $materialRecord = {
+              in_stock      => 0,
+              metadata      => {type => 'note', title => $note},
+              owner         => $config->{code},
+              owner_uuid    => '1-',
+              electronic    => undef,
+              web_link      => undef,
+              lms_link      => undef,
+              status_link   => undef,
+              fulltext_link => undef,
+              delayed_link  => undef
+            };
+
             # Add `note` material
-            my $rl2_material
-              = addMaterial(0, {type => 'note', title => $note}, $config->{'code'}, '1-', 0, undef, undef, undef,
-              undef);
+            my $rl2_material = addMaterial($materialRecord, undef);
 
             # Link to list in appropriate location
             my $rl1_note = $rl1_material->note;    #believe it or not, in rl1 you could add a note to a note!
@@ -440,15 +451,22 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         $csl = cleanCSL($csl);
 
         # Identify RL1 Local, Article and Chapter Type Materials
-        my ($owner, $owner_uuid);
+        my ($owner, $owner_uuid, $container_uuid);
 
         # Article/Chapter (Local unless Summon/EDS)
         if ( ($config->{'connector'} !~ m/.*_summon|.*_eds/ && $csl->{type} eq 'article')
           || ($config->{'connector'} !~ m/.*_eds/ && $csl->{type} eq 'chapter'))
         {
-          print "Found article/chapter\n";
-          $owner      = $config->{'code'};
-          $owner_uuid = '1-';
+          $owner          = $config->{'code'};
+          $owner_uuid     = '1-';
+          $container_uuid = $rl1_material->elec_sysno
+            if (defined($rl1_material->elec_sysno)
+            && $rl1_material->elec_sysno ne ''
+            && !($rl1_material->elec_sysno =~ /^\s*$/));
+          $container_uuid = $rl1_material->print_sysno
+            if (defined($rl1_material->print_sysno)
+            && $rl1_material->print_sysno ne ''
+            && !($rl1_material->print_sysno =~ /^\s*$/));
         }
 
         # Remote from print_sysno
@@ -505,9 +523,21 @@ for my $rl1_sequence (@rl1_sequenceResults) {
         $web = $rl1_material->url
           if (defined($rl1_material->url) && $rl1_material->url ne '' && !($rl1_material->url =~ /^\s*$/));
 
+        my $materialRecord = {
+          in_stock => $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
+          metadata => $csl,
+          owner    => $owner,
+          owner_uuid    => $owner_uuid,
+          electronic    => $eBook,
+          web_link      => $web,
+          lms_link      => $lms,
+          status_link   => undef,
+          fulltext_link => $full,
+          delayed_link  => $delayed
+        };
+
         # Add material
-        my $rl2_material = addMaterial($rl1_material->in_stock_yn eq 'y' ? 1 : 0,
-          $csl, $owner, $owner_uuid, $eBook, $web, $lms, $full, $delayed);
+        my $rl2_material = addMaterial($materialRecord, $container_uuid);
 
         # Get list note
         my $rl1_note = $rl1_material->note;
@@ -549,8 +579,20 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           $csl->{'type'} = 'chapter';
           delete($csl->{'id'});
 
-          $rl2_material = addMaterial($rl1_material->in_stock_yn eq 'y' ? 1 : 0,
-            $csl, $config->{'code'}, '1-', $eBook, $web, $lms, $full, $delayed);
+          my $materialRecord = {
+            in_stock => $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
+            metadata => $csl,
+            owner    => $config->{code},
+            owner_uuid    => '1-',
+            electronic    => $eBook,
+            web_link      => $web,
+            lms_link      => $lms,
+            status_link   => undef,
+            fulltext_link => $full,
+            delayed_link  => $delayed
+          };
+
+          $rl2_material = addMaterial($materialRecord, undef);
 
           $rl2_sequence = $rebus2->resultset('ListMaterial')->find_or_create(
             {
@@ -667,9 +709,21 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           $owner_uuid = $rl1_material->elec_sysno;
           $lms        = $config->{'opac_url'} . $rl1_material->elec_sysno;
 
+          my $materialRecord = {
+            in_stock => $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
+            metadata => $csl,
+            owner    => $owner,
+            owner_uuid    => $owner_uuid,
+            electronic    => $eBook,
+            web_link      => $web,
+            lms_link      => $lms,
+            status_link   => undef,
+            fulltext_link => $full,
+            delayed_link  => $delayed
+          };
+
           # Add material
-          my $rl2_alt_material = addMaterial($rl1_material->in_stock_yn eq 'y' ? 1 : 0,
-            $csl, $owner, $owner_uuid, $eBook, $web, $lms, $full, $delayed);
+          my $rl2_alt_material = addMaterial($materialRecord, $container_uuid);
 
           # Link material as alternative
           my $rl2_sequence = $rebus2->resultset('ListMaterialAlternative')->create(
@@ -834,7 +888,30 @@ for my $rl1_owner (@rl1_owners) {
 
 # Routines
 sub addMaterial {
-  my ($in_stock, $metadata, $owner, $owner_uuid, $eBook, $web, $lms, $full, $delayed) = @_;
+  my ($materialRecord, $container_uuid) = @_;
+  my $in_stock   = $materialRecord->{in_stock};
+  my $metadata   = $materialRecord->{metadata};
+  my $owner      = $materialRecord->{owner};
+  my $owner_uuid = $materialRecord->{owner_uuid};
+  my $eBook      = $materialRecord->{electronic};
+  my $web        = $materialRecord->{web_link};
+  my $lms        = $materialRecord->{lms_link};
+  my $full       = $materialRecord->{fulltext_link};
+  my $delayed    = $materialRecord->{delayed_link};
+
+  # If container_uuid, add first and link
+  if (defined($container_uuid)) {
+    my $containerResult
+      = $rebus2->resultset('Material')->find({owner => $config->{connector}, owner_uuid => $container_uuid});
+    unless (defined($containerResult)) {
+      my $metadata = {id => [$container_uuid], type => 'unknown', title => 'Skelital Container Record'};
+      $containerResult
+        = $rebus2->resultset('Material')
+        ->find_or_create(
+        {in_stock => 1, metadata => $metadata, owner => $owner, owner_uuid => $owner_uuid, electronic => 0},
+        {key      => 'owner'});
+    }
+  }
 
   # Local Material
   if ($owner_uuid eq '1-') {
@@ -847,7 +924,11 @@ sub addMaterial {
       my ($isbn, $issn);
       if ($found->count == 1) {
         my $new_material = $found->next;
-        return $new_material;
+        my $linked
+          = $rebus2->resultset('MaterialAnalytic')
+          ->find({container_id = $containerResult->id, analytic_id => $new_material->id})
+          if (defined($containerResult));
+        return $new_material if (!defined($containerResult) || defined($linked));
       }
       elsif ($found->count >= 1) {
         $isbn = $metadata->{ISBN} if exists($metadata->{ISBN});
@@ -857,7 +938,11 @@ sub addMaterial {
           my $found2    = $found->search({metadata => {'@>' => $json_isbn}});
           if ($found2->count == 1) {
             my $new_material = $found2->next;
-            return $new_material;
+            my $linked
+              = $rebus2->resultset('MaterialAnalytic')
+              ->find({container_id = $containerResult->id, analytic_id => $new_material->id})
+              if (defined($containerResult));
+            return $new_material if (!defined($containerResult) || defined($linked));
           }
         }
         $issn = $metadata->{ISSN} if exists($metadata->{ISSN});
@@ -867,7 +952,11 @@ sub addMaterial {
           my $found2    = $found->search({metadata => {'@>' => $json_issn}});
           if ($found2->count == 1) {
             my $new_material = $found2->next;
-            return $new_material;
+            my $linked
+              = $rebus2->resultset('MaterialAnalytic')
+              ->find({container_id = $containerResult->id, analytic_id => $new_material->id})
+              if (defined($containerResult));
+            return $new_material if (!defined($containerResult) || defined($linked));
           }
         }
       }
@@ -902,6 +991,11 @@ sub addMaterial {
       warn "Errors: " . Dumper(@errors) . "\n";
       exit;
     }
+
+    # Add analytic link
+    $rebus2->resultset('MaterialAnalytic')
+      ->find_or_create({container_id => $containerResult->id, analytic_id => $new_material->id})
+      if (defined($containerResult));
 
     return $new_material;
   }
