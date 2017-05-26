@@ -1449,6 +1449,7 @@ sub cleanCSL {
       elsif (!($csl->{$date_prop} =~ /$isodate/)) {
 
         # Remove unrecognised format
+        warn "unrecognised date format: $csl->{$date_prop}\n";
         delete $csl->{$date_prop};
       }
     }
