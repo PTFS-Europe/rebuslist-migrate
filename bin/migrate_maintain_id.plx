@@ -1055,7 +1055,7 @@ sub addMaterial {
 }
 
 sub addTag {
-  my $text = shift;
+  my $text = fix_latin(decode_entitie(shift));
 
   $text = trim($text);
 
