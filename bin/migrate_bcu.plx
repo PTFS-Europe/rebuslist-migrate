@@ -371,8 +371,21 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           my $title = defined($csl->{'title'}) ? $csl->{'title'} : 'Unknown';
           $csl->{title} = "Section from " . $title . "|" . $str . "|";
           $csl->{type}  = 'chapter';
-          $owner        = $config->{'code'};
-          $owner_uuid   = '1-';
+
+          # Start Page
+          my $spage = $rl1_material->spage;
+          my $epage = $rl1_material->epage;
+          $spage =~ s/pp\.//g if defined($spage);
+          $epage =~ s/pp\.//g if defined($epage);
+          $csl->{'page-first'} = $spage if defined($spage);
+
+          # End Page
+          $epage =~ s/\D+//g if defined($epage);
+          $csl->{'number-of-pages'} = $epage - $spage
+            if (defined($epage) && defined($spage) && looks_like_number($spage));
+
+          $owner      = $config->{'code'};
+          $owner_uuid = '1-';
         }
         elsif ($csl->{type} eq 'article' || $csl->{type} eq 'chapter') {
           $owner      = $config->{'code'};
