@@ -1422,10 +1422,11 @@ sub cleanCSL {
 
   # Dates
   my @dateFields = qw/accessed container event-date issued original-date submitted/;
-  my $yyyy       = qr{^(\\d{4})$};
-  my $yyyymm     = qr{^(\\d{4})-(\\d{2})$};
-  my $yyyymmdd   = qr{^(\\d{4})-(\\d{2})-(\\d{2})$};
-  my $isodate    = qr{^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$};
+  my $yyyy       = qr{^(\d{4})$}x;
+  my $yyyymm     = qr{^(\d{4})-(\d{2})$}x;
+  my $yyyymmdd   = qr{^(\d{4})-(\d{2})-(\d{2})$}x;
+  my $isodate    = qr{^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-][0-2]\d:[0-5]\d|Z)$}x;
+  my $ddmmyyyy   = qr{^(\d{2})-(\d{2})-(\d{4})$}x;
 
   # Iterate each property that we need to date-ify
   for my $date_prop (@dateFields) {
@@ -1439,6 +1440,9 @@ sub cleanCSL {
       # Coerce to ISO
       if ($csl->{$date_prop} =~ /$yyyymmdd/) {
         $csl->{$date_prop} = "$1-$2-$3T00:00:01Z";
+      }
+      elsif ($csl->{$date_prop} =~ /$ddmmyyyy/x) {
+        $csl->{$date_prop} = "$3-$2-$1T00:00:01Z";
       }
       elsif ($csl->{$date_prop} =~ /$yyyymm/) {
         $csl->{$date_prop} = "$1-$2-01T00:00:01Z";
