@@ -982,7 +982,7 @@ sub addMaterial {
     my @errors = $validator->validate($metadata);
     if (@errors) {
       use Data::Dumper;
-      warn "Errors: " . Dumper(@errors) . "\n";
+      warn "Errors: " . Dumper(@errors);
       exit;
     }
 
@@ -1010,7 +1010,7 @@ sub addMaterial {
     my @errors = $validator->validate($metadata);
     if (@errors) {
       use Data::Dumper;
-      warn "Errors: " . Dumper(@errors) . "\n";
+      warn "Errors: " . Dumper(@errors);
       exit;
     }
 
@@ -1432,16 +1432,16 @@ sub cleanCSL {
 
       # Coerce to ISO
       if ($csl->{$date_prop} =~ /$yyyymmdd/) {
-        $csl->{$date_prop} = "$1-$2-$3T00:00:01Z";
+        $csl->{$date_prop} = {raw => "$1-$2-$3T00:00:01Z"};
       }
       elsif ($csl->{$date_prop} =~ /$ddmmyyyy/x) {
-        $csl->{$date_prop} = "$3-$2-$1T00:00:01Z";
+        $csl->{$date_prop} = {raw => "$3-$2-$1T00:00:01Z"};
       }
       elsif ($csl->{$date_prop} =~ /$yyyymm/) {
-        $csl->{$date_prop} = "$1-$2-01T00:00:01Z";
+        $csl->{$date_prop} = {raw => "$1-$2-01T00:00:01Z"};
       }
       elsif ($csl->{$date_prop} =~ /$yyyy/) {
-        $csl->{$date_prop} = "$1-01-01T00:00:01Z";
+        $csl->{$date_prop} = {raw => "$1-01-01T00:00:01Z"};
       }
       elsif (!($csl->{$date_prop} =~ /$isodate/)) {
 
