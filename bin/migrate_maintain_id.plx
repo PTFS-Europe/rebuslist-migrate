@@ -169,9 +169,6 @@ sub recurse {
 
         $rl2_unit->update({'source_uuid' => $config->{'code'} . "-" . $rl2_unit->id});
 
-        # Ensure Unit it refetched
-        $rl2_unit->discard_changes;
-
         # Add to lookup table
         $unit_links->{$rl1_unit->org_unit_id} = $rl2_unit->id;
         push @{$new_parents}, $rl1_unit->org_unit_id unless any { $_ == $rl1_unit->org_unit_id } @{$new_parents};
@@ -199,9 +196,6 @@ sub recurse {
 
         $rl2_unit->update({'source_uuid' => $config->{'code'} . "-" . $rl2_unit->id});
 
-        # Ensure Unit it refetched
-        $rl2_unit->discard_changes;
-
         # Add to lookup table
         $unit_links->{$rl1_unit->org_unit_id} = $rl2_unit->id;
         push @{$new_parents}, $rl1_unit->org_unit_id unless any { $_ == $rl1_unit->org_unit_id } @{$new_parents};
@@ -215,10 +209,9 @@ sub recurse {
       while (my $rl2_list = $rl2_listResults->next) {
 
         # Attach list
-        $rl2_unit->discard_changes;
         $rl2_unit->attach_rightmost_child($rl2_list);
-        $rl2_list->discard_changes;
-        $rl2_unit->discard_changes;
+
+        # $rl2_unit->discard_changes; # I thin this is done internally in ::NestedSet anyway
       }
     }
     recurse($new_parents, $unit_links);
