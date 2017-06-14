@@ -223,7 +223,7 @@ $current_line = 0;
 my $user_links;
 my @rl1_userResults = $rebus1->resultset('User')->search(undef, {order_by => {-asc => [qw/type_id name/]}})->all;
 
-my $role_map = {1 => 'librarian', 2 => 'staff', 3 => 'public', 4 => 'admin'};
+my $role_map = {1 => 'librarian', 2 => 'staff', 3 => 'public', 4 => 'admin', 999 => 'public'};
 
 for my $rl1_user (@rl1_userResults) {
 
