@@ -107,6 +107,7 @@ for my $rl1_list ($rl1_listResults->all) {
   $list_links->{$rl1_list->list_id} = $rl2_list->id;
   push @{$parent_links->{$rl1_list->org_unit_id}}, $rl2_list->id;
 }
+$list_progress->update($total);
 
 # Update Sequence
 $rebus2->storage->dbh_do(
@@ -116,7 +117,11 @@ $rebus2->storage->dbh_do(
 );
 
 # Add units
-print "Importing units...\n";
+my $unit_progress = Term::ProgressBar->new({name => "Importing Units", count => $total});
+$user_progress->minor(0);
+$next_update  = 0;
+$current_line = 0;
+
 my $current_level = 0;
 
 my $unit_links = recurse([0], {});
@@ -208,6 +213,10 @@ sub recurse {
 
       while (my $rl2_list = $rl2_listResults->next) {
 
+        # Update Progress
+        $current_line++;
+        $next_update = $unit_progress->update($current_line) if $current_line > $next_update;
+
         # Attach list
         $rl2_unit->attach_rightmost_child($rl2_list);
 
@@ -220,6 +229,7 @@ sub recurse {
     return $unit_links;
   }
 }
+$unit_progress->update($total);
 
 # User, UserType
 $total = $rebus1->resultset('User')->count;
@@ -272,6 +282,7 @@ for my $rl1_user (@rl1_userResults) {
   # Add to lookup table
   $user_links->{$rl1_user->user_id} = $rl2_user->id;
 }
+$user_progress->update($total);
 say "Users loaded...\n";
 
 # Erbo
@@ -299,6 +310,7 @@ for my $rl1_erbo (@rl1_erboResults) {
   # Add to lookup table
   $erbo_links->{$rl1_erbo->erbo_id} = $rl2_erbo->id;
 }
+$category_progress->update($total);
 
 # Update preference table
 my $rl2_categoriesResult = $rebus2->resultset('Category')->search(undef, {order_by => 'rank'});
@@ -732,6 +744,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
     }
   }
 }
+$material_progress->update($total);
 
 # Update counts
 say "Updating material counts...\n";
@@ -842,6 +855,7 @@ for my $rl1_ulp (@rl1_user_list_permissionResults) {
 
   }
 }
+$permission_progress->update($total);
 
 say "Permissions loaded...\n";
 
@@ -878,6 +892,7 @@ for my $rl1_owner (@rl1_owners) {
     );
   }
 }
+$owners_progress->update($total);
 
 # Routines
 sub addMaterial {
