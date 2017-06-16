@@ -118,7 +118,7 @@ $rebus2->storage->dbh_do(
 
 # Add units
 my $unit_progress = Term::ProgressBar->new({name => "Importing Units", count => $total});
-$user_progress->minor(0);
+$unit_progress->minor(0);
 $next_update  = 0;
 $current_line = 0;
 
@@ -1460,6 +1460,12 @@ sub cleanCSL {
 
       # Strip Whitespace
       $csl->{$date_prop} = trim($csl->{$date_prop});
+
+      # Strip trailing period or comma
+      $csl->{$data_prop} =~ s/,$|\.$//g;
+
+      # Strip preceeding 'c'
+      $csl->{$date_prop} =~ s/^c//g;
 
       # Coerce to ISO
       if ($csl->{$date_prop} =~ /$yyyymmdd/) {
