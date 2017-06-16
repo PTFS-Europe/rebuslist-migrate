@@ -1462,7 +1462,7 @@ sub cleanCSL {
       $csl->{$date_prop} = trim($csl->{$date_prop});
 
       # Strip trailing period or comma
-      $csl->{$data_prop} =~ s/,$|\.$//g;
+      $csl->{$date_prop} =~ s/,$|\.$//g;
 
       # Strip preceeding 'c'
       $csl->{$date_prop} =~ s/^c//g;
