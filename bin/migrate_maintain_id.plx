@@ -108,6 +108,7 @@ for my $rl1_list ($rl1_listResults->all) {
   push @{$parent_links->{$rl1_list->org_unit_id}}, $rl2_list->id;
 }
 $list_progress->update($total);
+print "\n";
 
 # Update Sequence
 $rebus2->storage->dbh_do(
@@ -230,6 +231,7 @@ sub recurse {
   }
 }
 $unit_progress->update($total);
+print "\n";
 
 # User, UserType
 $total = $rebus1->resultset('User')->count;
@@ -283,7 +285,7 @@ for my $rl1_user (@rl1_userResults) {
   $user_links->{$rl1_user->user_id} = $rl2_user->id;
 }
 $user_progress->update($total);
-say "Users loaded...\n";
+print "\n";
 
 # Erbo
 $total = $rebus1->resultset('Erbo')->count;
@@ -310,7 +312,6 @@ for my $rl1_erbo (@rl1_erboResults) {
   # Add to lookup table
   $erbo_links->{$rl1_erbo->erbo_id} = $rl2_erbo->id;
 }
-$category_progress->update($total);
 
 # Update preference table
 my $rl2_categoriesResult = $rebus2->resultset('Category')->search(undef, {order_by => 'rank'});
@@ -318,7 +319,9 @@ my @rl2_categoriesArray  = $rl2_categoriesResult->get_column('category')->all;
 my $rl2_categories_json  = encode_json \@rl2_categoriesArray;
 my $rl2_preferenceResult = $rebus2->resultset('Preference')->find({code => 'categories'});
 $rl2_preferenceResult->update({content => $rl2_categories_json});
-say "Categories loaded...\n";
+
+$category_progress->update($total);
+print "\n";
 
 # Sequence, Material, MaterialType, MaterialRating, MaterialLabel, Tag, TagLink, MetadataSource
 $total = $rebus1->resultset('Sequence')->count;
@@ -755,6 +758,7 @@ for my $rl1_sequence (@rl1_sequenceResults) {
   }
 }
 $material_progress->update($total);
+print "\n";
 
 # Update counts
 say "Updating material counts...\n";
@@ -866,8 +870,7 @@ for my $rl1_ulp (@rl1_user_list_permissionResults) {
   }
 }
 $permission_progress->update($total);
-
-say "Permissions loaded...\n";
+print "\n";
 
 # OwnersLink
 $total = $rebus1->resultset('OwnersLink')->count;
@@ -903,6 +906,7 @@ for my $rl1_owner (@rl1_owners) {
   }
 }
 $owners_progress->update($total);
+print "\n";
 
 # Routines
 sub addMaterial {
