@@ -460,7 +460,8 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
         # Article/Chapter (Local unless Summon/EDS)
         if ( ($config->{'connector'} !~ m/.*_summon|.*_eds/ && $csl->{type} eq 'article')
-          || ($config->{'connector'} !~ m/.*_eds/ && $csl->{type} eq 'chapter'))
+          || ($config->{'connector'} !~ m/.*_eds/ && $csl->{type} eq 'chapter')
+          || $csl->{type} eq 'entry')
         {
           $owner          = $config->{'code'};
           $owner_uuid     = '1-';
@@ -529,13 +530,13 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           if (defined($rl1_material->url)
           && $rl1_material->url ne ''
           && !($rl1_material->url =~ /^\s*$/)
-          && !($csl->{'type'} eq 'article' || $csl->{'type'} eq 'chapter'));
+          && !($csl->{'type'} eq 'article' || $csl->{'type'} eq 'chapter' || $csl->{'type'} eq 'entry'));
 
         $full = $rl1_material->url
           if (defined($rl1_material->url)
           && $rl1_material->url ne ''
           && !($rl1_material->url =~ /^\s*$/)
-          && ($csl->{'type'} eq 'article' || $csl->{'type'} eq 'chapter'));
+          && ($csl->{'type'} eq 'article' || $csl->{'type'} eq 'chapter' || $csl->{'type'} eq 'entry'));
 
         my $materialRecord = {
           in_stock => $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
