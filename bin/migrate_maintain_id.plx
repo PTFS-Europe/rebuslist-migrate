@@ -526,7 +526,16 @@ for my $rl1_sequence (@rl1_sequenceResults) {
           && !($rl1_material->elec_sysno =~ /^\s*$/));
 
         $web = $rl1_material->url
-          if (defined($rl1_material->url) && $rl1_material->url ne '' && !($rl1_material->url =~ /^\s*$/));
+          if (defined($rl1_material->url)
+          && $rl1_material->url ne ''
+          && !($rl1_material->url =~ /^\s*$/)
+          && !($csl->{'type'} eq 'article' || $csl->{'type'} eq 'chapter'));
+
+        $full = $rl1_material->url
+          if (defined($rl1_material->url)
+          && $rl1_material->url ne ''
+          && !($rl1_material->url =~ /^\s*$/)
+          && ($csl->{'type'} eq 'article' || $csl->{'type'} eq 'chapter'));
 
         my $materialRecord = {
           in_stock => $rl1_material->in_stock_yn eq 'y' ? 1 : 0,
@@ -925,17 +934,23 @@ sub addMaterial {
   # Local Material
   if ($owner_uuid eq '1-') {
     if ($metadata->{'type'} ne 'note') {
-      my $title      = $metadata->{'title'};
-      my $type       = $metadata->{'type'};
-      my $title_json = {title => $title, type => $type};
+      my $title_json;
+      $title_json->{'title'}           = $metadata->{'title'}           if defined($metadata->{'title'});
+      $title_json->{'container-title'} = $metadata->{'container-title'} if defined($metadata->{'container-title'});
+      $title_json->{'page-first'}      = $metadata->{'page-first'}      if defined($metadata->{'page-first'});
+      $title_json->{'number-of-pages'} = $metadata->{'number-of-pages'} if defined($metadata->{'number-of-pages'});
+      $title_json->{'URL'}             = $metadata->{'URL'}             if defined($metadata->{'URL'});
+      $title_json->{'type'}            = $metadata->{'type'}            if defined($metadata->{'type'});
       my $json_title = encode_json $title_json;
       my $found = $rebus2->resultset('Material')->search({metadata => {'@>' => $json_title}, electronic => $eBook});
       my ($isbn, $issn);
+
+      my $linked;
       if ($found->count == 1) {
         my $new_material = $found->next;
-        my $linked
+        $linked
           = $rebus2->resultset('MaterialAnalytic')
-          ->find({container_id => $containerResult->id, analytic_id => $new_material->id})
+          ->find_or_create({container_id => $containerResult->id, analytic_id => $new_material->id})
           if (defined($containerResult));
         return $new_material if (!defined($containerResult) || defined($linked));
       }
@@ -947,9 +962,9 @@ sub addMaterial {
           my $found2    = $found->search({metadata => {'@>' => $json_isbn}});
           if ($found2->count == 1) {
             my $new_material = $found2->next;
-            my $linked
+            $linked
               = $rebus2->resultset('MaterialAnalytic')
-              ->find({container_id => $containerResult->id, analytic_id => $new_material->id})
+              ->find_or_create({container_id => $containerResult->id, analytic_id => $new_material->id})
               if (defined($containerResult));
             return $new_material if (!defined($containerResult) || defined($linked));
           }
@@ -961,9 +976,9 @@ sub addMaterial {
           my $found2    = $found->search({metadata => {'@>' => $json_issn}});
           if ($found2->count == 1) {
             my $new_material = $found2->next;
-            my $linked
+            $linked
               = $rebus2->resultset('MaterialAnalytic')
-              ->find({container_id => $containerResult->id, analytic_id => $new_material->id})
+              ->find_or_create({container_id => $containerResult->id, analytic_id => $new_material->id})
               if (defined($containerResult));
             return $new_material if (!defined($containerResult) || defined($linked));
           }
