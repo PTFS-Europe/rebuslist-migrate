@@ -574,6 +574,8 @@ for my $rl1_sequence (@rl1_sequenceResults) {
 
         # If Exists, create new 'local' copy
         if (defined($rl2_sequence)) {
+          warn
+            "IN LIST duplicate found, adding second copy as new manual material: $list_links->{$rl1_sequence->list_id} - $csl->{'title'}\n\n";
 
           my $original_materialID = $rl2_material->id;
 
@@ -645,45 +647,6 @@ for my $rl1_sequence (@rl1_sequenceResults) {
             },
             {key => 'primary'}
           );
-        }
-
-        # Add material analytic link (if chapter or article)
-        if ($csl->{type} eq 'article' || $csl->{type} eq 'chapter') {
-          $owner      = $config->{'connector'};
-          $owner_uuid = undef;
-          if ( defined($rl1_material->print_sysno)
-            && $rl1_material->print_sysno ne ''
-            && !($rl1_material->print_sysno =~ /^\s*$/))
-          {
-            $owner_uuid = $rl1_material->print_sysno;
-            $owner_uuid =~ s/\^/,/g;    # Convert `^` to `,` for EDS records
-          }
-          elsif (defined($rl1_material->elec_sysno)
-            && $rl1_material->elec_sysno ne ''
-            && !($rl1_material->elec_sysno =~ /^\s*$/))
-          {
-            $owner_uuid = $rl1_material->elec_sysno;
-            $owner_uuid =~ s/\^/,/g;    # Convert `^` to `,` for EDS records
-          }
-          if (defined($owner_uuid)) {
-            my $containerResult = $rebus2->resultset('Material')->find({owner => $owner, owner_uuid => $owner_uuid});
-
-            if (defined($containerResult)) {
-              $rebus2->resultset('MaterialAnalytic')
-                ->find_or_create({container_id => $containerResult->id, analytic_id => $rl2_material->id});
-            }
-            else {
-              my $metadata = {id => [$owner_uuid], type => 'unknown', title => 'Skelital Container Record'};
-              $containerResult
-                = $rebus2->resultset('Material')
-                ->find_or_create(
-                {in_stock => 1, metadata => $metadata, owner => $owner, owner_uuid => $owner_uuid, electronic => 0},
-                {key => 'owner'});
-
-              $rebus2->resultset('MaterialAnalytic')
-                ->find_or_create({container_id => $containerResult->id, analytic_id => $rl2_material->id});
-            }
-          }
         }
 
         # Get material tags
@@ -924,54 +887,56 @@ sub addMaterial {
   # If container_uuid, add first and link
   my $containerResult;
   if (defined($container_uuid)) {
+    my $metadata = {id => [$container_uuid], type => 'unknown', title => 'Skelital Container Record'};
     $containerResult
-      = $rebus2->resultset('Material')->find({owner => $config->{connector}, owner_uuid => $container_uuid});
-    unless (defined($containerResult)) {
-      my $metadata = {id => [$container_uuid], type => 'unknown', title => 'Skelital Container Record'};
-      $containerResult
-        = $rebus2->resultset('Material')
-        ->find_or_create(
-        {in_stock => 1, metadata => $metadata, owner => $owner, owner_uuid => $owner_uuid, electronic => 0},
-        {key      => 'owner'});
-    }
+      = $rebus2->resultset('Material')
+      ->find_or_create(
+      {in_stock => 1, metadata => $metadata, owner => $owner, owner_uuid => $owner_uuid, electronic => 0},
+      {key      => 'owner'});
   }
 
   # Local Material
   if ($owner_uuid eq '1-') {
+    my $json_title;
+    my $multiple = 0;
     if ($metadata->{'type'} ne 'note') {
       my $title_json;
-      $title_json->{'title'}           = $metadata->{'title'}           if defined($metadata->{'title'});
-      $title_json->{'container-title'} = $metadata->{'container-title'} if defined($metadata->{'container-title'});
-      $title_json->{'page-first'}      = $metadata->{'page-first'}      if defined($metadata->{'page-first'});
-      $title_json->{'number-of-pages'} = $metadata->{'number-of-pages'} if defined($metadata->{'number-of-pages'});
-      $title_json->{'URL'}             = $metadata->{'URL'}             if defined($metadata->{'URL'});
-      $title_json->{'type'}            = $metadata->{'type'}            if defined($metadata->{'type'});
-      my $json_title = encode_json $title_json;
+      $title_json->{'title'}           = $metadata->{'title'}           if exists($metadata->{'title'});
+      $title_json->{'container-title'} = $metadata->{'container-title'} if exists($metadata->{'container-title'});
+      $title_json->{'page-first'}      = $metadata->{'page-first'}      if exists($metadata->{'page-first'});
+      $title_json->{'number-of-pages'} = $metadata->{'number-of-pages'} if exists($metadata->{'number-of-pages'});
+      $title_json->{'URL'}             = $metadata->{'URL'}             if exists($metadata->{'URL'});
+      $title_json->{'type'}            = $metadata->{'type'}            if exists($metadata->{'type'});
+      $json_title                      = encode_json $title_json;
       my $found = $rebus2->resultset('Material')->search({metadata => {'@>' => $json_title}, electronic => $eBook});
       my ($isbn, $issn);
 
       my $linked;
       if ($found->count == 1) {
+        warn "\nOne duplicate found with: " . $json_title;
         my $new_material = $found->next;
         $linked
           = $rebus2->resultset('MaterialAnalytic')
           ->find_or_create({container_id => $containerResult->id, analytic_id => $new_material->id})
           if (defined($containerResult));
-        return $new_material if (!defined($containerResult) || defined($linked));
+        return $new_material;
       }
       elsif ($found->count >= 1) {
+        $multiple++;
+        warn "\n\nMultiple duplicates found with: " . $json_title;
         $isbn = $metadata->{ISBN} if exists($metadata->{ISBN});
         if ($isbn) {
           my $isbn_json = {ISBN => $isbn};
           my $json_isbn = encode_json $isbn_json;
           my $found2    = $found->search({metadata => {'@>' => $json_isbn}});
           if ($found2->count == 1) {
+            warn "Narrowed to one using isbn";
             my $new_material = $found2->next;
             $linked
               = $rebus2->resultset('MaterialAnalytic')
               ->find_or_create({container_id => $containerResult->id, analytic_id => $new_material->id})
               if (defined($containerResult));
-            return $new_material if (!defined($containerResult) || defined($linked));
+            return $new_material;
           }
         }
         $issn = $metadata->{ISSN} if exists($metadata->{ISSN});
@@ -980,18 +945,20 @@ sub addMaterial {
           my $json_issn = encode_json $issn_json;
           my $found2    = $found->search({metadata => {'@>' => $json_issn}});
           if ($found2->count == 1) {
+            warn "Narrowed to one using issn";
             my $new_material = $found2->next;
             $linked
               = $rebus2->resultset('MaterialAnalytic')
               ->find_or_create({container_id => $containerResult->id, analytic_id => $new_material->id})
               if (defined($containerResult));
-            return $new_material if (!defined($containerResult) || defined($linked));
+            return $new_material;
           }
         }
       }
     }
 
     # Not Found
+    warn "\nDuplicate NOT found, adding new material: " . $json_title if (defined($json_title) && $multiple);
     $metadata->{'id'} = [$owner_uuid];
     my $new_material = $rebus2->resultset('Material')->create(
       {
@@ -1542,17 +1509,18 @@ sub cleanCSL {
       }
       else {
         # We can't turn this value into a number, so drop it
-        delete $csl->{$num_prop};
+        #delete $csl->{$num_prop};
+        $csl->{$num_prop} = undef;
       }
     }
   }
 
   # Remove any empty/undefined fields
-  for my $key (keys %{$csl}) {
-    if (ref $csl->{$key} eq 'ARRAY' && !@{$csl->{$key}} || !defined($csl->{$key})) {
-      delete $csl->{$key};
-    }
-  }
+  #for my $key (keys %{$csl}) {
+  #  if (ref $csl->{$key} eq 'ARRAY' && !@{$csl->{$key}} || !defined($csl->{$key})) {
+  #    delete $csl->{$key};
+  #  }
+  #}
 
   return $csl;
 }
